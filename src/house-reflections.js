@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 import {BALCONY_DOORS,PLAN_SCALE,planPoint,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION} from './house-layout.js';
-import {MirrorHaunting} from './mirror.js';
+import {MirrorHaunting,REFLECTION_TIMING} from './mirror.js';
 import {createStandingVisitor,animateStandingVisitor} from './visitors.js';
 
 // These planes sit on existing mirrors and fixed glazing, never on the open
@@ -23,7 +23,7 @@ export function reflectionSurfaces(){
 export class HouseReflections {
  constructor(world){
   this.world=world;this.apparition=null;this.lastSurface=null;
-  this.haunting=new MirrorHaunting(Math.random,{duration:5.3,limit:14,cooldown:38,variation:28});
+  this.haunting=new MirrorHaunting(Math.random,REFLECTION_TIMING);
   this.surfaces=reflectionSurfaces().map(spec=>{
    const shader={...Reflector.ReflectorShader,uniforms:THREE.UniformsUtils.clone(Reflector.ReflectorShader.uniforms)};
    shader.uniforms.reflectionOpacity={value:spec.glass?.18:1};
@@ -73,12 +73,12 @@ export class HouseReflections {
   // their last image, keeping a house full of glass affordable on laptops.
   this.surfaces.forEach(p=>p.refresh=false);candidates.slice(0,2).forEach(c=>c.pane.refresh=true);
   const near=candidates.find(c=>{
-   if(c.distance>4||c.facing<.63)return false;
+   if(c.distance>5.2||c.facing<.55)return false;
    const ray=new THREE.Raycaster(camera.position,c.to.clone().normalize(),.04,Math.max(.04,c.distance-.16));
    return !ray.intersectObject(world.houseRoot,true).some(h=>h.object.isMesh&&!h.object.material.transparent);
   });
   if(active&&near?.pane.id!==this.lastSurface){this.haunting.wasNear=false;this.lastSurface=near?.pane.id;}
-  const event=this.haunting.tick(dt,{active,near:!!near});
+  const event=this.haunting.tick(dt,{active,near:!!near,moving:world.walking});
   if(event?.type==='show'&&near)this.reveal(near.pane,event.portrait);
   if(event?.type==='hide'||world.mode!=='play')this.clear();
   if(this.apparition){

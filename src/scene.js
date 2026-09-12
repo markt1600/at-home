@@ -118,7 +118,7 @@ export class House {
   resize(){this.camera.aspect=innerWidth/innerHeight;if(this.mode==='play'&&!this.exploring&&!this.viewingRoom&&!document.pointerLockElement)this.camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.25,innerWidth,innerHeight);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.composer.setSize(innerWidth,innerHeight);}
   canWalk(x,z){return inWalkableArea(x,z,this.exploring,this.colliders)&&Math.abs(floorHeight(x,z)-floorHeight(this.camera.position.x,this.camera.position.z))<=.12;}
   animate(){
-    requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);this.elapsed+=dt;const t=this.elapsed;
+    requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);this.elapsed+=dt;const t=this.elapsed;this.walking=false;
     if(this.mode==='menu'){const [x,z]=planPoint(527,683),[tx,tz]=planPoint(404,575);this.camera.position.set(x+Math.sin(t*.07)*.1,1.5,z);this.camera.lookAt(tx,.9,tz);}
     if(this.mode==='play'&&!this.paused){
       const direction=new THREE.Vector3((this.keys.KeyD?1:0)-(this.keys.KeyA?1:0),0,(this.keys.KeyS?1:0)-(this.keys.KeyW?1:0));
@@ -128,6 +128,7 @@ export class House {
         this.camera.position.x=step.x;this.camera.position.z=step.z;moved=step.distance;climbing=step.climbed>.001;this.walkPhase=(this.walkPhase||0)+moved*11;
         if(moved>.001&&t-(this.lastStep||0)>(climbing?.36:.5)){this.lastStep=t;this.onStep?.();}
       }
+      this.walking=moved>.001;
       this.gun.visible=!this.exploring&&(this.aim||this.recoil>0||this.weaponDrawn);
       const bob=this.motion&&moved>.001?Math.sin(this.walkPhase)*(climbing?.03:.015):0;
       this.camera.rotation.set(this.pitch+this.recoil*.04+(this.motion&&climbing?Math.cos(this.walkPhase)*.006:0),this.yaw,0,'YXZ');
