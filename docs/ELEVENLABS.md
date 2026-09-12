@@ -9,7 +9,7 @@ The intercom is an unreliable fictional voice in the school, not a character ide
 3. Add a dynamic variable named `game_context` with a default value such as `The player is waiting in classroom 04–07.`
 4. Enable transcript/message client events if they are not already enabled.
 5. For this static integration, use a public agent. Add your deployed Vercel domain to its allowed origins and configure conversation duration/concurrency limits in your ElevenLabs account. Agent use may incur charges to that account.
-6. Copy the public agent ID. For a one-off test, paste it in the game's **Intercom** panel. To configure the deployed game, set Vercel environment variable `VITE_ELEVENLABS_AGENT_ID` to that ID, then redeploy.
+6. Copy the public agent ID. For a one-off test, paste it in the game's **Intercom** panel. To configure the deployed game, set Vercel environment variable `ELEVENLABS_AGENT_ID` to that ID for the Production environment, then redeploy. The build reads this variable and includes the public agent ID in the browser bundle; changing it requires a new build. For local development, use the same name in `.env.local` and restart the development server.
 
 An agent ID is public configuration, not an API key. Do not supply an API key in the game. Private agents require an authenticated server endpoint for short-lived conversation tokens; that server flow is intentionally not exposed as an unauthenticated public endpoint in this prototype.
 
