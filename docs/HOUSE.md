@@ -14,6 +14,7 @@ This is an authored game reconstruction, not a survey, CAD conversion or photogr
 
 - `src/house-layout.js`: calibrated polygon outlines, floor levels, stair footprints and viewpoints.
 - `src/house.js`: walls, glazing, floors, ceilings, fixtures and collision volumes.
+- `src/house-architecture.js`: continuous exterior boundary, complete partition runs, and explicit door/window openings with lintels.
 - `src/plan-geometry.js`: floor cutouts for stair runs.
 - `src/navigation.js`: polygon boundaries and rotated wall collisions.
 - `src/visitors.js`: full-length photographic visitors, ground anchoring, chroma key and visible-pixel hit detection.
@@ -29,3 +30,9 @@ node scripts/export-house.mjs ../house-model.glb
 ```
 
 Surface maps, visitor sprites, rain, lighting effects and gameplay are added by the game at runtime and are not bundled in the static GLB.
+
+## Plan and walkthrough review
+
+The second geometry review corrected the lift lobby and lift-door wall, the office's recessed exterior edge, the yard's L-shaped laundry recess, the separate service bathroom/store/bedroom, and the main bedroom's vanity and wardrobe connections. The lobby now has its own ceiling. Exterior walls are generated from the union of room outlines; every intentional door and window is an explicit aperture with a wall above it. A regression check casts 693 rays across exterior walls and upper partitions, with additional checks above each doorway. Navigation checks verify every named room can be reached on foot.
+
+Furnishings follow the walkthrough where it differs from the proposed renderings: a beige massage chair in the meditation alcove, grey sofa and black lounge chair in the window lounge, glass coffee table, blue dining sideboard, bicycle storage and laundry fittings, and open bedroom shelving with the cream sofa facing the television. See [the review notes](FLOOR-PLAN-REVIEW.md) for the comparison and remaining uncertainty. These are simplified meshes, not scans of individual furniture items.

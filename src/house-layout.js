@@ -5,7 +5,9 @@ export const planPoint=(x,y)=>[(x-881)/PLAN_SCALE,(y-789)/PLAN_SCALE];
 const rect=(x0,y0,x1,y1)=>[[x0,y0],[x1,y0],[x1,y1],[x0,y1]];
 const room=(id,name,points,floor=.75,ceiling=2.66)=>({id,name,plan:points,polygon:points.map(p=>planPoint(...p)),floor,ceiling});
 export const HOUSE_ROOMS=[
- room('hall','Entrance',[[611,632],[984,632],[984,706],[944,706],[908,762],[854,816],[756,718],[611,718]],.45,2.495),
+ room('hall','Entrance',[[611,632],[947,632],[947,642],[984,642],[984,691],[925,750],[856,819],[755,718],[611,718]],.45,2.495),
+ room('lobby','Lift lobby',[[856,819],[925,750],[984,691],[1002,711],[1002,822],[947,877]],.45,2.643),
+ {...room('lift','Lift car',[[947,877],[1002,822],[1049,869],[994,924]],.45,2.4),walkable:false},
  room('passage','Main passage',[[415,397],[523,397],[523,415],[853,415],[853,482],[653,482],[653,632],[611,632],[611,532],[317,532],[317,482],[415,482]]),
  room('living','Sunken living room',rect(317,532,562,714),0,2.906),
  room('living_landing','Living landing',rect(562,532,611,718),.45,2.495),
@@ -14,22 +16,23 @@ export const HOUSE_ROOMS=[
  room('dining','Dining room',rect(317,739,523,883),.45,2.969),
  room('dining_bay','Dining balcony',[[317,741],[274,741],[248,768],[248,850],[276,883],[317,883]],.45,2.969),
  room('kitchen','Kitchen',rect(523,718,650,883),.45,2.842),
- room('utility','Utility yard',[[650,857],[826,857],[826,907],[851,920],[851,953],[650,953]],.45,2.989),
- room('service_hall','Service passage',rect(650,816,691,857),.45,2.842),
- room('service_bath','Service bathroom',rect(650,718,691,816),.45,2.842),
- room('service_room','Service room',[[691,786],[822,786],[875,857],[691,857]],.45,2.842),
- room('store','Store room',[[691,718],[756,718],[824,786],[691,786]],.45,2.495),
+ room('utility','Utility yard',[[650,857],[826,857],[826,903],[788,903],[788,948],[691,948],[691,934],[650,934]],.45,2.989),
+ room('service_hall','Service passage',rect(650,808,691,857),.45,2.842),
+ room('service_bath','Service bathroom',[[650,718],[691,718],[691,767],[714,767],[714,808],[650,808]],.45,2.842),
+ room('service_room','Service room',[[714,786],[823,786],[856,819],[818,857],[691,857],[691,808],[714,808]],.45,2.842),
+ room('store','Store room',[[691,718],[755,718],[823,786],[714,786],[714,767],[691,767]],.45,2.495),
  room('wine','Wine cellar',rect(653,482,853,632),.75,2.2),
- room('study','Home office',rect(853,531,984,632),.75,2.48),
- room('east_hall','Bedroom passage',rect(853,432,910,531)),
+ room('study','Home office',[[853,531],[984,531],[984,563],[947,563],[947,632],[853,632]],.75,2.48),
+ room('east_hall','Second bedroom entrance',rect(853,415,910,531)),
  room('guest','Second bedroom',rect(910,273,1053,457)),
  room('guest_bath','Second bathroom',rect(984,457,1053,563)),
- room('wardrobe','Walk-in wardrobe',rect(783,273,910,432)),
- room('bedroom','Main bedroom',rect(523,249,783,415)),
- room('bedroom_hall','Bedroom gallery',rect(602,208,868,273)),
- room('bath','Main bathroom',[[868,135],[942,135],[952,150],[952,254],[868,254]]),
- room('meditation','Meditation alcove',[[521,149],[538,135],[584,135],[601,149],[601,249],[521,249]]),
- room('theatre','Window lounge',[[299,232],[350,181],[448,181],[476,208],[519,208],[519,397],[331,397],[331,359],[299,332]],.75,2.8),
+ {...room('guest_storage','Bedroom storage',rect(910,457,984,531)),walkable:false},
+ room('wardrobe','Walk-in wardrobe',rect(783,273,910,415)),
+ room('bedroom','Main bedroom',[[523,249],[602,249],[602,208],[783,208],[783,415],[523,415]]),
+ room('vanity','Bathroom vanity',rect(783,208,868,273)),
+ room('bath','Main bathroom',[[868,149],[883,135],[935,135],[952,152],[952,273],[868,273]]),
+ room('meditation','Meditation alcove',[[523,149],[538,135],[584,135],[602,153],[602,249],[523,249]]),
+ room('theatre','Window lounge',[[299,232],[350,181],[448,181],[476,208],[523,208],[523,397],[331,397],[331,359],[299,332]],.75,2.8),
  room('powder','Powder room',[[299,409],[314,397],[415,397],[415,482],[314,482],[299,468]])
 ];
 export const MODEL_ROOMS=HOUSE_ROOMS;
@@ -54,17 +57,19 @@ export function floorHeight(x,z){
  }
  return HOUSE_ROOMS.find(r=>pointInPolygon(x,z,r.polygon))?.floor??.45;
 }
+export const FRONT_DOOR={center:[890.5,784.5],yaw:Math.PI/4,width:1.865,height:2.2,floor:.45};
 export const DOOR_YAW=-Math.PI*3/4;
-export const VISITOR_POSITION=[.51,.45,.51];
-export const MIRROR_POSITION=[...planPoint(768,271),1.79];
+export const VISITOR_POSITION=[...planPoint(912,806)].toSpliced(1,0,.45);
+export const MIRROR_POSITION=[...planPoint(570,393),1.79];
+export const MIRROR_YAW=Math.PI;
 const view=(x,z,tx,tz,pitch=-.035)=>{const [a,b]=planPoint(x,z),[c,d]=planPoint(tx,tz);return[a,1.67+floorHeight(a,b),b,Math.atan2(a-c,b-d),pitch];};
 export const HOUSE_VIEWS={
- door:view(851,759,881,789,-.02),hall:view(816,680,625,669),corridor:view(627,570,600,450),
+ door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(627,570,600,450),
  living:view(471,627,453,561,-.08),dining:view(493,846,406,806,-.08),kitchen:view(615,803,560,729,-.1),
- utility:view(750,919,682,903),study:view(945,596,864,566,-.08),media:view(945,596,864,566,-.08),
- bedroom:view(757,372,609,320),staff:view(693,389,685,408,-.13),wardrobe:view(847,379,810,315),bath:view(898,228,910,162,-.1),
- sunroom:view(443,348,346,248),theatre:view(443,348,346,248),balcony:view(282,607,240,626),
+ utility:view(677,873,738,923,-.12),study:view(928,601,864,566,-.08),media:view(928,601,864,566,-.08),
+ bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
+ sunroom:view(418,350,346,248),theatre:view(418,350,346,248),balcony:view(282,607,240,626),
  guest:view(938,416,1010,355),guest_bath:view(1014,534,1039,491),meditation:view(563,232,561,164),
  wine:view(673,562,787,562),powder:view(386,455,329,434),store:view(743,739,714,775),
- records:view(763,678,749,639,-.12),radio:view(869,736,909,708),board:view(757,308,768,271,-.015)
+ records:view(763,678,749,639,-.12),radio:view(869,736,909,708),board:view(570,383,570,393,-.015)
 };

@@ -6,7 +6,8 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { inWalkableArea } from './navigation.js';
 import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
-import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,planPoint} from './house-layout.js';
+import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,planPoint} from './house-layout.js';
+import {BloodEffects} from './blood.js';
 import {MirrorHaunting} from './mirror.js';
 import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,visibleVisitorHit} from './visitors.js';
 
@@ -23,7 +24,7 @@ export class House {
     this.composer=new EffectComposer(this.renderer);this.composer.addPass(new RenderPass(this.scene,this.camera));
     this.bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.6,.9);this.composer.addPass(this.bloom);this.composer.addPass(new OutputPass());
     this.clock=new THREE.Clock();this.mode='menu';this.keys={};this.yaw=0;this.pitch=0;this.aim=false;this.recoil=0;this.blood=true;this.motion=true;this.particles=[];this.decals=[];this.targets=[];this.dead=false;this.elapsed=0;this.scanUntil=0;this.npc=null;this.depart=null;
-    this.mirrorHaunting=new MirrorHaunting();this.materials={};this.colliders=[];this.exploring=false;this.torchOn=false;buildHouse(this);optimizeHouse(this);this.buildGun();this.loadArtwork();
+    this.mirrorHaunting=new MirrorHaunting();this.materials={};this.colliders=[];this.exploring=false;this.torchOn=false;buildHouse(this);optimizeHouse(this);this.buildGun();this.loadArtwork();this.bloodEffects=new BloodEffects(this.scene,floorHeight);
     this.ray=new THREE.Raycaster();this.mouse=new THREE.Vector2(0,0);
     window.addEventListener('resize',()=>this.resize());
     document.addEventListener('pointerlockchange',()=>{document.body.classList.toggle('free-look',document.pointerLockElement===canvas);this.resize();});
@@ -86,13 +87,13 @@ export class House {
     g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
   }
   updateMirror(dt){
-    const [x,z,y]=MIRROR_POSITION,pos=new THREE.Vector3(x,y,z+.015),to=pos.clone().sub(this.camera.position),distance=to.length();
+    const [x,z,y]=MIRROR_POSITION,normal=new THREE.Vector3(Math.sin(MIRROR_YAW),0,Math.cos(MIRROR_YAW)),pos=new THREE.Vector3(x,y,z).addScaledVector(normal,.065),to=pos.clone().sub(this.camera.position),distance=to.length();
     const facing=this.camera.getWorldDirection(new THREE.Vector3()).dot(to.normalize());
     const event=this.mirrorHaunting.tick(dt,{active:this.mode==='play'&&!this.paused,near:distance<3.4&&facing>.5});
     if(event?.type==='show'){
       const atlas=this.standingAtlases[Math.floor(event.portrait/3)];if(!atlas?.userData.frames)return;
       if(this.mirrorFace){this.scene.remove(this.mirrorFace);this.mirrorFace.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
-      this.mirrorFace=createStandingVisitor(atlas,event.portrait,{height:1.8,shadow:false});this.mirrorFace.scale.x=-1;this.mirrorFace.position.set(x,y-1.04,z+.065);this.scene.add(this.mirrorFace);this.onMirror?.();
+      this.mirrorFace=createStandingVisitor(atlas,event.portrait,{height:1.8,shadow:false});this.mirrorFace.scale.x=-1;this.mirrorFace.rotation.y=MIRROR_YAW;this.mirrorFace.position.set(pos.x,y-1.04,pos.z);this.scene.add(this.mirrorFace);this.onMirror?.();
     }
     if(event?.type==='hide'&&this.mirrorFace)this.mirrorFace.visible=false;
   }
@@ -109,13 +110,11 @@ export class House {
     if(!force&&!hit)return this.onShoot(false);
     if(this.onShoot(true)===false)return false;
     this.recoil=1;this.muzzleLight.intensity=100;this.muzzleMesh.visible=true;this.dead=true;
-    if(this.blood){const pt=hit?.point||this.npc.position.clone().add(new THREE.Vector3(0,1.2,0));for(let i=0;i<78;i++){const mesh=this.sphere(.003+Math.random()*.009,pt.x,pt.y,pt.z,this.mat(i%3?0x721e17:0xa92e23,.23));const v=new THREE.Vector3((Math.random()-.5)*3,Math.random()*3,(Math.random()-.2)*3);this.particles.push({mesh,v,life:1.2+Math.random()});}
-      const pool=new THREE.Mesh(new THREE.CircleGeometry(.42,20),this.mat(0x591812,.2));pool.rotation.x=-Math.PI/2;pool.position.set(this.npc.position.x,VISITOR_POSITION[1]+.006,this.npc.position.z);pool.scale.set(1,.65,1);this.scene.add(pool);this.decals.push(pool);
-    }
+    if(this.blood){const pt=hit?.point||this.npc.position.clone().add(new THREE.Vector3(0,1.2,0)),direction=pt.clone().sub(this.camera.position).normalize();this.bloodEffects.impact(pt,direction,this.npc,this.houseRoot);}
     return true;
   }
   leave(action){if(!this.dead)this.depart={action,t:0};if(action==='admit')this.door.rotation.y=-1.75;}
-  reset(){this.mirrorHaunting.reset();if(this.mirrorFace)this.mirrorFace.visible=false;this.decals.forEach(p=>{this.scene.remove(p);p.geometry.dispose();});this.decals=[];this.particles.forEach(p=>{this.scene.remove(p.mesh);p.mesh.geometry.dispose();});this.particles=[];this.door.rotation.y=-1.45;}
+  reset(){this.bloodEffects.reset();this.mirrorHaunting.reset();if(this.mirrorFace)this.mirrorFace.visible=false;this.decals.forEach(p=>{this.scene.remove(p);p.geometry.dispose();});this.decals=[];this.particles.forEach(p=>{this.scene.remove(p.mesh);p.mesh.geometry.dispose();});this.particles=[];this.door.rotation.y=-1.45;}
   resize(){this.camera.aspect=innerWidth/innerHeight;if(this.mode==='play'&&!this.exploring&&!this.viewingRoom&&!document.pointerLockElement)this.camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.25,innerWidth,innerHeight);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.composer.setSize(innerWidth,innerHeight);}
   canWalk(x,z){return inWalkableArea(x,z,this.exploring,this.colliders)&&Math.abs(floorHeight(x,z)-floorHeight(this.camera.position.x,this.camera.position.z))<=.12;}
   animate(){
@@ -149,6 +148,7 @@ export class House {
     if(this.flicker)this.flicker.intensity=Math.sin(t*24)>.98?1:(this.flicker.userData.baseIntensity||12);
     const r=this.rain.geometry.attributes.position;for(let i=0;i<r.count;i++){r.array[i*3+1]-=dt*8;if(r.array[i*3+1]<-2)r.array[i*3+1]=14;}r.needsUpdate=true;
     this.particles=this.particles.filter(p=>{p.life-=dt;p.v.y-=dt*9;p.mesh.position.addScaledVector(p.v,dt);if(p.mesh.position.y<.04){p.mesh.position.y=.04;p.v.set(0,0,0);p.mesh.scale.y=.12;}if(p.life<=0){this.scene.remove(p.mesh);p.mesh.geometry.dispose();return false;}return true;});
+    this.bloodEffects.update(dt,this.blood);
     this.updateMirror(dt);
     this.composer.render();
   }
