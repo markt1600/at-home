@@ -7,7 +7,7 @@ The clips use breathing, blinking, small changes in gaze, head turns and brief s
 ## In the house
 
 - Visitors at the door and admitted residents use their own idle animations.
-- Four mirrors and seven fixed window/balcony glass panels reflect the room.
+- Five mirrors, including the main bathroom vanity mirror, and seven fixed window/balcony glass panels reflect the room.
 - Approaching or walking near a visible reflective surface can reveal an animated figure, starting after four seconds of active play. Figures fade in and out over about five seconds, followed by a shared 12–22 second cooldown. Sightings can continue throughout a run. Walking within 5.2 metres of visible glass can trigger another encounter when the cooldown ends; staying still does not repeatedly trigger it.
 - Reflection-specific voice cues fire when a figure actually appears. These fleeting apparitions do not imply that an admitted resident moved or reveal any visitor's hidden identity.
 - Balcony reflections occupy the fixed side panels, leaving the open central passage clear. Geometry in front of the glass, including its frames, occludes the figure.

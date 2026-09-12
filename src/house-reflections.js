@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import {Reflector} from 'three/addons/objects/Reflector.js';
-import {BALCONY_DOORS,PLAN_SCALE,planPoint,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION} from './house-layout.js';
+import {BALCONY_DOORS,PLAN_SCALE,planPoint,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-layout.js';
 import {MirrorHaunting,REFLECTION_TIMING} from './mirror.js';
 import {createStandingVisitor,animateStandingVisitor} from './visitors.js';
 
@@ -12,6 +12,7 @@ export function reflectionSurfaces(){
   {id:'bedroom-mirror',label:'bedroom mirror',position:[MIRROR_POSITION[0],MIRROR_POSITION[2],MIRROR_POSITION[1]],width:.87,height:2.08,yaw:MIRROR_YAW,offset:.045},
   {id:'guest-mirror',label:'second bedroom mirror',position:[GUEST_MIRROR_POSITION[0],GUEST_MIRROR_POSITION[2],GUEST_MIRROR_POSITION[1]],width:.8,height:2.1,yaw:0,offset:.048},
   pane('bathroom-mirror','bathroom mirror',[947,218],2.2,1.1,1.05,-Math.PI/2),
+  pane('vanity-mirror','main bathroom vanity mirror',MASTER_VANITY.mirror,MASTER_VANITY.mirrorY,MASTER_VANITY.mirrorWidth,MASTER_VANITY.mirrorHeight,0,false,.027),
   pane('powder-mirror','powder room mirror',[332,479],2.25,.85,1.1,Math.PI),
   ...BALCONY_DOORS.flatMap(d=>[-1,1].map(side=>pane(`${d.id}-${side}`,d.base?'dining balcony glass':'living balcony glass',[d.center[0],d.center[1]+side*d.width*.375*PLAN_SCALE],d.base+1.19,d.width/4-.11,2.28,Math.PI/2,true,.051))),
   pane('theatre-north','window lounge glass',[399,181],2.175,2.04,2.04,0,true,.026),

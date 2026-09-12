@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createHouseModel} from '../scripts/house-model.mjs';
-import {HOUSE_ROOMS,planPoint,pointInPolygon,floorHeight} from '../src/house-layout.js';
+import {HOUSE_ROOMS,planPoint,pointInPolygon,floorHeight,MASTER_VANITY} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
 const world=createHouseModel();world.houseRoot.updateMatrixWorld(true);
 
@@ -91,6 +91,26 @@ test('the fridge sits flush beside the only kitchen-to-service doorway',()=>{
  }
  assert.equal(inWalkableArea(...planPoint(650,786),true,world.colliders),false,'no extra doorway on the kitchen wall');
  assert.ok(inWalkableArea(...planPoint(670.5,808),true,world.colliders),'bathroom opens from the service passage');
+});
+
+test('the entrance switch is supported by its wall across the whole back plate',()=>{
+ const source=createHouseModel({optimize:false});source.houseRoot.updateMatrixWorld(true);
+ const plate=source.houseRoot.getObjectByName('Entrance wall switch'),normal=new THREE.Vector3(0,0,1).transformDirection(plate.matrixWorld);
+ for(const x of [-.04,.04])for(const y of [-.04,.04]){
+  const back=plate.localToWorld(new THREE.Vector3(x,y,-.007));
+  const ray=new THREE.Raycaster(back.clone().addScaledVector(normal,.002),normal.clone().negate(),0,.004);
+  assert.ok(ray.intersectObject(source.houseRoot,true).some(h=>h.object.name==='shoe-cabinet-return'),'plaster directly supports each corner');
+ }
+});
+
+test('the long vanity basin is a recessed brown trough without a countertop through it',()=>{
+ const [x,z]=planPoint(...MASTER_VANITY.center);
+ for(const dx of [-.60,0,.60]){
+  const ray=new THREE.Raycaster(new THREE.Vector3(x+dx,1.9,z+.12),new THREE.Vector3(0,-1,0),0,.5);
+  const hit=ray.intersectObject(world.houseRoot,true)[0];
+  assert.equal(hit.object.material,world.houseMaterials.basinBrown);
+  assert.ok(Math.abs(hit.point.y-1.523)<.002,'130 mm of open basin depth');
+ }
 });
 
 test('the entrance painting has a solid wine-cellar wall behind and around it',()=>{

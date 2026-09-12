@@ -67,6 +67,8 @@ export const VISITOR_POSITION=[...planPoint(912,806)].toSpliced(1,0,.45);
 export const MIRROR_POSITION=[...planPoint(570,393),1.79];
 export const MIRROR_YAW=Math.PI;
 export const GUEST_MIRROR_POSITION=[...planPoint(880,419),1.93];
+// C-23, sheets 67–68: stone vanity and a mirror in front of the window.
+export const MASTER_VANITY={center:[826,222.65],width:1.9,depth:.6,height:.9,floor:.75,basinWidth:1.5,basinDepth:.25,mirror:[826,212],mirrorY:2.375,mirrorWidth:1.165,mirrorHeight:1.05};
 const view=(x,z,tx,tz,pitch=-.035)=>{const [a,b]=planPoint(x,z),[c,d]=planPoint(tx,tz);return[a,1.67+floorHeight(a,b),b,Math.atan2(a-c,b-d),pitch];};
 export const HOUSE_VIEWS={
  door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,506,545,453),shoe_cabinet:view(887,674,946,699,-.08),

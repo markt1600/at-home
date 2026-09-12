@@ -3,7 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {HOUSE_ROOMS,HOUSE_STAIRS,planPoint,PLAN_SCALE,MIRROR_POSITION,MIRROR_YAW,FRONT_DOOR} from './house-layout.js';
 import {floorPieces} from './plan-geometry.js';
 import {buildArchitecture} from './house-architecture.js';
-import {buildSecondBedroom,addHouseDetails} from './house-details.js';
+import {buildSecondBedroom,addHouseDetails,buildMasterVanity,buildLivingAudioShelf} from './house-details.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -99,10 +99,10 @@ export function buildHouse(world){
  // 1,210 x 690 mm office desk, 570 mm cabinets and the blue chair from the video.
  C(967,554,1.355,2.48,.57,'sage',-Math.PI/2,.75);B(869,566,.69,.04,1.21,1.5,'oak');block(...P(869,566),.69,1.21);B(861,566,.07,.47,.7,1.78,'black');B(862,566,.009,.39,.61,1.79,new THREE.MeshBasicMaterial({color:0x273a33}));
  const [cx,cz]=P(898,566);soft(.6,.14,.63,cx,1.22,cz,'blue');soft(.6,.94,.14,cx+.22,1.6,cz,'blue').rotation.y=Math.PI/2;block(cx,cz,.65,.7);T('media',865,566,1.8,'Listen to the computer recording');
- // Sunken lounge: orange seating on the plinth, cream seating, blue low table.
+ // Sunken lounge: orange seating, a low audio/display shelf and blue low table.
  // The east sofa occupies the seating ledge, with its back meeting x=611,
  // the wine-cellar walkway. x=562 is the ledge's front edge, not its back.
- S(591,591,118/scale,-Math.PI/2,'orange',.315);S(406,550,2.75,0);S(390,693,2.7,Math.PI,'cream');B(436,620,4.8,.012,3.55,.014,0x4b5039);
+ S(591,591,118/scale,-Math.PI/2,'orange',.315);S(406,550,2.75,0);buildLivingAudioShelf(world,root,materials);B(436,620,4.8,.012,3.55,.014,0x4b5039);
  // The east landing is already a solid volume. The north plinth stops 5 mm
  // below the upholstery, so their side faces never occupy the same plane.
  B(406,549,2.77,.135,1.04,.0675,'marble');
@@ -178,7 +178,7 @@ export function buildHouse(world){
  const [mx,mz,my]=MIRROR_POSITION;painting(mx,my,mz,.87,2.08,0x7a8480,MIRROR_YAW);T('board',570,390,2.23,'Look behind the bedroom mirror');
  C(778,335,2.35,.45,.42,'walnut',-Math.PI/2,.75);paint(780,331,2.24,1.89,1.06,0x101917,-Math.PI/2);T('staff',685,405,1.5,'Read the note beside the bed');
  C(797,346,3.3,2.5,.58,'walnut',Math.PI/2,.75);C(896,346,3.3,2.5,.58,'walnut',-Math.PI/2,.75);C(846,403,2.35,2.5,.6,'walnut',Math.PI,.75);
- C(826,219,1.9,.85,.55,'oak',0,.75);paint(826,211,2.38,1.165,1.05,0x889591);C(807,281,.9,2.4,.4,'walnut',Math.PI,.75);
+ buildMasterVanity(world,root,materials);C(807,281,.9,2.4,.4,'walnut',Math.PI,.75);
   // Main bathroom and meditation bay.
  const [tubx,tubz]=P(906,161);soft(1.72,.56,.76,tubx,1.03,tubz,'white');soft(1.5,.17,.59,tubx,1.29,tubz,'black');block(tubx,tubz,1.78,.82);
  C(922,218,1.16,.8,.5,'oak',-Math.PI/2,.75);paint(947,218,2.2,1.1,1.05,0x8c9590,-Math.PI/2);B(886,207,.02,2.2,1.15,1.85,'glass');

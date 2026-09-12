@@ -1,13 +1,14 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {planPoint,PLAN_SCALE,GUEST_MIRROR_POSITION} from './house-layout.js';
+import {planPoint,PLAN_SCALE,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-layout.js';
+import {INTERIOR_WALLS} from './house-architecture.js';
 
 function helpers(world,root,m){
  const box=(w,h,d,x,y,z,key='white',parent=root)=>world.box(w,h,d,x,y,z,typeof key==='string'?m[key]:world.mat(key),parent);
  const soft=(w,h,d,x,y,z,key='cream',parent=root)=>{const mesh=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,.045),typeof key==='string'?m[key]:world.mat(key));mesh.position.set(x,y,z);mesh.castShadow=mesh.receiveShadow=true;parent.add(mesh);return mesh;};
  const at=(px,pz,y=.75,a=0)=>{const g=new THREE.Group(),[x,z]=planPoint(px,pz);g.position.set(x,y,z);g.rotation.y=a;root.add(g);return g;};
  const block=(px,pz,w,d)=>{const [x,z]=planPoint(px,pz);world.colliders.push({x,z,w,d});};
- const cyl=(r,h,x,y,z,key='steel',p=root)=>world.cyl(r,r,h,x,y,z,m[key],p,16);
+ const cyl=(r,h,x,y,z,key='steel',p=root)=>world.cyl(r,r,h,x,y,z,typeof key==='string'?m[key]:world.mat(key),p,16);
  return {box,soft,at,block,cyl};
 }
 
@@ -68,10 +69,86 @@ export function addHouseDetails(world,root,m){
   for(let i=0;i<3;i++){const shape=new THREE.Shape();shape.moveTo(.07,-.03);shape.bezierCurveTo(.26,-.13,.6,-.21,.71,-.07);shape.bezierCurveTo(.73,.02,.36,.06,.07,.04);const geo=new THREE.ExtrudeGeometry(shape,{depth:.018,bevelEnabled:false});geo.rotateX(-Math.PI/2);const blade=new THREE.Mesh(geo,m.steel);blade.rotation.y=i*Math.PI*2/3;blade.position.y=-.08;blade.castShadow=true;g.add(blade);}
  }
  // Domestic finishing details: switch plates, outlets and sink tap spout.
- for(const [px,pz,y,a] of [[855,481,1.62,Math.PI/2],[526,819,1.35,Math.PI/2],[1049,401,1.05,-Math.PI/2],[415,400,1.6,0],[852,684,1.55,Math.PI]]){
+ for(const [px,pz,y,a] of [[855,481,1.62,Math.PI/2],[526,819,1.35,Math.PI/2],[1049,401,1.05,-Math.PI/2],[415,400,1.6,0]]){
   const g=at(px,pz,y,a);box(.084,.084,.014,0,0,0,'white',g);for(const x of [-.018,.018])box(.018,.045,.017,x,0,.004,'cream',g);
  }
+ // Mount on the entrance's actual 160 mm return wall, below the intercom.
+ const wall=INTERIOR_WALLS.find(w=>w.id==='shoe-cabinet-return'),yaw=-Math.atan2(wall.b[1]-wall.a[1],wall.b[0]-wall.a[0])-Math.PI;
+ const entranceSwitch=at((wall.a[0]+wall.b[0])/2,(wall.a[1]+wall.b[1])/2,1.55,yaw);
+ entranceSwitch.name='Entrance wall switch';entranceSwitch.position.addScaledVector(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),.087);
+ box(.084,.084,.014,0,0,0,'white',entranceSwitch);for(const x of [-.018,.018])box(.018,.045,.017,x,0,.004,'cream',entranceSwitch);
  const [sx,sz]=planPoint(535,801);const tap=new THREE.Mesh(new THREE.TorusGeometry(.085,.018,8,16,Math.PI),m.steel);tap.position.set(sx+.085,1.70,sz);root.add(tap);cyl(.018,.07,sx+.17,1.665,sz,'steel');
  // The walkthrough's black-and-white floor speakers beside the living glazing.
- for(const pz of [568,680]){const g=at(332,pz,0);soft(.3,1.02,.32,0,.53,0,'white',g);soft(.22,.77,.075,0,.59,.164,'black',g);}
+ for(const pz of [568,680]){const g=at(332,pz,0,Math.PI/2);soft(.3,1.02,.32,0,.53,0,'white',g);soft(.22,.77,.075,0,.59,.164,'black',g);}
+}
+
+export function buildMasterVanity(world,root,m){
+ const {box,at,block,cyl}=helpers(world,root,m),v=MASTER_VANITY;
+ const g=at(...v.center,v.floor);g.name='C-23 master bathroom vanity';
+ const stone=world.mat(0xb29b80,.26,.08);m.vanityStone=stone;stone.userData.textureMeters=1.9;
+ const basin=world.mat(0x79584a,.34,.04);m.basinBrown=basin;
+ const put=(w,h,d,x,y,z,material=stone)=>world.box(w,h,d,x,y,z,material,g);
+ // Full marble apron, end panels and top strips leave the basin truly open.
+ put(1.86,.872,.02,0,.436,.29);for(const x of [-.94,.94])put(.02,.88,.58,x,.44,0);
+ put(1.86,.72,.018,0,.36,-.29);
+ for(const x of [-.85,.85])put(.2,.02,.6,x,.89,0);
+ put(1.5,.02,.295,0,.89,-.1525);put(1.5,.02,.055,0,.89,.2725);
+ put(1.9,.12,.02,0,.96,-.285);
+ // A 12 mm solid-surface trough with 130 mm depth, rather than a flat decal.
+ put(1.476,.012,.226,0,.767,.12,basin);
+ for(const x of [-.744,.744])put(.012,.142,.25,x,.832,.12,basin);
+ for(const z of [.001,.239])put(1.476,.142,.012,0,.832,z,basin);
+ for(const x of [-.36,.36]){
+  box(.055,.008,.055,x,.905,-.10,'black',g);box(.034,.19,.034,x,1.004,-.10,'black',g);
+  box(.034,.029,.135,x,1.09,-.044,'black',g);box(.027,.035,.027,x,1.06,.008,'black',g);
+  box(.052,.012,.018,x+.026,1.077,-.10,'black',g);
+  const drain=cyl(.022,.002,x,.774,.12,'steel',g);drain.name='Basin drain';
+ }
+ // The drawing shows a black frame and 100 x 3 mm bottom ledge.
+ const mirror=at(...v.mirror,v.mirrorY);mirror.name='Master vanity mirror backing';
+ box(v.mirrorWidth+.024,v.mirrorHeight+.024,.022,0,0,0,'black',mirror);
+ box(v.mirrorWidth,v.mirrorHeight,.004,0,0,.013,0x8b9793,mirror);
+ box(v.mirrorWidth+.04,.003,.10,0,-v.mirrorHeight/2-.012,.025,'black',mirror);
+ for(const y of [-.60,.32])box(1.9,.02,.028,0,y,-.03,'black',mirror);
+ // A few non-identifying countertop details from the drawn elevation.
+ for(const x of [.66,.80]){box(.105,.11,.07,x,.96,-.12,'white',g);box(.055,.014,.055,x,1.022,-.12,'black',g);}
+ block(...v.center,v.width,v.depth);
+}
+
+export function buildLivingAudioShelf(world,root,m){
+ const {box,at,block,cyl}=helpers(world,root,m);
+ const g=at(374,715,.45,Math.PI);g.name='Living room display and record shelf';
+ const plinth=at(374,715,0);box(2.90,.447,.37,0,.2235,0,'marble',plinth);
+ const metal=world.mat(0x8c8880,.4,.55),silver=world.mat(0xc3c3bc,.42,.2);
+ box(2.88,.025,.36,0,.71,0,'marble',g);box(2.88,.025,.34,0,.013,0,'marble',g);box(2.88,.68,.025,0,.36,-.16,'walnut',g);
+ for(let i=0;i<=6;i++)box(.024,.68,.34,-1.44+i*.48,.36,0,'walnut',g);
+ for(let i=0;i<6;i++){
+  const x=-1.2+i*.48;
+  if(i%2===0)world.box(.446,.658,.018,x,.355,.174,metal,g);
+  else{
+   box(.455,.022,.32,x,.35,0,'walnut',g);
+   for(let j=0;j<5;j++){const xx=x-.16+j*.07;box(.053,.22+.025*(j%2),.15,xx,.13,.015,[0x756b5b,0x2d4c58,0xa06a48,0x51484b,0xc0b596][j],g);box(.043,.017,.006,xx,.16,.094,'cream',g);}
+   box(.31,.17,.19,x,.445,.02,i===3?'white':'black',g);cyl(.018,.018,x+.10,.45,.124,'steel',g).rotation.x=Math.PI/2;
+  }
+ }
+ // LPs lean on a black stand; covers are abstract, not personal photographs.
+ const lp=at(413,715,1.2,Math.PI);box(.42,.035,.22,0,0,0,'black',lp);
+ for(let i=0;i<5;i++){const record=box(.32,.32,.012,0,.17,-.06+i*.021,[0x5e6150,0x827565,0xa09276,0x303b43,0x695344][i],lp);record.rotation.x=-.14;}
+ for(const x of [-.11,.11])box(.022,.12,.12,x,.055,.06,'black',lp);
+ for(let i=0;i<3;i++)box(.24,.075,.18,.35+i*.26,.76,0,i%2?'cream':'blue',g);
+ const ornament=cyl(.11,.025,-.67,.754,0,'steel',g);ornament.scale.z=.7;
+ block(374,715,2.9,.37);
+ // Corner rack with a turntable above two amplifier shelves.
+ const rack=at(333,700,0,Math.PI/2);rack.name='Turntable and amplifier rack';
+ for(const x of [-.26,.26])for(const z of [-.20,.20])cyl(.017,.81,x,.43,z,'steel',rack);
+ for(const y of [.10,.38,.75])box(.60,.033,.49,0,y,0,'walnut',rack);
+ for(const y of [.205,.485]){
+  box(.49,.15,.37,0,y,0,'black',rack);
+  for(const x of [-.135,.135])world.box(.19,.125,.016,x,y,.193,silver,rack);
+  cyl(.006,.004,0,y,.207,0xc4bd71,rack).rotation.x=Math.PI/2;
+ }
+ box(.49,.055,.35,0,.797,0,'walnut',rack);cyl(.132,.022,-.055,.835,0,'steel',rack);cyl(.121,.005,-.055,.849,0,'black',rack);cyl(.027,.006,-.055,.853,0,0xa59770,rack);
+ box(.012,.012,.18,.155,.857,.012,'steel',rack).rotation.y=-.38;box(.028,.02,.037,.12,.850,.095,'black',rack);
+ box(.52,.006,.39,0,1.006,0,'glass',rack);for(const x of [-.257,.257])box(.006,.18,.39,x,.916,0,'glass',rack);box(.52,.18,.006,0,.916,-.192,'glass',rack);
+ block(333,700,.52,.64);
 }

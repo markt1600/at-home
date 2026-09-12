@@ -52,7 +52,7 @@ export const INTERIOR_WALLS=[
 
 export const EXTERIOR_OPENINGS=[
  opening('master-windows',[690,208],4.5,1.7,1.45,'window'),
- opening('vanity-window',[826,208],1.5,1.1,2,'window'),
+ opening('vanity-window',[826,208],1.9,1.5,1.77,'window'),
  opening('second-bedroom-window',[1003,273],2.35,1.4,1.7,'window'),
  opening('meditation-window',[560,135],.5,1.6,1.45,'window'),
  opening('bath-window',[909,135],.5,1.6,1.45,'window'),
