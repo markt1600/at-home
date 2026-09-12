@@ -4,6 +4,7 @@ import {HOUSE_ROOMS,HOUSE_STAIRS,planPoint,PLAN_SCALE,MIRROR_POSITION,MIRROR_YAW
 import {floorPieces} from './plan-geometry.js';
 import {buildArchitecture} from './house-architecture.js';
 import {buildSecondBedroom,addHouseDetails,buildMasterVanity,buildLivingAudioShelf} from './house-details.js';
+import {buildHallwayGallery} from './house-gallery.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -73,6 +74,7 @@ export function buildHouse(world){
   }
  }
  buildArchitecture(world,root,materials);
+ buildHallwayGallery(world,root,materials);
  // Raised living-room perimeter/plinths; only the planned stair runs are passable.
  for(const a of [[317,532,458,532],[514,532,611,532],[562,532,562,650],[317,714,431,714],[523,714,539,714]])W(...a,'marble',.45);
  // GD01: 1,865 mm frame with a 1,150 mm moving leaf and a fixed side leaf.
