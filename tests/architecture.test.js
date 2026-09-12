@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
 import {createHouseModel} from '../scripts/house-model.mjs';
-import {HOUSE_ROOMS,planPoint,pointInPolygon} from '../src/house-layout.js';
+import {HOUSE_ROOMS,planPoint,pointInPolygon,floorHeight} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
 const world=createHouseModel();world.houseRoot.updateMatrixWorld(true);
 
@@ -62,4 +62,34 @@ test('the shoe cabinet partition blocks views and movement at both eye and ceili
 test('wall-fitted hallway storage leaves a continuous route beside the cellar',()=>{
  for(let px=630;px<=827;px+=5)assert.ok(inWalkableArea(...planPoint(px,459),true,world.colliders),`hall route at ${px}`);
  for(const p of [[523,461],[560,430],[700,430],[815,430]])assert.equal(inWalkableArea(...planPoint(...p),true,world.colliders),false,'cabinet or return wall');
+});
+
+test('the orange sofa back meets the wine-cellar walkway across its length',()=>{
+ const ray=new THREE.Raycaster(),[walkwayEdge]=planPoint(611,0);
+ for(const pz of [548,570,591,615,632]){
+  const [x,z]=planPoint(625,pz);ray.set(new THREE.Vector3(x,1.05,z),new THREE.Vector3(-1,0,0));ray.far=2;
+  const back=ray.intersectObject(world.houseRoot,true).find(h=>h.object.material===world.houseMaterials.orange);
+  assert.ok(back,'sofa back at walkway height');
+  assert.ok(Math.abs(back.point.x-walkwayEdge)<.065,`gap behind sofa at ${pz}`);
+ }
+ for(const pz of [548,570,591,609]){
+  const [x,z]=planPoint(630,pz);assert.equal(floorHeight(x,z),.75);assert.ok(inWalkableArea(x,z,true,world.colliders),'walkway remains clear');
+ }
+});
+
+test('the fridge sits flush against solid wall without overlapping the bathroom doorway',()=>{
+ const [x,z]=planPoint(662,744),[wallX]=planPoint(650,744),ray=new THREE.Raycaster(new THREE.Vector3(x,1.6,z),new THREE.Vector3(-1,0,0),0,2);
+ const fridge=ray.intersectObject(world.houseRoot,true).find(h=>h.object.material===world.houseMaterials.steel);
+ assert.ok(fridge,'fridge on the solid wall section');
+ assert.ok(Math.abs(fridge.point.x-(wallX-.08))<.02,'no gap behind the refrigerator');
+ assert.equal(inWalkableArea(...planPoint(650,744),true,world.colliders),false,'wall behind fridge');
+ assert.ok(inWalkableArea(...planPoint(650,786),true,world.colliders),'bathroom doorway remains beside the fridge');
+});
+
+test('the entrance painting has a solid wine-cellar wall behind and around it',()=>{
+ const ray=new THREE.Raycaster();
+ for(const px of [787,811,838])for(const y of [.95,1.8,2.8]){
+  const [x,z]=planPoint(px,632);ray.set(new THREE.Vector3(x,y,z-.2),new THREE.Vector3(0,0,1));ray.far=.25;
+  assert.ok(ray.intersectObject(world.houseRoot,true).some(h=>h.object.material===world.houseMaterials.plaster),'solid wall, not glazing or the picture itself');
+ }
 });

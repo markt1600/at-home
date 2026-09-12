@@ -3,10 +3,12 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { inWalkableArea } from './navigation.js';
+import { inWalkableArea,moveAlongFloor } from './navigation.js';
 import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
-import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,planPoint} from './house-layout.js';
+import {applyHouseTextures} from './house-materials.js';
+import {shelterLocation} from './shelter.js';
+import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION,planPoint} from './house-layout.js';
 import {BloodEffects} from './blood.js';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 import {MirrorHaunting} from './mirror.js';
@@ -29,13 +31,17 @@ export class House {
     const [mirrorX,mirrorZ,mirrorY]=MIRROR_POSITION;
     this.mirrorSurface=new Reflector(new THREE.PlaneGeometry(.87,2.08),{color:0x929a94,textureWidth:512,textureHeight:1024,clipBias:.003,multisample:0});
     this.mirrorSurface.position.set(mirrorX+Math.sin(MIRROR_YAW)*.045,mirrorY,mirrorZ+Math.cos(MIRROR_YAW)*.045);this.mirrorSurface.rotation.y=MIRROR_YAW;this.scene.add(this.mirrorSurface);
-    const renderReflection=this.mirrorSurface.onBeforeRender.bind(this.mirrorSurface);
-    this.mirrorSurface.onBeforeRender=(...args)=>{
+    const [gx,gz,gy]=GUEST_MIRROR_POSITION;
+    this.guestMirror=new Reflector(new THREE.PlaneGeometry(.80,2.1),{color:0xa0a49b,textureWidth:512,textureHeight:1024,clipBias:.003,multisample:0});this.guestMirror.position.set(gx,gy,gz+.048);this.scene.add(this.guestMirror);
+    const mirrors=[this.mirrorSurface,this.guestMirror];
+    for(const surface of mirrors){const renderReflection=surface.onBeforeRender.bind(surface);
+    surface.onBeforeRender=(...args)=>{
       // The apparition is already part of the mirror image; do not reflect it twice.
       const apparition=this.mirrorFace,wasVisible=apparition?.visible;
-      if(apparition)apparition.visible=false;
-      try{renderReflection(...args);}finally{if(apparition)apparition.visible=wasVisible;}
-    };
+      const other=mirrors.filter(m=>m!==surface),visibility=other.map(m=>m.visible);
+      if(apparition)apparition.visible=false;other.forEach(m=>m.visible=false);
+      try{renderReflection(...args);}finally{if(apparition)apparition.visible=wasVisible;other.forEach((m,i)=>m.visible=visibility[i]);}
+    };}
     this.ray=new THREE.Raycaster();this.mouse=new THREE.Vector2(0,0);
     window.addEventListener('resize',()=>this.resize());
     document.addEventListener('pointerlockchange',()=>{document.body.classList.toggle('free-look',document.pointerLockElement===canvas);this.resize();});
@@ -81,21 +87,27 @@ export class House {
       atlas.userData.frames=keyStandingAtlas(pixels.data,canvas.width,canvas.height);atlas.userData.pixels=pixels.data;
       ctx.putImageData(pixels,0,0);atlas.image=canvas;atlas.colorSpace=THREE.SRGBColorSpace;atlas.needsUpdate=true;
       if(this.waitingPerson&&Math.floor(VISITOR_IDS.indexOf(this.waitingPerson.id)/3)===i)this.showPerson(this.waitingPerson);
+      this.setSheltered(this.shelteredPeople||[]);
     }));
-    loader.load('/art/house-surfaces.png',atlas=>{
-      atlas.colorSpace=THREE.SRGBColorSpace;
-      const quadrant=(col,row)=>{const t=atlas.clone();t.repeat.set(.498,.498);t.offset.set(col*.5+.001,(1-row)*.5+.001);t.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());t.needsUpdate=true;return t;};
-      const plaster=quadrant(0,0),paint=quadrant(1,0),floor=quadrant(0,1),wood=quadrant(1,1);
-      for(const [m,t,bump] of [[this.houseMaterials.plaster,plaster,.0015],[this.houseMaterials.sage,paint,.003],[this.houseMaterials.marble,floor,.005],[this.houseMaterials.oak,wood,.012]]){m.color.set(0xffffff);m.map=t;m.bumpMap=t;m.bumpScale=bump;m.needsUpdate=true;}
-    });
+    loader.load('/art/house-surfaces-v2.png',atlas=>applyHouseTextures(atlas,this.houseMaterials,Math.min(8,this.renderer.capabilities.getMaxAnisotropy())));
   }
   showPerson(p){
     if(this.npc){this.scene.remove(this.npc);this.npc.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
-    this.dead=false;this.depart=null;this.waitingPerson=null;if(!p){this.npc=null;return;}
+    this.dead=false;this.depart=null;this.waitingPerson=null;this.doorPersonId=p?.id;if(!p){this.npc=null;return;}
     const index=Math.max(0,VISITOR_IDS.indexOf(p.id)),atlas=this.standingAtlases[Math.floor(index/3)];
     this.waitingPerson=p;if(!atlas?.userData.frames){this.npc=null;return;}this.waitingPerson=null;
     const g=createStandingVisitor(atlas,index);g.position.set(...VISITOR_POSITION);this.scene.add(g);this.npc=g;this.npcMeshes=[g.userData.body];
     g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
+  }
+  setSheltered(people){
+    this.shelteredPeople=people;this.residents??=new Map();const ids=new Set(people.map(p=>p.id));
+    for(const [id,g] of this.residents)if(!ids.has(id)){this.scene.remove(g);g.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});this.residents.delete(id);}
+    people.forEach((p,i)=>{
+      const index=VISITOR_IDS.indexOf(p.id),atlas=this.standingAtlases?.[Math.floor(index/3)];if(!atlas?.userData.frames)return;
+      let g=this.residents.get(p.id);if(!g){g=createStandingVisitor(atlas,index);g.name=p.name;g.userData.personId=p.id;this.residents.set(p.id,g);this.scene.add(g);}
+      const place=shelterLocation(i);g.position.set(place.x,place.y,place.z);
+      g.visible=!(this.depart?.action==='admit'&&this.doorPersonId===p.id&&this.depart.t<=2.5);
+    });
   }
   updateMirror(dt){
     const [x,z,y]=MIRROR_POSITION,normal=new THREE.Vector3(Math.sin(MIRROR_YAW),0,Math.cos(MIRROR_YAW)),pos=new THREE.Vector3(x,y,z).addScaledVector(normal,.065),to=pos.clone().sub(this.camera.position),distance=to.length();
@@ -134,16 +146,29 @@ export class House {
     if(this.mode==='menu'){const [x,z]=planPoint(527,683),[tx,tz]=planPoint(404,575);this.camera.position.set(x+Math.sin(t*.07)*.1,1.5,z);this.camera.lookAt(tx,.9,tz);}
     if(this.mode==='play'&&!this.paused){
       const direction=new THREE.Vector3((this.keys.KeyD?1:0)-(this.keys.KeyA?1:0),0,(this.keys.KeyS?1:0)-(this.keys.KeyW?1:0));
-      if(direction.length()){direction.normalize().applyAxisAngle(UP,this.yaw);const nx=this.camera.position.x+direction.x*dt*2.1,nz=this.camera.position.z+direction.z*dt*2.1;if(this.canWalk(nx,this.camera.position.z))this.camera.position.x=nx;if(this.canWalk(this.camera.position.x,nz))this.camera.position.z=nz;if(t-(this.lastStep||0)>.5){this.lastStep=t;this.onStep?.();}}
+      let moved=0,climbing=false;
+      if(direction.length()){
+        direction.normalize().applyAxisAngle(UP,this.yaw);const step=moveAlongFloor(this.camera.position.x,this.camera.position.z,direction.x*dt*2.1,direction.z*dt*2.1,this.colliders);
+        this.camera.position.x=step.x;this.camera.position.z=step.z;moved=step.distance;climbing=step.climbed>.001;this.walkPhase=(this.walkPhase||0)+moved*11;
+        if(moved>.001&&t-(this.lastStep||0)>(climbing?.36:.5)){this.lastStep=t;this.onStep?.();}
+      }
       this.gun.visible=!this.exploring&&(this.aim||this.recoil>0||this.weaponDrawn);
-      this.camera.rotation.set(this.pitch+this.recoil*.04,this.yaw,0,'YXZ');
-      this.camera.position.y=THREE.MathUtils.lerp(this.camera.position.y,1.67+floorHeight(this.camera.position.x,this.camera.position.z)+(this.motion&&direction.length()?Math.sin(t*10)*.018:0),.24);
+      const bob=this.motion&&moved>.001?Math.sin(this.walkPhase)*(climbing?.03:.015):0;
+      this.camera.rotation.set(this.pitch+this.recoil*.04+(this.motion&&climbing?Math.cos(this.walkPhase)*.006:0),this.yaw,0,'YXZ');
+      this.camera.position.y=THREE.MathUtils.lerp(this.camera.position.y,1.67+floorHeight(this.camera.position.x,this.camera.position.z)+bob,1-Math.exp(-14*dt));
       this.gun.position.lerp(new THREE.Vector3(this.aim?.01:.23,-.23,-.65+this.recoil*.08),.18);
       this.gun.rotation.set(this.recoil*.24,0,this.motion?Math.sin(t*1.8)*.009:0);
       const dialogueView=!this.exploring&&!this.viewingRoom&&!document.pointerLockElement;
       this.camera.fov=THREE.MathUtils.lerp(this.camera.fov,this.aim?49:dialogueView?48:62,.12);this.camera.updateProjectionMatrix();
       this.ray.setFromCamera(this.mouse,this.camera);let nearest=null,score=.975;
-      for(const target of this.targets){if(target.explorationOnly&&!this.exploring)continue;if(this.exploring&&target.id==='door')continue;const dir=target.pos.clone().sub(this.camera.position);const dist=dir.length();const dot=dir.normalize().dot(this.ray.ray.direction);if(dot>score&&dist<6){nearest=target;score=dot;}}
+      for(const target of this.targets){
+        if(target.explorationOnly&&!this.exploring)continue;if(this.exploring&&target.id==='door')continue;
+        const dir=target.pos.clone().sub(this.camera.position),dist=dir.length(),dot=dir.normalize().dot(this.ray.ray.direction);
+        if(dot<=score||dist>=6)continue;
+        const sight=new THREE.Raycaster(this.camera.position,dir,.04,Math.max(.04,dist-.3));
+        if(sight.intersectObject(this.houseRoot,true).some(hit=>hit.object.isMesh&&!hit.object.material.transparent))continue;
+        nearest=target;score=dot;
+      }
       if(nearest?.id!==this.lookTarget?.id){this.lookTarget=nearest;this.onLook(nearest);}
     }
     this.recoil=Math.max(0,this.recoil-dt*4);if(this.recoil<.8){this.muzzleLight.intensity=0;this.muzzleMesh.visible=false;}
@@ -154,6 +179,10 @@ export class House {
         this.npc.rotation.y=Math.atan2(this.camera.position.x-this.npc.position.x,this.camera.position.z-this.npc.position.z);
         this.npc.position.y=VISITOR_POSITION[1];
       }
+    }
+    for(const [id,g] of this.residents||[]){
+      g.visible=!(this.depart?.action==='admit'&&this.doorPersonId===id&&this.depart.t<=2.5);
+      g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
     }
 
     if(this.scanUntil<t&&this.scanUntil>0){this.flashlight.color.set(0xe6f5de);this.flashlight.visible=this.torchOn;this.scanUntil=0;}

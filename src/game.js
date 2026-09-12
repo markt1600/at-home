@@ -1,3 +1,4 @@
+import {migrateHouseDialogue} from './house-dialogue.js';
 import { PEOPLE, ENDINGS, ODD_ANSWERS } from './content.js';
 import { playerName as normalizePlayerName } from './haunting.js';
 
@@ -84,4 +85,4 @@ export function unlockSignal(state,code) {
   state.signalOff=true; return {ok:true,text:'CARRIER DISCONNECTED. For a moment, every fluorescent light burns white. The invitation has ended.'};
 }
 export function saveGame(state) {try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));}catch{ /* Private browsing may disallow storage. */ }}
-export function loadGame() {try {const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s?.version===1&&s.encounters?.length===12&&s.index>=0&&s.index<=12&&s.phase!=='ending') return s;}catch{} return null;}
+export function loadGame() {try {const s=JSON.parse(localStorage.getItem(SAVE_KEY));if(s?.version===1&&s.encounters?.length===12&&s.index>=0&&s.index<=12&&s.phase!=='ending') return migrateHouseDialogue(s);}catch{} return null;}

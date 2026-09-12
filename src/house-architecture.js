@@ -19,13 +19,15 @@ export const INTERIOR_WALLS=[
  {id:'bath-west',a:[868,208],b:[868,273],openings:[opening('bath',[868,250],.9)]},
  {id:'bath-south',a:[868,273],b:[952,273]},
  {id:'second-bedroom-entry',a:[853,415],b:[853,531],openings:[opening('guest',[853,461],.9)]},
+ {id:'second-bedroom-vestibule',a:[910,415],b:[910,457],openings:[opening('guest-inner',[910,436],42/PLAN_SCALE,2.25)]},
+ {id:'second-bedroom-closet-backing',a:[910,482],b:[984,482]},
  {id:'second-bath-north',a:[984,457],b:[1053,457],openings:[opening('guest-bath',[1023,457],.9)]},
  {id:'second-bath-west',a:[984,457],b:[984,563]},
  {id:'office-north',a:[853,531],b:[984,531]},
  {id:'office-west',a:[853,482],b:[853,632]},
  {id:'office-south',a:[853,632],b:[947,632],openings:[opening('office',[928,632],.9,2.25)]},
  {id:'wine-north',a:[653,482],b:[853,482],openings:[opening('wine-corridor-glazing',[753,482],200/PLAN_SCALE,2.2,.75,'window')]},
- {id:'wine-south',a:[653,632],b:[853,632],openings:[opening('wine-entry-glazing',[753,632],200/PLAN_SCALE,2.2,.75,'window')]},
+ {id:'wine-south',a:[653,632],b:[853,632],openings:[opening('wine-entry-glazing',[718,632],130/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-west',a:[653,482],b:[653,632],material:'glass',openings:[opening('wine',[653,563],.84,2)]},
  ...BALCONY_DOORS.map(d=>({id:d.id,a:d.a,b:d.b,openings:[d]})),
  {id:'kitchen-north',a:[523,718],b:[650,718],openings:[opening('kitchen-window',[551,718],.44,1.1,1.75,'window')]},
@@ -117,8 +119,9 @@ export function buildArchitecture(world,root,materials){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
-   for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height,'steel',false,.19);
-   solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,'steel',false,.19);
+   const frame=a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
+   for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height,frame,false,.19);
+   solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed','lift'].includes(a.kind)){
     solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?'glass':a.kind==='lift'?'steel':'walnut',true,.045);
     if(a.kind==='window')for(let t=a.lo+.6;t<a.hi;t+=.6)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);

@@ -2,10 +2,10 @@ import {PEOPLE,ODD_ANSWERS} from './content.js';
 export const NAME_CALLS=[
  name=>`${name}… are you still there?`,
  name=>`Don't answer the next voice, ${name}.`,
- name=>`${name}… someone is sitting on the orange sofa.`,
- name=>`${name}, the front door is still open.`,
+ name=>`${name}… I thought someone was sitting on the orange sofa.`,
+ name=>`${name}… did you remember to close the front door?`,
  name=>`Was that you calling from the bedroom, ${name}?`,
- name=>`${name}… the doorbell hasn't rung yet.`,
+ name=>`${name}… did you hear a doorbell, or was that just me?`,
  name=>`${name}… don't turn around. Look at the mirror.`,
 ];
 export function cleanName(value){return [...String(value??'').normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} '\u2019-]/gu,'').replace(/\s+/g,' ').trim()].slice(0,28).join('')||'Resident';}

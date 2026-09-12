@@ -3,25 +3,36 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {HOUSE_ROOMS,HOUSE_STAIRS,planPoint,PLAN_SCALE,MIRROR_POSITION,MIRROR_YAW,FRONT_DOOR} from './house-layout.js';
 import {floorPieces} from './plan-geometry.js';
 import {buildArchitecture} from './house-architecture.js';
+import {buildSecondBedroom,addHouseDetails} from './house-details.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
  const root=new THREE.Group();root.name='Plan-based home';world.scene.add(root);world.houseRoot=root;
  const materials={plaster:world.mat(0xcfc9b9,.93),sage:world.mat(0x78816b,.55),marble:world.mat(0xd1c9b8,.25,.07),oak:world.mat(0x956a40,.58),white:world.mat(0xe1ded0,.8),black:world.mat(0x171a19,.46),steel:world.mat(0x808480,.24,.8),orange:world.mat(0xb74720,.94),cream:world.mat(0xc6bfa8,.96),teal:world.mat(0x315e5b,.65),walnut:world.mat(0x4b3126,.55),blue:world.mat(0x1b293a,.94),glass:new THREE.MeshStandardMaterial({color:0x809da2,roughness:.16,metalness:.18,transparent:true,opacity:.12,side:THREE.DoubleSide})};world.houseMaterials=materials;
+ materials.breccia=world.mat(0xe3e1d8,.22,.06);materials.oakFloor=world.mat(0xa57a51,.55);
+ for(const [key,size] of Object.entries({plaster:.85,sage:.85,marble:2.4,oak:1.1,oakFloor:1.8,walnut:1.1,breccia:1.55,orange:.16,cream:.16,blue:.16}))materials[key].userData.textureMeters=size;
  const mat=v=>typeof v==='string'?materials[v]:typeof v==='number'?world.mat(v):v;
  const box=(w,h,d,x,y,z,m='white',p=root)=>world.box(w,h,d,x,y,z,mat(m),p);
  const cyl=(a,b,h,x,y,z,m='white',p=root,n=20)=>world.cyl(a,b,h,x,y,z,mat(m),p,n);
  const sphere=(r,x,y,z,m='white',p=root,sx=1,sy=1,sz=1)=>world.sphere(r,x,y,z,mat(m),p,sx,sy,sz);
  const soft=(w,h,d,x,y,z,m,p=root)=>{const o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,.06),mat(m));o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
  const block=(x,z,w,d,angle=0)=>world.colliders.push({x,z,w,d,angle});
- const wall=(x0,z0,x1,z1,m='plaster',h=3.5,b=0)=>{const w=Math.hypot(x1-x0,z1-z0),x=(x0+x1)/2,z=(z0+z1)/2,a=-Math.atan2(z1-z0,x1-x0);const mesh=box(w,h,.15,x,b+h/2,z,m);mesh.rotation.y=a;box(w,.05,.17,x,b+.025,z,'white').rotation.y=a;block(x,z,w,.15,a);};
+ const wall=(x0,z0,x1,z1,m='plaster',h=3.5,b=0)=>{const w=Math.hypot(x1-x0,z1-z0),x=(x0+x1)/2,z=(z0+z1)/2,a=-Math.atan2(z1-z0,x1-x0);const mesh=box(w,h,.15,x,b+h/2,z,m);mesh.rotation.y=a;box(w,.05,.17,x,b+.025,z,'white').rotation.y=a;world.colliders.push({x,z,w,d:.15,angle:a,top:b+h});};
  const light=(x,y,z,color=0xffdca4,power=15,range=9)=>{const l=new THREE.PointLight(color,power,range,2);l.position.set(x,y,z);root.add(l);return l;};
  const down=(x,z,b=0,p=13)=>{cyl(.09,.09,.025,x,b+2.97,z,new THREE.MeshStandardMaterial({color:0xffe5b6,emissive:0xffcf87,emissiveIntensity:1.4}));return light(x,b+2.87,z,0xffdba8,p);};
  const painting=(x,y,z,w,h,c,a=0)=>{const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=a;root.add(g);box(w+.07,h+.07,.04,0,0,0,'walnut',g);box(w,h,.047,0,0,.012,c,g);return g;};
  const cabinet=(x,z,w,h,d,m='sage',a=0,b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);box(w,h,d,0,h/2,0,m,g);const n=Math.max(1,Math.round(w/.55));for(let i=0;i<n;i++){const dx=-w/2+(i+.5)*w/n;box(w/n-.016,h-.03,.024,dx,h/2,d/2+.008,m,g);box(.012,.13,.025,dx+w/n*.35,h*.45,d/2+.035,'steel',g);}block(x,z,Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*d,Math.abs(Math.cos(a))*d+Math.abs(Math.sin(a))*w);return g;};
  const sofa=(x,z,w,a,m='orange',b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);soft(w,.26,.98,0,.27,0,m,g);soft(w,.58,.25,0,.65,-.43,m,g);const n=Math.round(w/.7);for(let i=0;i<n;i++)soft(w/n-.025,.2,.72,-w/2+(i+.5)*w/n,.48,.08,m,g);if(m!=='orange')for(const dx of [-w/2+.08,w/2-.08])soft(.19,.37,1.04,dx,.51,0,m,g);for(const [dx,c] of [[-w*.28,'cream'],[w*.22,'blue']]){const p=soft(.44,.43,.16,dx,.79,-.18,c,g);p.rotation.x=-.17;p.rotation.z=dx*.15;}block(x,z,Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*1.03,Math.abs(Math.cos(a))*1.03+Math.abs(Math.sin(a))*w);};
  const chair=(x,z,a,b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);soft(.5,.09,.49,0,.46,0,'cream',g);soft(.5,.52,.09,0,.74,-.23,'cream',g);for(const u of [-.19,.19])for(const v of [-.18,.18])cyl(.014,.012,.44,u,.22,v,'steel',g);block(x,z,.55,.58);};
- const plant=(x,z,b=0,s=1)=>{cyl(.2*s,.15*s,.35*s,x,b+.175*s,z,'walnut');for(let i=0;i<7;i++){const a=i*2.4,o=sphere(.23*s,x+Math.cos(a)*.2*s,b+.5*s+i*.065*s,z+Math.sin(a)*.2*s,0x273d27,root,.45,1.6,.8);o.rotation.z=Math.sin(a)*.6;}block(x,z,.45*s,.45*s);};
+ const plant=(x,z,b=0,s=1)=>{
+  cyl(.2*s,.15*s,.35*s,x,b+.175*s,z,'walnut');cyl(.177*s,.177*s,.009,x,b+.352*s,z,0x211e17);
+  cyl(.014*s,.027*s,.65*s,x,b+.67*s,z,'walnut');
+  for(let i=0;i<12;i++){
+   const a=i*2.4,y=b+(.51+i*.035)*s,r=(.19+.04*Math.sin(i))*s,end=new THREE.Vector3(x+Math.cos(a)*r,y+.16*s,z+Math.sin(a)*r),start=new THREE.Vector3(x,y,z),dir=end.clone().sub(start);
+   const twig=cyl(.005*s,.009*s,dir.length(),...(start.clone().add(end).multiplyScalar(.5).toArray()),'walnut');twig.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),dir.normalize());
+   for(let j=0;j<4;j++){const aa=a+j*1.4,leaf=new THREE.Mesh(new THREE.SphereGeometry(.085*s,8,6),mat(j%2?0x354a29:0x243f2a));leaf.scale.set(.82,1.7,.12);leaf.position.set(end.x+Math.cos(aa)*.1*s,end.y+(j%2)*.06*s,end.z+Math.sin(aa)*.1*s);leaf.rotation.set(.4,aa,.5*Math.sin(aa));leaf.castShadow=true;root.add(leaf);}
+  }block(x,z,.45*s,.45*s);
+ };
  const shelf=(x,z,w,h,a=0,b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);box(w,h,.12,0,h/2,-.18,'black',g);for(let j=0;j<6;j++){const y=.1+j*(h-.1)/5;box(w,.035,.42,0,y,0,'walnut',g);for(let i=0;i<Math.floor(w/.13);i++){const v=.14+(i*17+j*7)%11*.01;box(.065+(i%3)*.012,v,.17,-w/2+.1+i*.13,y+v/2+.03,.03,[0x705548,0x343f39,0x7f755b,0x343d53,0x8a4d38][(i+j)%5],g);}}block(x,z,Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*.44,Math.abs(Math.cos(a))*.44+Math.abs(Math.sin(a))*w);};
  const P=planPoint,scale=PLAN_SCALE;
  const B=(px,pz,w,h,d,y,m='white',a=0)=>{const [x,z]=P(px,pz),o=box(w,h,d,x,y,z,m);o.rotation.y=a;return o;};
@@ -42,7 +53,13 @@ export function buildHouse(world){
  const slab=(poly,y,m)=>{const shape=new THREE.Shape(poly.map(([x,z])=>new THREE.Vector2(x,-z)));const geo=new THREE.ShapeGeometry(shape);geo.rotateX(-Math.PI/2);const o=new THREE.Mesh(geo,mat(m));o.position.y=y;o.receiveShadow=true;root.add(o);return o;};
  for(const r of HOUSE_ROOMS){
   const timber=['bedroom','bedroom_hall','wardrobe','meditation','theatre','wine','guest'].includes(r.id);
-  for(const p of floorPieces(r.polygon,HOUSE_STAIRS))slab(p,r.floor,timber?'oak':'marble');
+  // Solid floor volumes close the exposed risers beneath every raised landing.
+  // Stair footprints are cut out before extrusion, leaving the treads exposed.
+  for(const p of floorPieces(r.polygon,HOUSE_STAIRS)){
+   const shape=new THREE.Shape(p.map(([x,z])=>new THREE.Vector2(x,-z)));
+   const geo=new THREE.ExtrudeGeometry(shape,{depth:r.floor+.08,bevelEnabled:false,steps:1});geo.rotateX(-Math.PI/2);
+   const floor=new THREE.Mesh(geo,mat(timber?'oakFloor':'marble'));floor.position.y=-.08;floor.receiveShadow=true;root.add(floor);
+  }
   const ceiling=slab(r.polygon,r.floor+r.ceiling,'plaster');ceiling.material.side=THREE.DoubleSide;
   for(let i=0;i<r.polygon.length;i++){const [ax,az]=r.polygon[i],[bx,bz]=r.polygon[(i+1)%r.polygon.length],h=Math.max(.04,3.65-r.floor-r.ceiling);const edge=box(Math.hypot(bx-ax,bz-az),h,.12,(ax+bx)/2,r.floor+r.ceiling+h/2,(az+bz)/2,'plaster');edge.rotation.y=-Math.atan2(bz-az,bx-ax);}
  }
@@ -83,18 +100,21 @@ export function buildHouse(world){
  C(967,554,1.355,2.48,.57,'sage',-Math.PI/2,.75);B(869,566,.69,.04,1.21,1.5,'oak');block(...P(869,566),.69,1.21);B(861,566,.07,.47,.7,1.78,'black');B(862,566,.009,.39,.61,1.79,new THREE.MeshBasicMaterial({color:0x273a33}));
  const [cx,cz]=P(898,566);soft(.6,.14,.63,cx,1.22,cz,'blue');soft(.6,.94,.14,cx+.22,1.6,cz,'blue').rotation.y=Math.PI/2;block(cx,cz,.65,.7);T('media',865,566,1.8,'Listen to the computer recording');
  // Sunken lounge: orange seating on the plinth, cream seating, blue low table.
- S(543,584,3.25,-Math.PI/2);S(406,550,2.75,0);S(390,693,2.7,Math.PI,'cream');B(436,620,4.8,.012,3.55,.014,0x4b5039);
- // Armless orange seating meets its raised walkway; no sunken strip behind it.
- B(543,584,1.02,.30,3.25,.15,'marble');B(406,549,2.75,.30,1.02,.15,'marble');
+ // The east sofa occupies the seating ledge, with its back meeting x=611,
+ // the wine-cellar walkway. x=562 is the ledge's front edge, not its back.
+ S(591,591,118/scale,-Math.PI/2,'orange',.315);S(406,550,2.75,0);S(390,693,2.7,Math.PI,'cream');B(436,620,4.8,.012,3.55,.014,0x4b5039);
+ // The east landing is already a solid volume. The north plinth stops 5 mm
+ // below the upholstery, so their side faces never occupy the same plane.
+ B(406,549,2.77,.135,1.04,.0675,'marble');
  const [tx,tz]=P(432,611);cyl(.64,.6,.29,tx,.15,tz,0x253965,root,40);block(tx,tz,1.3,1.3);for(let i=0;i<3;i++)box(.23,.045,.31,tx-.25+i*.24,.325,tz,0xa59677);
  // C-30 follows the bedroom wall: 5,830 mm run, doorway, then 1,685 mm run.
  C(636,429.65,5.83,2.13,.6,'sage',0,.75);C(815.5,429.65,1.685,2.13,.6,'sage',0,.75);
  B(636,429,5.87,.14,.62,2.95,'plaster');B(815.5,429,1.72,.14,.62,2.95,'plaster');
  B(573,442,1.0,.29,.04,2.665,'black');for(let i=0;i<7;i++)B(573,443,1.02,.022,.04,2.54+i*.041,'sage');
- sketch(527,461,2.03,.58,.77,Math.PI/2);C(537,551,.57,.45,.55,'steel',0,.45);
+ sketch(527,461,2.03,.58,.77,Math.PI/2);
  // Photo-confirmed wraparound racks and waterfall-stone island.
- C(758,555,1.975,.93,1,'oak',0,.75);B(758,555,2.015,.045,1.04,1.7025,'marble');
- for(const px of [719.9,796.1])B(px,555,.045,.93,1.04,1.215,'marble');
+ C(758,555,1.975,.93,1,'oak',0,.75);B(758,555,2.015,.045,1.04,1.7025,'breccia');
+ for(const px of [719.9,796.1])B(px,555,.045,.93,1.04,1.215,'breccia');
  const rack=(px,pz,w,a=0)=>{
   const [x,z]=P(px,pz),g=new THREE.Group();g.position.set(x,.75,z);g.rotation.y=a;root.add(g);
   const cols=Math.floor(w/.4),step=w/cols;
@@ -130,15 +150,15 @@ export function buildHouse(world){
  C(584,731,2.3,.855,.6,'oak',0,.45);B(584,731,2.35,.045,.65,1.3275,'marble');
  B(584,722.5,2.42,.72,.035,1.71,0x31593e);B(525,771,.035,.7,2.4,1.7,0xc7c5b4);
  B(577,734,1.05,.88,.62,.89,'orange');B(577,747,.95,.46,.035,.98,'orange');for(const x of [565,587]){B(x,748,.34,.025,.05,1.14,'steel');for(const z of [727,739]){const [xx,zz]=P(x,z);cyl(.095,.095,.025,xx,1.342,zz,'black');}}
- B(577,730,1.1,.78,.6,2.26,0x617259);C(629,768,.84,1.98,.74,'steel',-Math.PI/2,.45);B(613,768,.025,.88,.43,1.8,'black');
+ // Refrigerator back meets the solid wall; the bathroom doorway is beside it.
+ B(577,730,1.1,.78,.6,2.26,0x617259);C(632.65,744,.84,1.98,.74,'steel',-Math.PI/2,.45);B(617,744,.025,.88,.43,1.8,'black');
  C(537,773,.91,.6,.37,'walnut',Math.PI/2,2.2);B(536,801,.56,.015,.48,1.36,'steel');const [sx,sz]=P(535,801);cyl(.018,.018,.38,sx,1.52,sz,'steel');
  C(584,870,2.45,.85,.55,'white',Math.PI,.45);B(584,870,2.5,.05,.6,1.325,'marble');
  // Service passage separates the bathroom, store, small bedroom and L-shaped yard.
  shelf(...P(712,746),1.05,2.1,Math.PI/2,.45);B(750,741,.5,.7,.5,.8,'black');
  const [servx,servz]=P(754,816);soft(1.9,.22,.91,servx,.77,servz,'walnut');soft(1.88,.17,.89,servx,.96,servz,'cream');block(servx,servz,1.93,.94);
  C(772,866,2.2,.86,.375,'white',0,.45);
- // Bicycles and laundry cabinetry are present in the walkthrough, unlike the empty yard drawing.
- for(let k=0;k<2;k++){const [x,z]=P(654,892+k*20),g=new THREE.Group();g.position.set(x,1.75-k*.7,z);g.rotation.y=Math.PI/2;root.add(g);for(const dx of [-.43,.43]){const w=new THREE.Mesh(new THREE.TorusGeometry(.31,.022,7,30),mat('black'));w.position.x=dx;g.add(w);}for(const [a,b] of [[[-.43,0],[0,.45]],[[0,.45],[.43,0]],[[-.43,0],[.15,0]],[[.15,0],[0,.45]]]){const len=Math.hypot(b[0]-a[0],b[1]-a[1]),bar=box(len,.025,.025,(a[0]+b[0])/2,(a[1]+b[1])/2,0,k?'orange':'black',g);bar.rotation.z=Math.atan2(b[1]-a[1],b[0]-a[0]);}}
+ // Laundry cabinetry remains; bicycles omitted at the owner's request.
  for(let j=0;j<2;j++){B(706,936,.6,.83,.6,.865+j*.83,'white');const [x,z]=P(706,924);cyl(.22,.22,.04,x,.865+j*.83,z,'black').rotation.x=Math.PI/2;}
  C(761,936,1.2,.8,.6,'white',Math.PI,.45);B(769,936,.45,.025,.42,1.27,'steel');
  B(738,899,1.24,.08,.5,2.6,'white');for(let i=0;i<5;i++)B(738,891+i*4,1.2,.014,.018,2.4,'steel');
@@ -152,15 +172,13 @@ export function buildHouse(world){
  C(778,335,2.35,.45,.42,'walnut',-Math.PI/2,.75);paint(780,331,2.24,1.89,1.06,0x101917,-Math.PI/2);T('staff',685,405,1.5,'Read the note beside the bed');
  C(797,346,3.3,2.5,.58,'walnut',Math.PI/2,.75);C(896,346,3.3,2.5,.58,'walnut',-Math.PI/2,.75);C(846,403,2.35,2.5,.6,'walnut',Math.PI,.75);
  C(826,219,1.9,.85,.55,'oak',0,.75);paint(826,211,2.38,1.165,1.05,0x889591);C(807,281,.9,2.4,.4,'walnut',Math.PI,.75);
- B(937,465,1.21,.045,.6,1.5,'oak');B(937,465,1.21,.5,.38,2.66,'walnut');for(const px of [915,959])B(px,465,.035,.7,.58,1.1,'oak');C(974,468,.45,2.5,.6,'walnut',Math.PI,.75);C(881,510,1.1,2.5,.6,'walnut',Math.PI,.75);
   // Main bathroom and meditation bay.
  const [tubx,tubz]=P(906,161);soft(1.72,.56,.76,tubx,1.03,tubz,'white');soft(1.5,.17,.59,tubx,1.29,tubz,'black');block(tubx,tubz,1.78,.82);
  C(922,218,1.16,.8,.5,'oak',-Math.PI/2,.75);paint(947,218,2.2,1.1,1.05,0x8c9590,-Math.PI/2);B(886,207,.02,2.2,1.15,1.85,'glass');
  // The built room contains a beige massage chair, rather than the proposed round cushion.
  const [medx,medz]=P(561,178);soft(.88,.35,1.3,medx,1.03,medz,'cream');soft(.83,1.28,.4,medx,1.65,medz-.4,'cream').rotation.x=-.12;soft(.7,.5,.3,medx,2.22,medz-.38,'cream');for(const x of [-.44,.44])soft(.21,.55,1.12,medx+x,1.39,medz,'cream');soft(.68,.55,.52,medx,1.03,medz+.67,'cream');block(medx,medz,1.12,1.96);
- // Second bedroom has neutral furnishings; fictional occupants only.
- const [gx,gz]=P(1009,355);soft(2.08,.24,2.08,gx,.99,gz,'walnut');soft(2,.23,2,gx,1.21,gz,'cream');for(const z of [-.5,.5])soft(.45,.13,.7,gx+.73,1.4,gz+z,'white');B(1050,355,.12,1.25,2.15,1.375,'walnut');block(gx,gz,2.1,2.1);
- const [pix,piz]=P(988,287);box(1.51,1.13,.42,pix,1.315,piz-.09,'black');box(1.51,.08,.61,pix,1.5,piz,'black');for(let i=0;i<28;i++){box(.042,.025,.2,pix-.61+i*.045,1.55,piz+.17,'white');if(![2,6].includes(i%7))box(.023,.025,.11,pix-.59+i*.045,1.575,piz+.13,'black');}block(pix,piz,1.51,.61);soft(.65,.1,.4,pix,1.22,piz+.78,'black');
+ // Supplied bedroom photos supersede the proposed furniture arrangement.
+ buildSecondBedroom(world,root,materials);
  C(1038,492,1,.85,.55,'white',-Math.PI/2,.75);B(998,488,.02,2.2,1.2,1.85,'glass');
  // Window lounge/home theatre bay, framed glazing, cream seating and telescope.
  S(347,293,2.4,Math.PI/2,0x827d77,.75);C(498,296,3.78,2.6,.45,'black',-Math.PI/2,.75);B(487,296,.025,1.58,2.82,2.04,'black');
@@ -174,6 +192,7 @@ export function buildHouse(world){
  box(.74,.28,.65,px,.89,pz,'white');
  for(let j=0;j<2;j++){const base=1.03+j*.82;box(.74,.2,.65,px,base+.1,pz,'white');box(.68,.58,.58,px,base+.49,pz,'glass');for(const dx of [-.35,.35])for(const dz of [-.3,.3])box(.025,.61,.025,px+dx,base+.49,pz+dz,arcadeGlow);box(.74,.045,.65,px,base+.8,pz,'white');for(let i=0;i<5;i++)sphere(.065,px+Math.sin(i*2.4)*.2,base+.29,pz+Math.cos(i*2.4)*.15,i%2?'cream':'blue',root,1,1.1,.8);box(.13,.08,.025,px,base+.1,pz+.34,'black');}
  block(px,pz,.76,.68);
+ addHouseDetails(world,root,materials);
  C(332,467,1.1,.86,.55,'oak',Math.PI,.75);paint(332,479,2.25,.85,1.1,0x87948b,Math.PI);B(331,417,1.1,2.2,.02,1.85,'glass');
  // Downlights follow rooms and their ceiling heights; moonlight enters the bays.
  root.add(new THREE.HemisphereLight(0x91a9ba,0x392b1e,.55));

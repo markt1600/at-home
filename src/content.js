@@ -2,14 +2,14 @@ export const PEOPLE = [
   {
     "id": "tan",
     "name": "Daniel Tan",
-    "role": "Retired mathematics teacher",
+    "role": "Accountant · neighbour",
     "age": 46,
     "color": 11711136,
     "skin": 12157025,
     "hair": 2105371,
     "glasses": true,
     "opening": "You know me. We share the lift every morning. Please open the door.",
-    "alibi": "I was in my flat marking old exam papers. Then every phone in the building rang.",
+    "alibi": "I was in my flat checking invoices. Then every phone in the building rang.",
     "memory": "The lift skips the fourth floor unless you hold the button.",
     "record": "D. Tan — resident. Atrial arrhythmia noted on emergency contact card.",
     "humanClue": "My heart skips sometimes. It is in the first-aid file."
@@ -55,7 +55,7 @@ export const PEOPLE = [
     "alibi": "I had just come home from the laboratory. The lift was empty until it stopped.",
     "memory": "Your dining lamps look like three little sunsets.",
     "record": "K. Menon — resident. Optical brighteners used at work.",
-    "humanClue": "The UV residue is from the lab. Check the practical schedule."
+    "humanClue": "The UV residue is from the lab. My work record mentions the chemicals."
   },
   {
     "id": "wei",
@@ -96,7 +96,7 @@ export const PEOPLE = [
     "hair": 1446934,
     "opening": "I carried someone up from the lobby. They stopped breathing. Then they started talking.",
     "alibi": "The gym. We were packing up when the announcement started.",
-    "memory": "The bicycles hang up in the utility room. I helped carry one inside.",
+    "memory": "The washer and dryer are in the yard behind the kitchen. I helped carry the laundry inside.",
     "record": "R. Kumar — approved visitor. Wrist injury; sports tape issued.",
     "humanClue": "The marks on my wrist are from the tape. I pulled it off."
   },
@@ -215,7 +215,7 @@ export const ENDINGS = {
     "text": "At 06:00, rain gives way to birdsong. The people you sheltered walk down the stairs together. You count them twice. The number stays the same."
   },
   "alone": {
-    "title": "PERFECT ATTENDANCE",
+    "title": "NOBODY CAME HOME",
     "subtitle": "The door held. The silence stayed.",
     "text": "The rescue team finds too many empty chairs. Outside, abandoned bags line the corridor. You can still name the people who carried them. Survival does not feel the way you expected."
   },
