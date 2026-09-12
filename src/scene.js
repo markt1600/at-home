@@ -12,7 +12,8 @@ import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,GUES
 import {BloodEffects} from './blood.js';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 import {MirrorHaunting} from './mirror.js';
-import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,visibleVisitorHit} from './visitors.js';
+import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,animateStandingVisitor,visibleVisitorHit} from './visitors.js';
+import {collapseVisitor,updateVisitorFall} from './corpse.js';
 
 const UP=new THREE.Vector3(0,1,0);
 export class House {
@@ -134,6 +135,8 @@ export class House {
     if(!force&&!hit)return this.onShoot(false);
     if(this.onShoot(true)===false)return false;
     this.recoil=1;this.muzzleLight.intensity=100;this.muzzleMesh.visible=true;this.dead=true;
+    const index=Math.max(0,VISITOR_IDS.indexOf(this.doorPersonId));
+    collapseVisitor(this.npc,this.standingAtlases[Math.floor(index/3)],index);this.npcMeshes=[this.npc.userData.body];
     if(this.blood){const pt=hit?.point||this.npc.position.clone().add(new THREE.Vector3(0,1.2,0)),direction=pt.clone().sub(this.camera.position).normalize();this.bloodEffects.impact(pt,direction,this.npc,this.houseRoot);}
     return true;
   }
@@ -173,17 +176,21 @@ export class House {
     }
     this.recoil=Math.max(0,this.recoil-dt*4);if(this.recoil<.8){this.muzzleLight.intensity=0;this.muzzleMesh.visible=false;}
     if(this.npc){
-      if(this.dead){this.npc.rotation.x=THREE.MathUtils.lerp(this.npc.rotation.x,-Math.PI/2,.09);}
+      if(this.dead){updateVisitorFall(this.npc,dt);}
       else{
+        animateStandingVisitor(this.npc,this.paused?0:dt,this.motion);
         if(this.depart){this.depart.t+=dt;const direction=this.depart.action==='admit'?-1:1;this.npc.position.x+=dt*direction*.7;this.npc.position.z+=dt*direction*.7;if(this.depart.t>2.5)this.npc.visible=false;}
         this.npc.rotation.y=Math.atan2(this.camera.position.x-this.npc.position.x,this.camera.position.z-this.npc.position.z);
         this.npc.position.y=VISITOR_POSITION[1];
       }
     }
     for(const [id,g] of this.residents||[]){
+      animateStandingVisitor(g,this.paused?0:dt,this.motion);
       g.visible=!(this.depart?.action==='admit'&&this.doorPersonId===id&&this.depart.t<=2.5);
       g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
     }
+
+    if(this.mirrorFace?.visible)animateStandingVisitor(this.mirrorFace,this.paused?0:dt*.75,this.motion);
 
     if(this.scanUntil<t&&this.scanUntil>0){this.flashlight.color.set(0xe6f5de);this.flashlight.visible=this.torchOn;this.scanUntil=0;}
     if(this.flicker)this.flicker.intensity=Math.sin(t*24)>.98?1:(this.flicker.userData.baseIntensity||12);

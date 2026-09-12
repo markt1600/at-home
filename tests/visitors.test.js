@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as THREE from 'three';
-import {keyStandingAtlas,createStandingVisitor,visibleVisitorHit,VISITOR_IDS} from '../src/visitors.js';
+import {keyStandingAtlas,createStandingVisitor,animateStandingVisitor,visibleVisitorHit,VISITOR_IDS} from '../src/visitors.js';
 test('standing cutouts preserve black clothing and separate empty space between legs',()=>{
  const w=90,h=120,d=new Uint8ClampedArray(w*h*4);
  for(let i=0;i<d.length;i+=4)d.set([255,0,255,255],i);
@@ -25,4 +25,14 @@ test('shots through transparent parts of a visitor do not register a body hit',(
  const object={material:{map}};
  assert.equal(visibleVisitorHit({object,uv:new THREE.Vector2(.1,.5)}),false);
  assert.equal(visibleVisitorHit({object,uv:new THREE.Vector2(.8,.5)}),true);
+});
+test('idle animation has independent timing, pauses and stops when motion is disabled or the body falls',()=>{
+ const atlas=new THREE.Texture({width:300,height:600});atlas.userData.frames=Array.from({length:3},(_,i)=>({x0:i*100,x1:(i+1)*100,y0:0,y1:600}));
+ const a=createStandingVisitor(atlas,0),b=createStandingVisitor(atlas,1),idle=a.userData.idle;
+ assert.notEqual(idle.time.value,b.userData.idle.time.value);
+ animateStandingVisitor(a,.2);assert.equal(idle.time.value,.2);
+ animateStandingVisitor(a,0);assert.equal(idle.time.value,.2);
+ animateStandingVisitor(a,1,false);assert.equal(idle.time.value,.2);assert.equal(idle.strength.value,0);
+ animateStandingVisitor(a,.1,true);assert.equal(idle.strength.value,1);
+ a.userData.fall=new THREE.Group();const time=idle.time.value;animateStandingVisitor(a,1);assert.equal(idle.time.value,time);
 });

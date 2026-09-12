@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {bodyWoundAnchor} from './corpse.js';
 
 // Layered geometry keeps the effect sharp at close range without a large texture.
 export function splatterGeometry(radius,random=Math.random){
@@ -23,7 +24,7 @@ export class BloodEffects{
   this.stain(base,up,.5,{stretch:1.28,grow:true});
   for(let i=0;i<18;i++){const p=base.clone().add(new THREE.Vector3((this.random()-.5)*1.45,0,(this.random()-.5)*1.45));p.y=this.floor(p.x,p.z);this.stain(p,up,.012+this.random()*.075,{stretch:1+this.random()*1.5});}
   // Wound follows the photographic body when it falls, rather than hovering in space.
-  if(npc){npc.updateMatrixWorld(true);const local=npc.worldToLocal(point.clone());local.z=.018;this.stain(local,new THREE.Vector3(0,0,1),.075,{parent:npc,stretch:1.7});}
+  if(npc){const wound=bodyWoundAnchor(npc,point);this.stain(wound.point,wound.normal,.075,{parent:wound.parent,stretch:1.7});}
   const ray=new THREE.Raycaster(point.clone().addScaledVector(direction,.035),direction,0,3.2);surfaces.updateMatrixWorld(true);
   const hit=ray.intersectObject(surfaces,true).find(h=>h.face&&Math.abs(h.face.normal.clone().transformDirection(h.object.matrixWorld).y)<.6);
   if(hit){const normal=hit.face.normal.clone().transformDirection(hit.object.matrixWorld);if(normal.dot(direction)>0)normal.negate();this.stain(hit.point,normal,.26,{stretch:1.4});for(let i=0;i<14;i++){const p=hit.point.clone().addScaledVector(side,(this.random()-.5)*.6);p.y+=(this.random()-.45)*.9;this.stain(p,normal,.009+this.random()*.035,{stretch:1.2+this.random()*2});}}

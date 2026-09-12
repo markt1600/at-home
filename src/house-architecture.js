@@ -13,12 +13,12 @@ export const INTERIOR_WALLS=[
  {id:'master-south',a:[523,415],b:[783,415],openings:[opening('bedroom',[766,415],.9)]},
  {id:'cabinet-end-return',a:[523,415],b:[523,482]},
  {id:'master-east',a:[783,208],b:[783,415],openings:[opening('vanity',[783,250],.9,2.15)]},
- {id:'wardrobe-north',a:[783,273],b:[910,273],openings:[opening('wardrobe',[850,273],.9,2.15)]},
+ {id:'wardrobe-north',a:[783,273],b:[868,273],openings:[opening('wardrobe',[850,273],.9,2.15)]},
  {id:'wardrobe-east',a:[910,273],b:[910,415]},
  {id:'wardrobe-south',a:[783,415],b:[910,415]},
  {id:'bath-west',a:[868,208],b:[868,273],openings:[opening('bath',[868,250],.9)]},
  {id:'bath-south',a:[868,273],b:[952,273]},
- {id:'second-bedroom-entry',a:[853,415],b:[853,531],openings:[opening('guest',[853,461],.9)]},
+ {id:'second-bedroom-entry',a:[853,415],b:[853,482],openings:[opening('guest',[853,461],.9)]},
  {id:'second-bedroom-vestibule',a:[910,415],b:[910,457],openings:[opening('guest-inner',[910,436],42/PLAN_SCALE,2.25)]},
  {id:'second-bedroom-closet-backing',a:[910,482],b:[984,482]},
  {id:'second-bath-north',a:[984,457],b:[1053,457],openings:[opening('guest-bath',[1023,457],.9)]},
@@ -32,12 +32,13 @@ export const INTERIOR_WALLS=[
  ...BALCONY_DOORS.map(d=>({id:d.id,a:d.a,b:d.b,openings:[d]})),
  {id:'kitchen-north',a:[523,718],b:[650,718],openings:[opening('kitchen-window',[551,718],.44,1.1,1.75,'window')]},
  {id:'kitchen-west',a:[523,718],b:[523,883],openings:[opening('kitchen',[523,837],.9,2.13,.45)]},
- {id:'kitchen-east',a:[650,718],b:[650,883],openings:[opening('service-bath',[650,786],.9,2.13,.45),opening('yard-access',[650,850],.9,2.13,.45)]},
+ // The bathroom is entered from the service passage, not through this wall.
+ {id:'kitchen-east',a:[650,718],b:[650,883],openings:[opening('yard-access',[650,850],.9,2.13,.45)]},
  {id:'service-bath-north',a:[650,718],b:[691,718]},
  {id:'service-bath-east',a:[691,718],b:[691,767]},
  {id:'service-bath-sink-north',a:[691,767],b:[714,767]},
  {id:'service-bath-sink-east',a:[714,767],b:[714,808]},
- {id:'service-bath-south',a:[650,808],b:[714,808]},
+ {id:'service-bath-south',a:[650,808],b:[714,808],openings:[opening('service-bath',[670.5,808],.9,2.13,.45)]},
  {id:'service-room-entry',a:[691,808],b:[691,857],openings:[opening('service-room',[691,833],.9,2.13,.45)]},
  {id:'service-room-north',a:[714,786],b:[823,786]},
  {id:'service-room-south',a:[691,857],b:[818,857]},
@@ -100,7 +101,9 @@ export function buildArchitecture(world,root,materials){
  const solid=(wall,lo,hi,base,height,material='plaster',collision=false,depth=.16)=>{
   if(hi-lo<1e-6||height<1e-6)return;
   const [x,z]=planPoint(...wall.a),[xx,zz]=planPoint(...wall.b),len=Math.hypot(xx-x,zz-z),t=(lo+hi)/2/len,angle=-Math.atan2(zz-z,xx-x);
-  const mesh=world.box(hi-lo+.008,height,depth,x+(xx-x)*t,base+height/2,z+(zz-z)*t,materials[material],root);mesh.rotation.y=angle;mesh.userData.architecture=true;mesh.name=wall.id;
+  // Adjacent sections meet exactly. Padding every box created coplanar strips
+  // at wall seams, door jambs and balcony rail corners (visible as flicker).
+  const mesh=world.box(hi-lo,height,depth,x+(xx-x)*t,base+height/2,z+(zz-z)*t,materials[material],root);mesh.rotation.y=angle;mesh.userData.architecture=true;mesh.name=wall.id;
   if(collision)world.colliders.push({x:mesh.position.x,z:mesh.position.z,w:hi-lo,d:depth,angle,wall:wall.id});
   return mesh;
  };
@@ -119,8 +122,8 @@ export function buildArchitecture(world,root,materials){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
-   const frame=a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
-   for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height,frame,false,.19);
+   const frame=a.kind==='sliding'?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
+   for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed','lift'].includes(a.kind)){
     solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?'glass':a.kind==='lift'?'steel':'walnut',true,.045);
@@ -132,9 +135,10 @@ export function buildArchitecture(world,root,materials){
     // Four leaves parked as two pairs, leaving a real central passage.
     for(const [lo,hi] of [[a.lo,a.lo+leaf],[a.hi-leaf,a.hi]]){
      solid(wall,lo,hi,a.base,doorHeight,'glass',true,.085);
-     for(const edge of [lo,hi])solid(wall,edge-.022,edge+.022,a.base,doorHeight,'black',false,.12);
-     solid(wall,lo,hi,a.base,.035,'black',false,.12);
-     solid(wall,lo,hi,a.base+doorHeight-.035,.035,'black',false,.12);
+     // Outer jambs already support the outside edges of the parked leaves.
+     for(const edge of [lo,hi])if(edge>a.lo+.001&&edge<a.hi-.001)solid(wall,edge-.022,edge+.022,a.base+.035,doorHeight-.07,'black',false,.12);
+     solid(wall,lo-.022,hi+.022,a.base,.035,'black',false,.12);
+     solid(wall,lo-.022,hi+.022,a.base+doorHeight-.035,.035,'black',false,.12);
      solid(wall,lo+.045,hi-.045,a.base+.012,.025,'steel',false,.16);
     }
     solid(wall,a.lo,a.hi,a.base+doorHeight,.045,'black',false,.12);

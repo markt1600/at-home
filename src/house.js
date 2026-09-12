@@ -79,7 +79,7 @@ export function buildHouse(world){
  const doorFrame=new THREE.Group();doorFrame.rotation.y=FRONT_DOOR.yaw;const [fdx,fdz]=P(...FRONT_DOOR.center);doorFrame.position.set(fdx,.45,fdz);root.add(doorFrame);
  const half=FRONT_DOOR.width/2;
  world.door=new THREE.Group();world.door.name='Front door';world.door.position.x=-half;doorFrame.add(world.door);world.door.rotation.y=-1.45;
- box(1.15,2.15,.035,.575,1.075,0,'glass',world.door);for(const x of [.02,1.13])box(.035,2.2,.05,x,1.1,0,'steel',world.door);for(const y of [.02,1.03,2.18])box(1.15,.025,.05,.575,y,0,'steel',world.door);box(.035,.36,.065,1.03,1.12,.06,'black',world.door);
+ box(1.15,2.15,.035,.575,1.075,0,'glass',world.door);for(const x of [.02,1.13])box(.035,2.2,.05,x,1.1,0,'steel',world.door);for(const y of [.02,1.03,2.18])box(1.075,.025,.05,.575,y,0,'steel',world.door);box(.035,.36,.065,1.03,1.12,.06,'black',world.door);
  const fixedStart=-half+1.15;box(half-fixedStart,2.2,.035,(half+fixedStart)/2,1.1,0,'glass',doorFrame);box(.035,2.2,.055,fixedStart,1.1,0,'steel',doorFrame);
  B(949,871,.13,.23,.04,1.8,'black',Math.PI/4);
  // The full-height lobby mirror follows its diagonal wall; the lift is opposite GD01.
@@ -150,8 +150,15 @@ export function buildHouse(world){
  C(584,731,2.3,.855,.6,'oak',0,.45);B(584,731,2.35,.045,.65,1.3275,'marble');
  B(584,722.5,2.42,.72,.035,1.71,0x31593e);B(525,771,.035,.7,2.4,1.7,0xc7c5b4);
  B(577,734,1.05,.88,.62,.89,'orange');B(577,747,.95,.46,.035,.98,'orange');for(const x of [565,587]){B(x,748,.34,.025,.05,1.14,'steel');for(const z of [727,739]){const [xx,zz]=P(x,z);cyl(.095,.095,.025,xx,1.342,zz,'black');}}
- // Refrigerator back meets the solid wall; the bathroom doorway is beside it.
- B(577,730,1.1,.78,.6,2.26,0x617259);C(632.65,744,.84,1.98,.74,'steel',-Math.PI/2,.45);B(617,744,.025,.88,.43,1.8,'black');
+ // Photo-confirmed return counter and fridge beside the sole service doorway.
+ // The counter stops before the fridge; its top does not overlap the north run.
+ C(634.5,769.4,53.6/scale,.855,.6,'oak',-Math.PI/2,.45);B(634.5,769.78,.65,.045,52.45/scale,1.3275,'marble');
+ B(577,730,1.1,.78,.6,2.26,0x617259);C(632.65,812.5,.84,1.98,.74,'steel',-Math.PI/2,.45);B(617,812.5,.025,.88,.43,1.8,'black');
+ const upper=new THREE.Group(),[ux,uz]=P(644,764);upper.position.set(ux,2.30,uz);upper.rotation.y=-Math.PI/2;root.add(upper);
+ box(1.24,.64,.025,0,0,-.14,'plaster',upper);
+ for(const x of [-.63,.63])box(.025,.69,.30,x,0,0,'black',upper);
+ for(const y of [-.345,0,.345])box(1.28,.022,.30,0,y,0,'black',upper);
+ for(let i=0;i<3;i++){const x=-.42+i*.42;box(.017,.69,.035,x+.21,0,.154,'black',upper);box(.398,.66,.02,x,0,.157,'glass',upper);}
  C(537,773,.91,.6,.37,'walnut',Math.PI/2,2.2);B(536,801,.56,.015,.48,1.36,'steel');const [sx,sz]=P(535,801);cyl(.018,.018,.38,sx,1.52,sz,'steel');
  C(584,870,2.45,.85,.55,'white',Math.PI,.45);B(584,870,2.5,.05,.6,1.325,'marble');
  // Service passage separates the bathroom, store, small bedroom and L-shaped yard.

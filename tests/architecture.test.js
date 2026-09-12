@@ -77,13 +77,20 @@ test('the orange sofa back meets the wine-cellar walkway across its length',()=>
  }
 });
 
-test('the fridge sits flush against solid wall without overlapping the bathroom doorway',()=>{
- const [x,z]=planPoint(662,744),[wallX]=planPoint(650,744),ray=new THREE.Raycaster(new THREE.Vector3(x,1.6,z),new THREE.Vector3(-1,0,0),0,2);
+test('the fridge sits flush beside the only kitchen-to-service doorway',()=>{
+ const [x,z]=planPoint(662,812.5),[wallX]=planPoint(650,812.5),ray=new THREE.Raycaster(new THREE.Vector3(x,1.6,z),new THREE.Vector3(-1,0,0),0,2);
  const fridge=ray.intersectObject(world.houseRoot,true).find(h=>h.object.material===world.houseMaterials.steel);
  assert.ok(fridge,'fridge on the solid wall section');
  assert.ok(Math.abs(fridge.point.x-(wallX-.08))<.02,'no gap behind the refrigerator');
- assert.equal(inWalkableArea(...planPoint(650,744),true,world.colliders),false,'wall behind fridge');
- assert.ok(inWalkableArea(...planPoint(650,786),true,world.colliders),'bathroom doorway remains beside the fridge');
+ assert.equal(inWalkableArea(...planPoint(650,812.5),true,world.colliders),false,'wall behind fridge');
+ assert.ok(inWalkableArea(...planPoint(650,850),true,world.colliders),'service doorway beside fridge');
+ const wall=world.architectureWalls.find(w=>w.id==='kitchen-east');assert.deepEqual(wall.apertures.map(a=>a.id),['yard-access']);
+ for(const y of [.9,1.8,2.5]){
+  const [px,pz]=planPoint(650,786);ray.set(new THREE.Vector3(px+.25,y,pz),new THREE.Vector3(-1,0,0));ray.far=.35;
+  assert.ok(ray.intersectObject(world.houseRoot,true).some(h=>h.object.material===world.houseMaterials.plaster),'former kitchen doorway is solid wall');
+ }
+ assert.equal(inWalkableArea(...planPoint(650,786),true,world.colliders),false,'no extra doorway on the kitchen wall');
+ assert.ok(inWalkableArea(...planPoint(670.5,808),true,world.colliders),'bathroom opens from the service passage');
 });
 
 test('the entrance painting has a solid wine-cellar wall behind and around it',()=>{
