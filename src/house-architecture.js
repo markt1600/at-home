@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {HOUSE_ROOMS,PLAN_SCALE,planPoint,pointInPolygon,FRONT_DOOR} from './house-layout.js';
+import {HOUSE_ROOMS,PLAN_SCALE,planPoint,pointInPolygon,FRONT_DOOR,BALCONY_DOORS} from './house-layout.js';
 
 // One continuous wall run per partition; apertures cut the run and retain its lintel.
 // Positions are in the same private-reference drawing grid as house-layout.js.
@@ -11,6 +11,7 @@ export const INTERIOR_WALLS=[
  {id:'powder-south',a:[299,482],b:[415,482]},
  {id:'meditation-entry',a:[523,249],b:[602,249],material:'glassblock',openings:[opening('meditation',[583,249],.8,2.54)]},
  {id:'master-south',a:[523,415],b:[783,415],openings:[opening('bedroom',[766,415],.9)]},
+ {id:'cabinet-end-return',a:[523,415],b:[523,482]},
  {id:'master-east',a:[783,208],b:[783,415],openings:[opening('vanity',[783,250],.9,2.15)]},
  {id:'wardrobe-north',a:[783,273],b:[910,273],openings:[opening('wardrobe',[850,273],.9,2.15)]},
  {id:'wardrobe-east',a:[910,273],b:[910,415]},
@@ -23,9 +24,10 @@ export const INTERIOR_WALLS=[
  {id:'office-north',a:[853,531],b:[984,531]},
  {id:'office-west',a:[853,482],b:[853,632]},
  {id:'office-south',a:[853,632],b:[947,632],openings:[opening('office',[928,632],.9,2.25)]},
- {id:'wine-north',a:[653,482],b:[853,482]},
- {id:'wine-south',a:[653,632],b:[853,632]},
+ {id:'wine-north',a:[653,482],b:[853,482],openings:[opening('wine-corridor-glazing',[753,482],200/PLAN_SCALE,2.2,.75,'window')]},
+ {id:'wine-south',a:[653,632],b:[853,632],openings:[opening('wine-entry-glazing',[753,632],200/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-west',a:[653,482],b:[653,632],material:'glass',openings:[opening('wine',[653,563],.84,2)]},
+ ...BALCONY_DOORS.map(d=>({id:d.id,a:d.a,b:d.b,openings:[d]})),
  {id:'kitchen-north',a:[523,718],b:[650,718],openings:[opening('kitchen-window',[551,718],.44,1.1,1.75,'window')]},
  {id:'kitchen-west',a:[523,718],b:[523,883],openings:[opening('kitchen',[523,837],.9,2.13,.45)]},
  {id:'kitchen-east',a:[650,718],b:[650,883],openings:[opening('service-bath',[650,786],.9,2.13,.45),opening('yard-access',[650,850],.9,2.13,.45)]},
@@ -40,6 +42,8 @@ export const INTERIOR_WALLS=[
  {id:'store-north',a:[691,718],b:[755,718]},
  {id:'entry-service-wall',a:[755,718],b:[856,819],openings:[opening('store',[808,771],.8,2.25,.45)]},
  {id:'front-door',a:[856,819],b:[925,750],openings:[opening('front-door',FRONT_DOOR.center,FRONT_DOOR.width,2.2,.45,'front')]},
+ {id:'shoe-cabinet-backing',a:[925,750],b:[984,691]},
+ {id:'shoe-cabinet-return',a:[925,750],b:[908,733]},
  {id:'lift-door',a:[947,877],b:[1002,822],openings:[opening('lift-door',[974.5,849.5],1.5,2.3,.45,'lift')]}
 ];
 
@@ -52,11 +56,6 @@ export const EXTERIOR_OPENINGS=[
  opening('theatre-window-north',[399,181],2.15,2.15,1.1,'window'),
  opening('theatre-window-angle',[324.5,206.5],1.55,2.15,1.1,'window'),
  opening('theatre-window-west',[299,282],2.35,2.15,1.1,'window'),
- opening('living-window',[222,622.5],2.36,2.15,.7,'window'),
- opening('living-window-nw',[233.5,561.5],.82,2.15,.7,'window'),
- opening('living-window-sw',[233.5,682.5],.79,2.15,.7,'window'),
- opening('dining-window',[248,809],2,2.15,.85,'window'),
- opening('dining-window-nw',[261,754.5],.84,2.15,.85,'window'),
  opening('lobby-window',[1002,738],1.35,1.9,1,'window'),
  opening('lobby-exit',[1002,792],.9,2.13,.45,'closed'),
  opening('yard-exit',[826,883],.9,2.13,.45,'closed'),
@@ -106,6 +105,14 @@ export function buildArchitecture(world,root,materials){
  world.architectureWalls=[];
  for(const wall of [...envelopeSegments().map(w=>({...w,openings:EXTERIOR_OPENINGS,exterior:true})),...INTERIOR_WALLS]){
   const length=Math.hypot(wall.b[0]-wall.a[0],wall.b[1]-wall.a[1])/PLAN_SCALE,apertures=wallApertures(wall);let cursor=0;
+  const balcony=wall.exterior&&HOUSE_ROOMS.find(r=>r.balcony&&pointInPolygon(...planPoint((wall.a[0]+wall.b[0])/2,(wall.a[1]+wall.b[1])/2),r.polygon));
+  if(balcony){
+   // Covered outdoor balconies: low parapets and handrails, open air above.
+   solid(wall,0,length,bottom,balcony.floor+.94-bottom,'plaster',true,.14);
+   solid(wall,0,length,balcony.floor+1.075,.035,'steel',false,.045);
+   for(let t=.08;t<length;t+=.72)solid(wall,t-.012,t+.012,balcony.floor+.94,.15,'steel',false,.035);
+   world.architectureWalls.push({...wall,length,apertures:[],balcony:true,floor:balcony.floor});continue;
+  }
   for(const a of apertures){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
@@ -116,6 +123,22 @@ export function buildArchitecture(world,root,materials){
     solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?'glass':a.kind==='lift'?'steel':'walnut',true,.045);
     if(a.kind==='window')for(let t=a.lo+.6;t<a.hi;t+=.6)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);
     if(a.kind==='lift')solid(wall,(a.lo+a.hi)/2-.008,(a.lo+a.hi)/2+.008,a.base,a.height,'black',false,.06);
+   }
+   if(a.kind==='sliding'){
+    const leaf=(a.hi-a.lo)/4,doorHeight=2.38;
+    // Four leaves parked as two pairs, leaving a real central passage.
+    for(const [lo,hi] of [[a.lo,a.lo+leaf],[a.hi-leaf,a.hi]]){
+     solid(wall,lo,hi,a.base,doorHeight,'glass',true,.085);
+     for(const edge of [lo,hi])solid(wall,edge-.022,edge+.022,a.base,doorHeight,'black',false,.12);
+     solid(wall,lo,hi,a.base,.035,'black',false,.12);
+     solid(wall,lo,hi,a.base+doorHeight-.035,.035,'black',false,.12);
+     solid(wall,lo+.045,hi-.045,a.base+.012,.025,'steel',false,.16);
+    }
+    solid(wall,a.lo,a.hi,a.base+doorHeight,.045,'black',false,.12);
+    solid(wall,a.lo,a.hi,a.base+doorHeight+.045,a.height-doorHeight-.045,'glass',false,.03);
+    for(let i=1;i<4;i++)solid(wall,a.lo+i*leaf-.016,a.lo+i*leaf+.016,a.base+doorHeight,a.height-doorHeight,'black',false,.08);
+    for(const t of [a.lo+leaf-.07,a.hi-leaf+.07])solid(wall,t-.017,t+.017,a.base+.98,.27,'black',false,.17);
+    solid(wall,a.lo,a.hi,a.base,.012,'steel',false,.18);
    }
    cursor=a.hi;
   }

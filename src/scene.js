@@ -100,7 +100,8 @@ export class House {
   updateMirror(dt){
     const [x,z,y]=MIRROR_POSITION,normal=new THREE.Vector3(Math.sin(MIRROR_YAW),0,Math.cos(MIRROR_YAW)),pos=new THREE.Vector3(x,y,z).addScaledVector(normal,.065),to=pos.clone().sub(this.camera.position),distance=to.length();
     const facing=this.camera.getWorldDirection(new THREE.Vector3()).dot(to.normalize());
-    const event=this.mirrorHaunting.tick(dt,{active:this.mode==='play'&&!this.paused,near:distance<3.4&&facing>.5});
+    const inFront=normal.dot(this.camera.position.clone().sub(pos))>0;
+    const event=this.mirrorHaunting.tick(dt,{active:this.mode==='play'&&!this.paused,near:inFront&&distance<3.4&&facing>.5});
     if(event?.type==='show'){
       const atlas=this.standingAtlases[Math.floor(event.portrait/3)];if(!atlas?.userData.frames)return;
       if(this.mirrorFace){this.scene.remove(this.mirrorFace);this.mirrorFace.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
