@@ -1,11 +1,12 @@
-import { PEOPLE, ENDINGS } from './content.js';
+import { PEOPLE, ENDINGS, ODD_ANSWERS } from './content.js';
+import { playerName as normalizePlayerName } from './haunting.js';
 
 export const SAVE_KEY = 'last-bell-save-v1';
 export function rng(seed) {
   let a = seed >>> 0;
   return () => { a += 0x6D2B79F5; let t = Math.imul(a ^ a >>> 15, a | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
-export function createGame(seed = Math.floor(Math.random() * 0xffffffff)) {
+export function createGame(seed = Math.floor(Math.random() * 0xffffffff), name) {
   const random = rng(seed);
   const order = PEOPLE.map(p => ({p, rank:random()})).sort((a,b) => a.rank-b.rank);
   // Four to six visitors, freshly assigned every run; no character is always safe.
@@ -18,7 +19,7 @@ export function createGame(seed = Math.floor(Math.random() * 0xffffffff)) {
     if (visitor && !signs.some(Boolean)) signs[Math.floor(random()*3)] = true;
     return { personId:p.id, visitor, signs, contradiction:random()<(visitor?.73:.13), pulse:Math.floor(random()*18), asked:[], scans:[], decision:null };
   });
-  return { version:1, seed, encounters, index:0, phase:'arrival', night:1, health:100, ammo:6, trust:50, noise:0, sheltered:[], decisions:[], notes:[], signalOff:false, time:90, ending:null };
+  return { version:1, seed, playerName:name===undefined?'':normalizePlayerName(name), encounters, index:0, phase:'arrival', night:1, health:100, ammo:6, trust:50, noise:0, sheltered:[], decisions:[], notes:[], signalOff:false, time:90, ending:null };
 }
 export function current(state) { const encounter=state.encounters[state.index]; return encounter ? {...PEOPLE.find(p=>p.id===encounter.personId), ...encounter} : null; }
 export function examine(state, kind) {
@@ -36,9 +37,9 @@ export function question(state, kind) {
   const e=state.encounters[state.index]; const p=current(state);
   if(state.phase!=='arrival'||!e||e.asked.includes(kind)) return null;
   e.asked.push(kind); state.time=Math.max(1,state.time-5);
-  if(kind==='alibi') return e.contradiction ? 'I was in the canteen. No, the library. It was dark. I cannot remember which floor.' : p.alibi;
-  if(kind==='memory') return e.visitor && e.signs[1] ? 'The bell rings. We go to class. The bell rings. We go home. That is what we do here.' : p.memory;
-  return e.visitor && e.signs[2] ? 'There is nothing wrong with my hands. Please stop looking at my hands.' : p.humanClue;
+  if(kind==='alibi') return e.contradiction ? ODD_ANSWERS[0] : p.alibi;
+  if(kind==='memory') return e.visitor && e.signs[1] ? ODD_ANSWERS[1] : p.memory;
+  return e.visitor && e.signs[2] ? ODD_ANSWERS[2] : p.humanClue;
 }
 export function decide(state, action) {
   if(state.phase!=='arrival') return false;
@@ -78,7 +79,7 @@ export function finish(state, forced) {
   return {type:'ending',key:ending,...ENDINGS[ending]};
 }
 export function unlockSignal(state,code) {
-  if(!state.notes.includes('incident')||!state.notes.includes('photograph')) return {ok:false,text:'Two pieces are missing. Search the records cabinet and the noticeboard.'};
+  if(!state.notes.includes('incident')||!state.notes.includes('photograph')) return {ok:false,text:'Two pieces are missing. Search the entry notebook and the bedroom mirror.'};
   if(code!=='1704') { state.noise=Math.min(100,state.noise+8); return {ok:false,text:'Override refused. The loudspeaker answers with a breath. Noise increased.'}; }
   state.signalOff=true; return {ok:true,text:'CARRIER DISCONNECTED. For a moment, every fluorescent light burns white. The invitation has ended.'};
 }

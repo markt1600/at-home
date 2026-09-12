@@ -1,0 +1,11 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {createHouseModel} from './house-model.mjs';
+globalThis.FileReader=class {async readAsArrayBuffer(blob){this.result=await blob.arrayBuffer();this.onloadend?.();}async readAsDataURL(blob){this.result='data:'+blob.type+';base64,'+Buffer.from(await blob.arrayBuffer()).toString('base64');this.onloadend?.();}};
+const model=createHouseModel();
+const remove=[];model.houseRoot.traverse(o=>{if(o.isHemisphereLight||o.isPoints)remove.push(o);});remove.forEach(o=>o.removeFromParent());
+const out=process.argv[2]||'../house-model.glb';
+const data=await new GLTFExporter().parseAsync(model.houseRoot,{binary:true,onlyVisible:true});
+fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,Buffer.from(data));
+console.log(JSON.stringify({output:path.resolve(out),bytes:data.byteLength,...model.optimization}));

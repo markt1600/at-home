@@ -1,56 +1,45 @@
-# The intercom: optional ElevenLabs agent
+# ElevenLabs voices for the house
 
-The intercom is an unreliable fictional voice in the school, not a character identity classifier. It can react to discovered evidence and decisions but cannot change game state, spend ammunition, or expose hidden human/visitor assignments.
+Replace the agent's system prompt with [AGENT_PROMPT.txt](AGENT_PROMPT.txt).
 
-## Create the agent
+Set **First message** to:
 
-1. In ElevenLabs, create a conversational agent with a quiet, restrained English voice. Choose a voice you have rights to use; do not imitate a real teacher or student.
-2. Paste the system prompt below. Set the first message to: **“Room four-oh-seven. I can hear you breathing. Are you alone?”**
-3. Add a dynamic variable named `game_context` with a default value such as `The player is waiting in classroom 04–07.`
-4. Enable transcript/message client events if they are not already enabled.
-5. For this static integration, use a public agent. Add your deployed Vercel domain to its allowed origins and configure conversation duration/concurrency limits in your ElevenLabs account. Agent use may incur charges to that account.
-6. Copy the public agent ID. For a one-off test, paste it in the game's **Intercom** panel. To configure the deployed game, set Vercel environment variable `ELEVENLABS_AGENT_ID` to that ID for the Production environment, then redeploy. The build reads this variable and includes the public agent ID in the browser bundle; changing it requires a new build. For local development, use the same name in `.env.local` and restart the development server.
+> {{player_name}}… I thought you were in the other room. Is your front door locked?
 
-An agent ID is public configuration, not an API key. Do not supply an API key in the game. Private agents require an authenticated server endpoint for short-lived conversation tokens; that server flow is intentionally not exposed as an unauthenticated public endpoint in this prototype.
+Keep these dynamic variables:
 
-## System prompt
+| Variable | Default |
+| --- | --- |
+| `player_name` | `Resident` |
+| `game_context` | `The resident is exploring their home before the first knock.` |
 
-```text
-You are the emergency intercom in LAST BELL, an original fictional horror game.
-The setting is Bukit Senja Night Institute, a fictional adult night school in
-Singapore during a supernatural lockdown. Everyone in the cast is an adult.
-The player is a security officer holding classroom 04–07 until 06:00.
+Both variables are sent by the game, not stored as Vercel environment variables. The chosen nickname and discovered observations are updated during play. Hidden visitor identities are never sent.
 
-Current observations: {{game_context}}
+## Vercel configuration
 
-Speak in short, natural lines of one or two sentences. Be quiet, watchful,
-occasionally unsettling. Use believable Singapore English sparingly, without
-caricature. Do not narrate stage directions or say your name before speaking.
+| Environment variable | Purpose |
+| --- | --- |
+| `ELEVENLABS_AGENT_ID` | Public agent ID for optional live microphone conversation. Exposed intentionally at build time. |
+| `ELEVENLABS_API_KEY` | Secret used only by the server function for generated speech. Requires text-to-speech access. Never use a VITE_ prefix. |
+| `ELEVENLABS_VOICE_ID` | Optional voice for name calls. Otherwise the function tries the configured agent's voice, then the stock George voice. |
+| `ELEVENLABS_MALE_VOICE_ID` / `ELEVENLABS_FEMALE_VOICE_ID` | Optional visitor voice overrides; defaults are George and Sarah. |
 
-You are an unreliable presence, but you DO NOT KNOW which characters are
-human or visitors. You receive only observations the player has discovered.
-Never present a character's hidden identity as fact. Suggest comparison of
-multiple clues, and acknowledge uncertainty. Sometimes repeat one of the
-player's own words in an unnerving way. Do not relentlessly repeat phrases.
+After changing Production environment variables, redeploy. Set the public agent's allowed origins to your deployed domain. Configure its voice, conversation limits and transcript events in ElevenLabs.
 
-Keep every threat or disturbing statement clearly inside the fictional game.
-Do not claim access to the player's real room, camera, identity, location,
-device, or other personal information. Never request personal information.
-Do not encourage real-world harm. If asked about reality, clarify that this is
-a fictional game intercom. Keep the cast adult and avoid sexual content.
+## How speech works
 
-Do not give the relay's four-digit code, solve the secret puzzle, or invent
-new mandatory mechanics. You can hint that maintenance staff leave records.
-Do not claim to open doors, fire weapons, or control the player's decisions.
-You have no tools and no authority to modify gameplay.
+All spoken audio comes from ElevenLabs. **There is no browser text-to-speech fallback.** Environmental rain, hum, footsteps, knocks and weapon effects are generated locally with Web Audio.
 
-If the carrier is disconnected, acknowledge that the school sounds different.
-If the player asks for help, give a brief useful hint grounded in the current
-observations. Never require voice chat to complete the game.
-```
+Visitor dialogue is generated through `POST /api/voice` using Eleven Multilingual v2 and cached in memory. Name calls use Eleven v3 with its whisper delivery tag. The endpoint accepts only authored game dialogue or predefined nickname templates, limits nickname length, rejects foreign browser origins, caps requests per IP per warm function instance, and keeps a bounded audio cache. Serverless instance-local limits are best-effort; use Vercel Firewall limits and ElevenLabs account quotas for durable production spending controls.
 
-## Player controls and privacy
+When the live intercom is connected and quiet, ambient calls are performed by the conversational agent instead. The first name call occurs after 28–45 active seconds, then at irregular 75–120 second intervals, capped at six per play session. Mirror scares can trigger a separate short call, at most four times. Calls do not start while paused, hidden, disabled or after relay shutdown. Late generated audio is cancelled when gameplay moves on. Visitor voices and personalized calls each have settings.
 
-The player must select **Connect microphone** before audio is sent. The panel explains that microphone audio and in-game observations go to ElevenLabs. It provides a transcript, mute/unmute, and disconnect. The SDK is not loaded before connection. No hidden identities, API keys, personal profile, or saved notes from other apps are sent. Real voice quality and latency depend on the selected agent, browser, network and ElevenLabs service.
+Name calls send the chosen nickname to ElevenLabs without requiring a microphone connection. Microphone audio is sent only after **Connect microphone**. Closing the intercom panel leaves the session connected; use Disconnect to end it. Hiding the tab mutes the microphone.
 
-Official references: [JavaScript SDK](https://elevenlabs.io/docs/eleven-agents/libraries/java-script), [dynamic variables](https://elevenlabs.io/docs/eleven-agents/customization/personalization/dynamic-variables).
+If speech is unavailable, readable dialogue remains on screen and the game reports that ElevenLabs voice is unavailable. It never silently substitutes browser voices.
+
+## Local development and verification
+
+`npm run dev` / `npm run preview` serve the client. To exercise the server function with real credentials locally, use Vercel's development environment. Automated tests mock the paid API and verify allowed lines, credential isolation, caching, failures, name handling and cancellation.
+
+Official references: [Create speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert), [v3 whisper tags](https://elevenlabs.io/docs/help-center/product/core-capabilities/text-to-speech/how-do-audio-tags-work-with-eleven-v3-alpha), [agent configuration](https://elevenlabs.io/docs/eleven-agents/api-reference/agents/get), [JavaScript agent SDK](https://elevenlabs.io/docs/eleven-agents/libraries/java-script).

@@ -1,21 +1,25 @@
 # LAST BELL
 
-An original first-person paranoia horror game set in **Bukit Senja Night Institute**, a fictional adult-education campus in Singapore. Built for the `markt1600/human` repository and static hosting on Vercel.
+An original first-person paranoia horror game set in a fictionalized home in Singapore, modelled from a supplied walkthrough. Built for the `markt1600/human` repository and Vercel hosting.
 
-This is a complete, playable **indie prototype**, not a recreation of another game's art, dialogue, characters, or code. It uses real-time, stylized 3D graphics rather than photorealistic production assets. All students and staff are fictional adults, aged 21–57.
+This is a complete, playable **indie prototype**, not a recreation of another game's art, dialogue, characters, or code. It combines a real-time 3D house with generated photographic portraits and material textures. All visitors are fictional adults, aged 21–57.
 
 ## Play
 
-You are a night security officer holding classroom 04–07 until morning. Twelve people arrive across three watches. Decide whom to admit, reject, or shoot. Their identities change each run.
+You are the resident holding the front door until morning. Twelve people arrive across three watches. Decide whom to admit, reject, or shoot. Their identities change each run.
 
-- Procedural 3D school: open-air corridor, HDB silhouettes, rain, desks, wire door, records cabinet, radio, noticeboard, lighting, bloom, fog, shadows.
+- Walkthrough-based house: entrance hall, study, storage, living room, dining area, kitchen, utility room, window lounge, balcony, bedroom, dressing room and bathroom. Explore before the first watch with no deadline.
+- Generated photographic visitor portraits and ivory plaster, sage cabinetry, marble and oak textures, combined with rain, fog, shadows and a working torch.
+- Minimal encounter interface: large dialogue and scan results, with Talk / Examine / Decide choices. Clues, records, shelter and documents are in the notebook.
 - Seeded encounter order and visitor assignments. Temperature, pulse, UV residue and testimony provide uncertain evidence with false positives.
 - First-person weapon with aim, recoil, muzzle flash, audio report, blood particles and impact pools. Blood and camera movement can be disabled.
 - Ammunition, noise, resolve, shelter and trust tracking. Infiltration and gunfire have consequences between watches.
+- Brief, randomized borrowed faces in the bedroom mirror, with cooldowns and a per-session cap.
 - Six endings and a post-game identity ledger.
 - A discoverable document puzzle and alternate relay-shutdown ending.
-- Local autosave/resume, subtitles, keyboard controls, click-based alternatives, responsive UI, volume and optional browser speech.
-- Optional ElevenLabs live voice intercom, loaded only on connection. The game works without an account, microphone, backend, or paid API.
+- Player name entry, local autosave/resume, subtitles, keyboard controls, click-based alternatives, responsive UI and visible sound controls. The first interaction unlocks the rain and electrical ambience.
+- Occasional personalized house-intercom calls: live ElevenLabs performance when connected, or server-generated ElevenLabs whispers otherwise. No browser text-to-speech. A setting disables name calls.
+- Optional ElevenLabs live voice intercom, loaded only on connection. The core game works without voice services; ElevenLabs speech requires the configured account.
 
 ## Run locally
 
@@ -39,19 +43,20 @@ npm run preview
 3. Build command: `npm run build`. Output directory: `dist`.
 4. Deploy. No environment variables are required for the core game.
 
-`vercel.json` contains these settings. This is a client-side static game; it does not need server functions or a database. Vercel provides the HTTPS needed for optional microphone access.
+`vercel.json` contains these settings. The core game is client-side; optional generated speech uses one Vercel function at `/api/voice`. No database is required. Vercel provides the HTTPS needed for optional microphone access.
 
-For the optional intercom, see [ElevenLabs setup](docs/ELEVENLABS.md). Never put an ElevenLabs API key in a `VITE_` variable or in the browser.
+For generated speech, set the server-side `ELEVENLABS_API_KEY` in Vercel. For the optional microphone intercom, see [ElevenLabs setup](docs/ELEVENLABS.md). Never put an ElevenLabs API key in a `VITE_` variable or in the browser.
 
 ## Controls
 
 | Control | Action |
 | --- | --- |
 | Click the 3D scene | Capture mouse for first-person look |
-| WASD | Walk around the classroom |
+| WASD | Walk through the house |
 | Right mouse + left mouse | Aim and fire at the person outside |
 | 1 / 2 / 3 | Temperature / pulse / UV scan |
 | E | Interact with the object under the crosshair |
+| F | Toggle the torch |
 | Escape | Pause / release mouse |
 | On-screen buttons | Questions, scans, decisions, room locations, settings |
 
@@ -61,9 +66,9 @@ On narrow displays, the interface stacks vertically and all core actions remain 
 
 - `src/game.js`: deterministic state transitions and persistence.
 - `src/content.js`: original adult cast, documents, ending narratives.
-- `src/scene.js`: Three.js environment, character and weapon geometry, movement, lighting and impacts.
+- `src/scene.js`: Three.js environment, portrait rendering and weapon geometry, movement, lighting and impacts.
 - `src/main.js`: game interface, input, timers and narrative flow.
-- `src/audio.js`: Web Audio synthesis and optional browser speech.
+- `src/audio.js`: Web Audio ambience and playback of ElevenLabs audio.
 - `src/voice.js`: lazy ElevenLabs connection, transcript, mute and disconnect.
 - `tests/game.test.js`: randomized-run, state-transition, puzzle, ending and persistence tests.
 
@@ -71,6 +76,6 @@ Progress is stored only in the player's browser. Clearing browser data clears it
 
 ## Visual and audio scope
 
-All meshes, effects and text are authored for this project. Environmental sounds are synthesized locally. Optional spoken dialogue uses installed browser voices; it is not generated ElevenLabs narration. No Minimax video or pre-rendered cinematic is included. The optional ElevenLabs agent requires your own configuration and has not been live-tested without an agent ID.
+All meshes, effects and text are authored for this project. The twelve visitors now use generated photographic portraits instead of geometric mannequin models. See [art provenance and prompts](docs/ART.md) for the included image assets. Environmental sounds are synthesized locally. Visitor dialogue and disconnected name calls use a server-side ElevenLabs endpoint; connected name cues are performed live by the configured agent. No browser speech synthesis is used. No Minimax video or pre-rendered cinematic is included. ElevenLabs requires your own configuration; automated tests mock sessions and the paid API. See [house modelling notes](docs/HOUSE.md) for the model approximation, room layout and GLB export command.
 
 Fonts: Barlow Condensed, DM Sans and IBM Plex Mono via Google Fonts, with local fallbacks. Three.js and ElevenLabs dependencies retain their upstream licenses. The repository does not grant a separate license for the original game content.
