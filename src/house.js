@@ -5,6 +5,7 @@ import {floorPieces} from './plan-geometry.js';
 import {buildArchitecture} from './house-architecture.js';
 import {buildSecondBedroom,addHouseDetails,buildMasterVanity,buildLivingAudioShelf} from './house-details.js';
 import {buildHallwayGallery} from './house-gallery.js';
+import {buildMasterBathroom,buildPowderBathroom} from './house-bathrooms.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -182,8 +183,7 @@ export function buildHouse(world){
  C(797,346,3.3,2.5,.58,'walnut',Math.PI/2,.75);C(896,346,3.3,2.5,.58,'walnut',-Math.PI/2,.75);C(846,403,2.35,2.5,.6,'walnut',Math.PI,.75);
  buildMasterVanity(world,root,materials);C(807,281,.9,2.4,.4,'walnut',Math.PI,.75);
   // Main bathroom and meditation bay.
- const [tubx,tubz]=P(906,161);soft(1.72,.56,.76,tubx,1.03,tubz,'white');soft(1.5,.17,.59,tubx,1.29,tubz,'black');block(tubx,tubz,1.78,.82);
- C(922,218,1.16,.8,.5,'oak',-Math.PI/2,.75);paint(947,218,2.2,1.1,1.05,0x8c9590,-Math.PI/2);B(886,207,.02,2.2,1.15,1.85,'glass');
+ buildMasterBathroom(world,root,materials);
  // The built room contains a beige massage chair, rather than the proposed round cushion.
  const [medx,medz]=P(561,178);soft(.88,.35,1.3,medx,1.03,medz,'cream');soft(.83,1.28,.4,medx,1.65,medz-.4,'cream').rotation.x=-.12;soft(.7,.5,.3,medx,2.22,medz-.38,'cream');for(const x of [-.44,.44])soft(.21,.55,1.12,medx+x,1.39,medz,'cream');soft(.68,.55,.52,medx,1.03,medz+.67,'cream');block(medx,medz,1.12,1.96);
  // Supplied bedroom photos supersede the proposed furniture arrangement.
@@ -202,7 +202,7 @@ export function buildHouse(world){
  for(let j=0;j<2;j++){const base=1.03+j*.82;box(.74,.2,.65,px,base+.1,pz,'white');box(.68,.58,.58,px,base+.49,pz,'glass');for(const dx of [-.35,.35])for(const dz of [-.3,.3])box(.025,.61,.025,px+dx,base+.49,pz+dz,arcadeGlow);box(.74,.045,.65,px,base+.8,pz,'white');for(let i=0;i<5;i++)sphere(.065,px+Math.sin(i*2.4)*.2,base+.29,pz+Math.cos(i*2.4)*.15,i%2?'cream':'blue',root,1,1.1,.8);box(.13,.08,.025,px,base+.1,pz+.34,'black');}
  block(px,pz,.76,.68);
  addHouseDetails(world,root,materials);
- C(332,467,1.1,.86,.55,'oak',Math.PI,.75);paint(332,479,2.25,.85,1.1,0x87948b,Math.PI);B(331,417,1.1,2.2,.02,1.85,'glass');
+ buildPowderBathroom(world,root,materials);
  // Downlights follow rooms and their ceiling heights; moonlight enters the bays.
  root.add(new THREE.HemisphereLight(0x91a9ba,0x392b1e,.55));
  for(const [px,pz,b,p] of [[838,701,.15,12],[710,681,.15,11],[627,565,.5,9],[468,608,-.08,15],[376,584,-.08,10],[414,835,.4,12],[602,796,.25,13],[732,918,.25,9],[940,591,.2,8],[704,352,.45,10],[570,287,.45,10],[844,379,.45,10],[1022,409,.45,8],[906,191,.4,8],[417,310,.5,9],[371,441,.45,7]])L(px,pz,b,p);

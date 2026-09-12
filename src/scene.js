@@ -8,6 +8,7 @@ import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
 import {applyHouseTextures} from './house-materials.js';
 import {applyHallwayArt} from './house-gallery.js';
+import {applyBathroomTextures} from './house-bathrooms.js';
 import {shelterLocation} from './shelter.js';
 import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,planPoint} from './house-layout.js';
 import {BloodEffects} from './blood.js';
@@ -79,6 +80,7 @@ export class House {
     }));
     loader.load('/art/house-surfaces-v2.png',atlas=>applyHouseTextures(atlas,this.houseMaterials,Math.min(8,this.renderer.capabilities.getMaxAnisotropy())));
     loader.load('/art/hallway-prints.webp',atlas=>applyHallwayArt(atlas,this.houseMaterials,Math.min(8,this.renderer.capabilities.getMaxAnisotropy())));
+    loader.load('/art/powder-marble.webp',tile=>applyBathroomTextures(tile,this.houseMaterials,Math.min(8,this.renderer.capabilities.getMaxAnisotropy())));
   }
   showPerson(p){
     if(this.npc){this.scene.remove(this.npc);this.npc.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}

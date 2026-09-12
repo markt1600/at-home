@@ -4,9 +4,9 @@ import {planPoint} from './house-layout.js';
 // Facing the kitchen wall from the cellar walkway, east is on the left.
 // These are photo-based proportions; the private reference photos do not ship.
 export const HALLWAY_ART=[
- {id:'ink',name:'Tall ink drawing',x:634,y:2.03,width:.54,height:1.01,mat:.042,frame:.058,style:'black',uv:[2,2,570,1020]},
- {id:'bench',name:'Gold-framed bench print',x:596,y:2.16,width:.88,height:.34,mat:.012,frame:.041,style:'gold',uv:[576,2,957,506]},
- {id:'miniature',name:'White-framed mechanical landscape',x:530,y:2.16,width:.24,height:.36,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
+ {id:'ink',name:'Tall ink drawing',x:658,y:2.03,width:.54,height:1.01,mat:.042,frame:.058,style:'black',uv:[2,2,570,1020]},
+ {id:'bench',name:'Gold-framed bench print',x:620,y:2.16,width:.88,height:.34,mat:.012,frame:.041,style:'gold',uv:[576,2,957,506]},
+ {id:'miniature',name:'White-framed mechanical landscape',x:580,y:2.16,width:.24,height:.36,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
 ];
 
 export function buildHallwayGallery(world,root,m){

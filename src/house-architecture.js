@@ -56,6 +56,7 @@ export const EXTERIOR_OPENINGS=[
  opening('second-bedroom-window',[1003,273],2.35,1.4,1.7,'window'),
  opening('meditation-window',[560,135],.5,1.6,1.45,'window'),
  opening('bath-window',[909,135],.5,1.6,1.45,'window'),
+ opening('powder-window',[299,441.5],.44,1.65,1.45,'window'),
  opening('theatre-window-north',[399,181],2.15,2.15,1.1,'window'),
  opening('theatre-window-angle',[324.5,206.5],1.55,2.15,1.1,'window'),
  opening('theatre-window-west',[299,282],2.35,2.15,1.1,'window'),

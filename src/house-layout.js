@@ -77,6 +77,6 @@ export const HOUSE_VIEWS={
  bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
  sunroom:view(418,350,346,248),theatre:view(418,350,346,248),balcony:view(286,619,218,628),dining_balcony:view(292,812,248,796),
  guest:view(979,435,980,333,-.09),guest_entry:view(866,444,916,435,-.06),guest_closet:view(983,415,947,457,-.04),guest_bath:view(1014,534,1039,491),meditation:view(563,232,561,164),
- wine:view(673,562,787,562),powder:view(386,455,329,434),store:view(743,739,714,775),
+ wine:view(673,562,787,562),powder:view(393,432,352,465,-.12),store:view(743,739,714,775),
  records:view(763,678,781,636,-.12),radio:view(869,736,909,708),board:view(583,383,570,393,-.015)
 };
