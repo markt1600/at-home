@@ -1,82 +1,52 @@
-# LAST BELL
+# At Home
 
-An original first-person paranoia horror game set in a fictionalized home in Singapore, modelled from supplied architectural plans and a walkthrough. Built for the `markt1600/human` repository and Vercel hosting.
+A relaxing first-person home-life game. Watch morning turn into evening, welcome neighbors for tea, care for Miso the cat, Sunny the dog and Pebble the tortoise, and revisit memories in the places where they happened.
 
-This is a complete, playable **indie prototype**, not a recreation of another game's art, dialogue, characters, or code. It combines a real-time 3D house with generated photographic portraits and material textures. All visitors are fictional adults, aged 21–57.
+This is a separate game derived from the authored house reconstruction in `markt1600/human`. It has its own saved state, friendly cast, visual style, voice prompts and gameplay. There is no combat, hidden threat, score or losing state.
 
-## Play
+## Your day
 
-You are the resident holding the front door until morning. Twelve people arrive across three watches. Decide whom to admit, reject, or shoot. Their identities change each run.
+- Walk freely through the furnished house and both balconies. Small steps are climbed automatically.
+- An active day takes about 20 minutes; choose slower, faster, or hold the current time. Rest until sunrise or skip to sunset.
+- Ken visits around 09:00, Nia at 13:00, June at 17:00. Chat at the door or invite them inside; guests remain visible for a while.
+- Fill pet food bowls, refresh water and spend time together. Needs pause in menus and while away. Pets cannot become ill or die.
+- Make tea, put on an original gentle melody, tend plants, read, or watch the sky. Small moments are saved in a journal.
+- Six locally generated MiniMax clips add friendly waves, nods, blinks, tail movements and tortoise movement. Nearby characters animate and appear in ordinary mirror/window reflections.
+- Memory markers offer a photo/video popup when approached. Playback pauses the day and quiets the game audio. Add your own files at your current position or one of the preset spots; these stay in your browser's IndexedDB.
 
-- House traced from the dimensioned plan: angled entrance, sunken living room, dining, kitchen, wine cellar, office, bedroom wing, window lounge, bays and service rooms. Floor levels and traversable stairs follow the drawing. Explore before the first watch with no deadline. See [model notes](docs/HOUSE.md).
-- Complete photographic visitors with attached heads and bodies, hands, legs and feet at floor level. Dark hair and clothing remain intact; transparent gaps between limbs do not register gunshot hits. See [artwork and prompts](docs/STANDING-ART.md).
-- Ivory plaster, sage cabinetry, marble and oak textures, combined with rain, fog, shadows and a working torch.
-- Minimal encounter interface: large dialogue and scan results, with Talk / Examine / Decide choices. Clues, records, shelter and documents are in the notebook.
-- Seeded encounter order and visitor assignments. Temperature, pulse, UV residue and testimony provide uncertain evidence with false positives.
-- First-person weapon with aim, recoil, muzzle flash, audio report, blood particles and impact pools. Blood and camera movement can be disabled.
-- Ammunition, noise, resolve, shelter and trust tracking. Infiltration and gunfire have consequences between watches.
-- Brief, randomized borrowed faces in the bedroom mirror, with cooldowns and a per-session cap.
-- Six endings and a post-game identity ledger.
-- A discoverable document puzzle and alternate relay-shutdown ending.
-- Player name entry, local autosave/resume, subtitles, keyboard controls, click-based alternatives, responsive UI and visible sound controls. The first interaction unlocks the rain and electrical ambience.
-- Occasional personalized house-intercom calls: live ElevenLabs performance when connected, or server-generated ElevenLabs whispers otherwise. No browser text-to-speech. A setting disables name calls.
-- Optional ElevenLabs live voice intercom, loaded only on connection. The core game works without voice services; ElevenLabs speech requires the configured account.
+Desktop: WASD/arrows to move, mouse to look, E to interact, Esc to release the mouse. Room buttons provide accessible quick navigation. Touch: drag the room to look and use the arrow controls to move.
 
 ## Run locally
 
-Node.js 20.19+ (or 22.12+) is recommended.
+Node 20.19 or newer:
 
 ```sh
 npm ci
 npm run dev
-```
-
-```sh
 npm test
 npm run build
-npm run preview
 ```
 
-## Deploy to Vercel
+The development server binds only to localhost. The spoken-audio endpoint runs as a Vercel function; a plain Vite development server does not serve it. Text conversations and environmental audio work independently of voice configuration.
 
-1. Import **markt1600/human** into Vercel.
-2. Choose the **Vite** preset. Root directory: repository root.
-3. Build command: `npm run build`. Output directory: `dist`.
-4. Deploy. No environment variables are required for the core game.
+## Vercel
 
-`vercel.json` contains these settings. The core game is client-side; optional generated speech uses one Vercel function at `/api/voice`. No database is required. Vercel provides the HTTPS needed for optional microphone access.
+Import this repository as a new Vite project. Build: `npm run build`; output: `dist`. Optional environment variables:
 
-For generated speech, set the server-side `ELEVENLABS_API_KEY` in Vercel. For the optional microphone intercom, see [ElevenLabs setup](docs/ELEVENLABS.md). Never put an ElevenLabs API key in a `VITE_` variable or in the browser.
+- `ELEVENLABS_API_KEY`: secret, server-side only, for authored spoken greetings and neighbor replies.
+- `ELEVENLABS_AGENT_ID`: the public ID of a **new friendly companion agent**, for microphone conversations. Redeploy after changing it.
+- Optional `ELEVENLABS_VOICE_ID`, `ELEVENLABS_MALE_VOICE_ID`, `ELEVENLABS_FEMALE_VOICE_ID` to choose voices.
 
-## Controls
+Use the new [agent prompt and first message](docs/ELEVENLABS.md). The previous game's agent configuration should not be used for this game. `player_name` and `game_context` are dynamic values supplied by the game, not Vercel environment variables.
 
-| Control | Action |
-| --- | --- |
-| Click the 3D scene | Capture mouse for first-person look |
-| WASD | Walk through the house |
-| Right mouse + left mouse | Aim and fire at the person outside |
-| 1 / 2 / 3 | Temperature / pulse / UV scan |
-| E | Interact with the object under the crosshair |
-| F | Toggle the torch |
-| Escape | Pause / release mouse |
-| On-screen buttons | Questions, scans, decisions, room locations, settings |
+No browser text-to-speech fallback is used. If generated speech is unavailable, all neighbor conversations remain readable. Connecting Voice is always an explicit microphone action.
 
-On narrow displays, the interface stacks vertically and all core actions remain available through buttons. A keyboard and mouse are recommended for first-person movement. The game requires WebGL 2 and graphics acceleration.
+## Memories and source material
 
-## Architecture
+Personal test memories remain local by default. The public memory catalog starts empty; browser-added files are never uploaded. Clearing site data removes browser memories, so retain original files. See [memory placements and publication](docs/MEMORIES.md).
 
-- `src/game.js`: deterministic state transitions and persistence.
-- `src/content.js`: original adult cast, documents, ending narratives.
-- `src/scene.js`: Three.js environment, portrait rendering and weapon geometry, movement, lighting and impacts.
-- `src/main.js`: game interface, input, timers and narrative flow.
-- `src/audio.js`: Web Audio ambience and playback of ElevenLabs audio.
-- `src/voice.js`: lazy ElevenLabs connection, transcript, mute and disconnect.
-- `tests/game.test.js`: randomized-run, state-transition, puzzle, ending and persistence tests.
+The public code includes authored geometry and dimensions, generated characters, and prepared artwork. It excludes the address, original architectural PDFs, house walkthrough and source photographs. The view outside the balconies is an imagined garden neighborhood, not a reconstruction of the real surroundings.
 
-Progress is stored only in the player's browser. Clearing browser data clears it. Voice transcripts are kept only in memory by this app; ElevenLabs may retain conversations according to the configured agent's account settings. Closing the intercom panel does not end a connection: use **Disconnect**. Leaving the game ends it; hiding the tab mutes its microphone.
+## Validation
 
-## Visual and audio scope
-
-All meshes, effects and text are authored for this project. The twelve visitors use generated photographic portraits and individual MiniMax idle animations. Fourteen silent clips were generated locally with MiniMax H3, including two additional reflection gestures; eleven mirror and window surfaces show room reflections and occasional apparitions. See [animation notes](docs/ANIMATION.md) and [art provenance and prompts](docs/ART.md). Environmental sounds are synthesized locally. Visitor dialogue and disconnected name calls use a server-side ElevenLabs endpoint; connected name cues are performed live by the configured agent. No browser speech synthesis is used. ElevenLabs requires your own configuration; automated tests mock sessions and the paid API. See [house modelling notes](docs/HOUSE.md) for the model approximation, room layout and GLB export command.
-
-Fonts: Barlow Condensed, DM Sans and IBM Plex Mono via Google Fonts, with local fallbacks. Three.js and ElevenLabs dependencies retain their upstream licenses. The repository does not grant a separate license for the original game content.
+`npm test` checks floor-plan connectivity, wall and opening geometry, furniture clearance, stair movement, surface overlaps, the day/visit/pet state machine, memory placement, and bounded server-side voice requests. `npm run build` verifies the production bundle. Real microphone chat additionally requires a configured agent and a deployment with microphone permission.

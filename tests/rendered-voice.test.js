@@ -9,7 +9,7 @@ test('late generated speech is discarded after the player pauses or changes scen
   createBufferSource(){return {connect(){},start(){started++;},stop(){}};},
   createGain(){return {gain:{},connect(){},disconnect(){}};},
  }};
- try{const voice=new RenderedVoice(sound);const pending=voice.play({kind:'whisper',cue:0,name:'Resident'});voice.stop();respond({ok:true,arrayBuffer:async()=>new ArrayBuffer(4)});assert.equal(await pending,false);assert.equal(started,0);assert.equal(voice.speaking,false);}finally{globalThis.fetch=originalFetch;globalThis.document=originalDocument;}
+ try{const voice=new RenderedVoice(sound);const pending=voice.play({kind:'home',cue:0,name:'Friend'});voice.stop();respond({ok:true,arrayBuffer:async()=>new ArrayBuffer(4)});assert.equal(await pending,false);assert.equal(started,0);assert.equal(voice.speaking,false);}finally{globalThis.fetch=originalFetch;globalThis.document=originalDocument;}
 });
 test('a failed voice provider never starts an alternative speech renderer',async()=>{
  const originalFetch=globalThis.fetch;let notice=0;globalThis.fetch=async()=>({ok:false,status:503});

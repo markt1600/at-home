@@ -17,9 +17,9 @@ This is an authored game reconstruction, not a survey, CAD conversion or photogr
 - `src/house-architecture.js`: continuous exterior boundary, complete partition runs, and explicit door/window openings with lintels.
 - `src/plan-geometry.js`: floor cutouts for stair runs.
 - `src/navigation.js`: polygon boundaries and rotated wall collisions.
-- `src/visitors.js`: full-length photographic visitors, ground anchoring, chroma key and visible-pixel hit detection.
+- `src/actors.js`: friendly photographic characters with matching animation framing and ground anchoring.
 
-The front door remains the main encounter. The bedroom mirror can show a complete reflected figure briefly; it does not reveal a hidden identity. Visitor heights range from 1.63 to 1.80 m. Whole figures face the player, with floor contact shadows, rather than a chest portrait floating above the ground.
+Neighbors visit the front door and can be invited inside for tea. Pets remain visible in their care corners. Mirrors and window glass show ordinary reflections. Whole photographic figures face the player and use ground contact shadows.
 
 The original drawings, walkthrough, extracted pages, address, private pictures and personal documents are not included in the repository. Game characters are fictional adults.
 
@@ -29,7 +29,7 @@ Export reusable geometry, color materials and compatible lights:
 node scripts/export-house.mjs ../house-model.glb
 ```
 
-Surface maps, visitor sprites, rain, lighting effects and gameplay are added by the game at runtime and are not bundled in the static GLB.
+Surface maps, animated characters, day/night lighting and gameplay are added by the game at runtime and are not bundled in the static GLB.
 
 ## Plan and walkthrough review
 

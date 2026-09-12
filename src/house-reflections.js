@@ -1,8 +1,6 @@
 import * as THREE from 'three';
 import {Reflector} from 'three/addons/objects/Reflector.js';
 import {BALCONY_DOORS,PLAN_SCALE,planPoint,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-layout.js';
-import {MirrorHaunting,REFLECTION_TIMING} from './mirror.js';
-import {createStandingVisitor,animateStandingVisitor} from './visitors.js';
 import {POWDER_MIRROR} from './house-bathrooms.js';
 
 // These planes sit on existing mirrors and fixed glazing, never on the open
@@ -23,8 +21,7 @@ export function reflectionSurfaces(){
 
 export class HouseReflections {
  constructor(world){
-  this.world=world;this.apparition=null;this.lastSurface=null;
-  this.haunting=new MirrorHaunting(Math.random,REFLECTION_TIMING);
+  this.world=world;
   this.surfaces=reflectionSurfaces().map(spec=>{
    const shader={...Reflector.ReflectorShader,uniforms:THREE.UniformsUtils.clone(Reflector.ReflectorShader.uniforms)};
    shader.uniforms.reflectionOpacity={value:spec.glass?.18:1};
@@ -39,54 +36,12 @@ export class HouseReflections {
    const render=pane.mesh.onBeforeRender.bind(pane.mesh);
    pane.mesh.onBeforeRender=(...args)=>{
     if(!pane.refresh)return;
-    const visibility=this.surfaces.map(p=>p.mesh.visible),apparition=this.apparition,wasVisible=apparition?.visible;
+    const visibility=this.surfaces.map(p=>p.mesh.visible);
     // A single reflection pass must not recursively render every other pane.
-    this.surfaces.forEach(p=>p.mesh.visible=false);if(apparition)apparition.visible=false;
-    try{render(...args);}finally{this.surfaces.forEach((p,i)=>p.mesh.visible=visibility[i]);if(apparition)apparition.visible=wasVisible;}
+    this.surfaces.forEach(p=>p.mesh.visible=false);
+    try{render(...args);}finally{this.surfaces.forEach((p,i)=>p.mesh.visible=visibility[i]);}
    };
   }
  }
- clear(){
-  if(!this.apparition)return;
-  this.world.scene.remove(this.apparition);
-  this.apparition.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});
-  this.apparition=null;
- }
- reset(){this.clear();this.haunting.reset();this.lastSurface=null;}
- reveal(pane,portrait,{special=Math.random()<.4}={}){
-  if(special)portrait=Math.random()<.5?9:11;
-  const atlas=this.world.standingAtlases[Math.floor(portrait/3)];if(!atlas?.userData.frames)return false;
-  this.clear();const height=Math.min(1.75,pane.height*.85);
-  const g=createStandingVisitor(atlas,portrait,{height,shadow:false,animation:special?'reflection':'idle'});
-  g.name='Unreliable reflection';g.scale.x=-1;g.rotation.y=pane.yaw;
-  g.position.copy(pane.mesh.position).addScaledVector(pane.normal,pane.glass?.0015:.008);g.position.y-=height/2;
-  const material=g.userData.body.material;material.color.set(pane.glass?0x71838c:0xa7b3aa);material.opacity=0;material.depthWrite=false;material.side=THREE.FrontSide;
-  this.apparition=g;this.apparitionPane=pane;this.apparitionTime=0;this.world.scene.add(g);
-  this.world.onReflection?.({surface:pane.label,glass:!!pane.glass});return true;
- }
- update(dt){
-  const world=this.world,camera=world.camera,forward=camera.getWorldDirection(new THREE.Vector3()),active=world.mode==='play'&&!world.paused;
-  const candidates=this.surfaces.map(p=>{
-   const to=p.mesh.position.clone().sub(camera.position),distance=to.length(),facing=forward.dot(to.clone().normalize()),front=p.normal.dot(to)<-.05;
-   return {pane:p,to,distance,facing,front,score:p.width*p.height/Math.max(1,distance*distance)*Math.max(0,facing)};
-  }).filter(c=>c.front&&c.facing>.12&&c.distance<24).sort((a,b)=>b.score-a.score);
-  // Refresh at most two camera-facing panes per frame. All other panes reuse
-  // their last image, keeping a house full of glass affordable on laptops.
-  this.surfaces.forEach(p=>p.refresh=false);candidates.slice(0,2).forEach(c=>c.pane.refresh=true);
-  const near=candidates.find(c=>{
-   if(c.distance>5.2||c.facing<.55)return false;
-   const ray=new THREE.Raycaster(camera.position,c.to.clone().normalize(),.04,Math.max(.04,c.distance-.16));
-   return !ray.intersectObject(world.houseRoot,true).some(h=>h.object.isMesh&&!h.object.material.transparent);
-  });
-  if(active&&near?.pane.id!==this.lastSurface){this.haunting.wasNear=false;this.lastSurface=near?.pane.id;}
-  const event=this.haunting.tick(dt,{active,near:!!near,moving:world.walking});
-  if(event?.type==='show'&&near)this.reveal(near.pane,event.portrait);
-  if(event?.type==='hide'||world.mode!=='play')this.clear();
-  if(this.apparition){
-   if(active)this.apparitionTime+=dt;
-   const t=this.apparitionTime;
-   this.apparition.userData.body.material.opacity=Math.min(1,t/.4,Math.max(0,(5.3-t)/.65))*(this.apparitionPane.glass?.68:.92);
-   animateStandingVisitor(this.apparition,active?dt:0,world.motion);
-  }
- }
+ update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,2).forEach(x=>x.p.refresh=true);}
 }

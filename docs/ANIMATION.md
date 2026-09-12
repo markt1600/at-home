@@ -1,21 +1,18 @@
-# Character motion and reflections
+# Gentle character performances
 
-The game includes fourteen locally generated MiniMax H3 clips: one idle for each of the twelve fictional adult visitors, a raised-hand gesture for Farah and a longer head tilt for Mei. The original photographic full-body assets supplied each character's appearance. No household photos or identifying household information are embedded in these clips.
+Six new fictional characters were prepared as full-body images and animated using the local ComfyUI MiniMax H3 reference pipeline. No hosted MiniMax API was used.
 
-The clips use breathing, blinking, small changes in gaze, head turns and brief smiles. They run at 384 × 768, 24 fps, for 124 frames each, with matching first and last poses. All were sampled at 32 steps in the installed ComfyUI workflow, visually reviewed and exported as silent H.264 MP4 files with fast-start metadata. Speech remains an ElevenLabs responsibility.
+| Asset | Performance | Duration |
+| --- | --- | --- |
+| `ken.mp4` | A small friendly wave and smile | 5.17 seconds |
+| `nia.mp4` | Soft blink and nod | 5.17 seconds |
+| `june.mp4` | A warm smile and subtle head movement | 5.17 seconds |
+| `sunny.mp4` | A relaxed seated dog with tail movement | 5.17 seconds |
+| `pebble.mp4` | Tortoise extends its neck and looks around | 5.17 seconds |
+| `miso.mp4` | Subtle cat movement in a short reversible loop | 1.58 seconds |
 
-## In the house
+The H3 jobs used the reference model, first/last frame guides, 32 steps, `res_multistep`, `simple`, denoise 1, 124 frames at 24 fps. Neighbors use 384×768; pets use 768×512. Generated scenery around the neighbors was removed with video matting. The cat generation contained an unusable lighting fade; only the usable opening motion was retained, exposure matched and looped forward/reverse. Clips were reviewed for subject identity, silhouette, background, ground contact and loop continuity.
 
-- Visitors at the door and admitted residents use their own idle animations.
-- Four mirrors, including the main bathroom vanity mirror, and seven fixed window/balcony glass panels reflect the room.
-- Approaching or walking near a visible reflective surface can reveal an animated figure, starting after four seconds of active play. Figures fade in and out over about five seconds, followed by a shared 12–22 second cooldown. Sightings can continue throughout a run. Walking within 5.2 metres of visible glass can trigger another encounter when the cooldown ends; staying still does not repeatedly trigger it.
-- Reflection-specific voice cues fire when a figure actually appears. These fleeting apparitions do not imply that an admitted resident moved or reveal any visitor's hidden identity.
-- Balcony reflections occupy the fixed side panels, leaving the open central passage clear. Geometry in front of the glass, including its frames, occludes the figure.
+Prepared stills and clips share framing metadata, so switching to motion keeps feet aligned. They are photographic billboards with grounded shadows, not rigged 3D characters. Clips load only when characters are nearby, remain muted, and pause when away, hidden or motion is disabled. Ordinary room mirrors and balcony glazing reflect the visible characters; there are no triggered apparitions.
 
-## Rendering and controls
-
-`src/visitor-video.js` keys the flat magenta background in the video shader, preserves foot position as the still image becomes animated and uses the current frame's silhouette for shot detection. If playback fails, the original portrait remains available. Falling visitors still transition to the existing textured 3D corpse geometry.
-
-Videos load on demand and pause with the game, when the tab is hidden, and for distant admitted residents. Disabling motion switches characters to still portraits. Reflection scares remain visible as still figures with a fade. At most two room-reflection textures refresh per frame; other panes reuse their previous frame to bound rendering cost.
-
-Standing characters remain photographic planes, not freely rotatable rigged 3D humans. The generated movement improves their facial and body performance within that presentation. Reflections use 512-pixel render targets. See `public/art/motion/manifest.json` for asset dimensions, duration, model and sampling provenance.
+Use `src/actors.js` for playback and keying, `src/scene.js` for placement, `src/house-reflections.js` for reflection surfaces. The public clips are in `public/art/motion`; source jobs and intermediate video files stay outside the repository.

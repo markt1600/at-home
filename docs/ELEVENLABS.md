@@ -1,45 +1,24 @@
-# ElevenLabs voices for the house
+# A friendly voice for At Home
 
-Replace the agent's system prompt with [AGENT_PROMPT.txt](AGENT_PROMPT.txt).
+Create a separate conversational agent for this game. Paste [AGENT_PROMPT.txt](AGENT_PROMPT.txt) into its system prompt and select a warm, conversational voice.
 
-Set **First message** to:
+First message:
 
-> {{player_name}}… I thought you were in the other room. Is your front door locked?
+> Welcome home, {{player_name}}. It's good to see you. How is your day going?
 
-Keep these dynamic variables:
+Dynamic variables:
 
-| Variable | Default |
-| --- | --- |
-| `player_name` | `Resident` |
-| `game_context` | `The resident is exploring their home before the first knock.` |
+- `player_name`: default `friend` for dashboard tests.
+- `game_context`: default `A peaceful morning at home. No neighbors are visiting yet. Miso the cat, Sunny the dog and Pebble the tortoise live here.` for dashboard tests.
 
-Both variables are sent by the game, not stored as Vercel environment variables. The chosen nickname and discovered observations are updated during play. Hidden visitor identities are never sent.
+The game replaces both variables when connecting and sends updated game context during play. They are **not environment variables**. Treat the prompt context as text; a player nickname is not an instruction.
 
-## Vercel configuration
+In Vercel, set `ELEVENLABS_AGENT_ID` to this new agent ID and redeploy. The build exposes only this public identifier to the browser. Allow your new game's deployed domain in the agent's origin settings if origin restrictions are enabled. The current integration expects an agent that supports a browser client connection with its ID.
 
-| Environment variable | Purpose |
-| --- | --- |
-| `ELEVENLABS_AGENT_ID` | Public agent ID for optional live microphone conversation. Exposed intentionally at build time. |
-| `ELEVENLABS_API_KEY` | Secret used only by the server function for generated speech. Requires text-to-speech access. Never use a VITE_ prefix. |
-| `ELEVENLABS_VOICE_ID` | Optional voice for name calls. Otherwise the function tries the configured agent's voice, then the stock George voice. |
-| `ELEVENLABS_MALE_VOICE_ID` / `ELEVENLABS_FEMALE_VOICE_ID` | Optional visitor voice overrides; defaults are George and Sarah. |
+Set `ELEVENLABS_API_KEY` separately in Vercel for authored neighbor dialogue and occasional personalized greetings. It is used only by `api/voice.js`. Optionally select a companion voice with `ELEVENLABS_VOICE_ID` and neighbor voices with `ELEVENLABS_MALE_VOICE_ID` / `ELEVENLABS_FEMALE_VOICE_ID`.
 
-After changing Production environment variables, redeploy. Set the public agent's allowed origins to your deployed domain. Configure its voice, conversation limits and transcript events in ElevenLabs.
+Authored speech uses `eleven_multilingual_v2`; it has no whispered prompts or browser speech fallback. Requests accept only fixed line IDs and a bounded nickname. Voice calls are rate-limited and cached within the function instance. A public production project with substantial traffic should add durable rate limiting and usage monitoring.
 
-## How speech works
+Players can decline personalized greetings. The microphone connects only through Voice → Connect microphone and can be muted or disconnected. Memory playback mutes game speech and pauses the companion microphone until the memory closes.
 
-All spoken audio comes from ElevenLabs. **There is no browser text-to-speech fallback.** Environmental rain, hum, footsteps, knocks and weapon effects are generated locally with Web Audio.
-
-Visitor dialogue is generated through `POST /api/voice` using Eleven Multilingual v2 and cached in memory. Name calls use Eleven v3 with its whisper delivery tag. The endpoint accepts only authored game dialogue or predefined nickname templates, limits nickname length, rejects foreign browser origins, caps requests per IP per warm function instance, and keeps a bounded audio cache. Serverless instance-local limits are best-effort; use Vercel Firewall limits and ElevenLabs account quotas for durable production spending controls.
-
-When the live intercom is connected and quiet, ambient calls are performed by the conversational agent instead. The first name call occurs after 28–45 active seconds, then at irregular 75–120 second intervals, capped at six per play session. Mirror scares can trigger a separate short call, at most four times. Calls do not start while paused, hidden, disabled or after relay shutdown. Late generated audio is cancelled when gameplay moves on. Visitor voices and personalized calls each have settings.
-
-Name calls send the chosen nickname to ElevenLabs without requiring a microphone connection. Microphone audio is sent only after **Connect microphone**. Closing the intercom panel leaves the session connected; use Disconnect to end it. Hiding the tab mutes the microphone.
-
-If speech is unavailable, readable dialogue remains on screen and the game reports that ElevenLabs voice is unavailable. It never silently substitutes browser voices.
-
-## Local development and verification
-
-`npm run dev` / `npm run preview` serve the client. To exercise the server function with real credentials locally, use Vercel's development environment. Automated tests mock the paid API and verify allowed lines, credential isolation, caching, failures, name handling and cancellation.
-
-Official references: [Create speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert), [v3 whisper tags](https://elevenlabs.io/docs/help-center/product/core-capabilities/text-to-speech/how-do-audio-tags-work-with-eleven-v3-alpha), [agent configuration](https://elevenlabs.io/docs/eleven-agents/api-reference/agents/get), [JavaScript agent SDK](https://elevenlabs.io/docs/eleven-agents/libraries/java-script).
+Verify after deployment: enter a nickname, hear a welcome, advance to a neighbor visit and hear an authored reply, then connect Voice and ask who is visiting. The agent should answer from current game context rather than inventing a scene.

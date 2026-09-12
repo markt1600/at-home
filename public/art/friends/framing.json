@@ -1,0 +1,38 @@
+{
+  "ken": {
+    "width": 384,
+    "height": 768,
+    "bodyHeight": 704,
+    "bottom": 32
+  },
+  "nia": {
+    "width": 384,
+    "height": 768,
+    "bodyHeight": 704,
+    "bottom": 32
+  },
+  "june": {
+    "width": 384,
+    "height": 768,
+    "bodyHeight": 704,
+    "bottom": 32
+  },
+  "miso": {
+    "width": 768,
+    "height": 512,
+    "bodyHeight": 448,
+    "bottom": 32
+  },
+  "sunny": {
+    "width": 768,
+    "height": 512,
+    "bodyHeight": 448,
+    "bottom": 32
+  },
+  "pebble": {
+    "width": 768,
+    "height": 512,
+    "bodyHeight": 435,
+    "bottom": 32
+  }
+}

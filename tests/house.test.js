@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import {createHouseModel} from '../scripts/house-model.mjs';
 import {HOUSE_VIEWS,HOUSE_STAIRS,HOUSE_ROOMS,planPoint,floorHeight,pointInPolygon} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
-import {MirrorHaunting} from '../src/mirror.js';
 const world=createHouseModel();
 test('every quick-view position is inside the house and clear of solid furniture',()=>{
  for(const [id,p] of Object.entries(HOUSE_VIEWS))assert.ok(inWalkableArea(p[0],p[2],true,world.colliders),id);
@@ -28,11 +27,3 @@ test('all stair runs join their declared levels continuously',()=>{
  }
 });
 test('static mesh batching retains the separate moving front door',()=>{assert.ok(world.optimization.originalMeshes>1000);assert.ok(world.optimization.materialGroups<160);assert.ok(world.door.children.length>=2);});
-test('mirror appearances require proximity, pause safely and have a cooldown and cap',()=>{
- const h=new MirrorHaunting(()=>0);assert.equal(h.tick(100,{active:false,near:true}),null);
- h.tick(12,{active:true,near:false});assert.deepEqual(h.tick(.1,{active:true,near:true}),{type:'show',portrait:0});
- assert.equal(h.tick(10,{active:false,near:true}),null);assert.deepEqual(h.tick(2.3,{active:true,near:true}),{type:'hide'});
- h.tick(1,{active:true,near:false});assert.equal(h.tick(1,{active:true,near:true}),null);
- for(let i=0;i<3;i++){h.tick(110,{active:true,near:false});assert.equal(h.tick(.1,{active:true,near:true}).type,'show');h.tick(3,{active:true,near:true});}
- h.tick(110,{active:true,near:false});assert.equal(h.tick(.1,{active:true,near:true}),null);
-});

@@ -209,7 +209,7 @@ export function buildHouse(world){
  world.flicker=L(942,569,.2,9);world.flicker.userData.baseIntensity=9;
  for(const p of [[238,617],[290,269]]){const [x,z]=P(...p);light(x,2.8,z,0x8aa9d0,17,9);}
  const [lx,lz]=P(940,803);light(lx,2.8,lz,0xcbd1c6,13,6);
- const [nx,nz]=P(100,400);for(let i=0;i<6;i++){box(5,18,6,nx-4,5,nz+i*8,0x101c23);for(let y=0;y<15;y+=1.7)if((i+Math.round(y))%2)box(.03,.8,.5,nx-1.48,y,nz+i*8,new THREE.MeshBasicMaterial({color:0x6a6850}));}
+ const [nx,nz]=P(100,400);
  const rain=new Float32Array(1300*3);for(let i=0;i<rain.length;i+=3){rain[i]=nx+(i*7.31%6);rain[i+1]=i*1.71%16;rain[i+2]=nz-8+i*.63%30;}world.rain=new THREE.Points(new THREE.BufferGeometry().setAttribute('position',new THREE.BufferAttribute(rain,3)),new THREE.PointsMaterial({color:0x93b0c0,size:.02,transparent:true,opacity:.28}));root.add(world.rain);
  world.flashlight=new THREE.SpotLight(0xe4dfcb,28,16,.32,.6,2);world.camera.add(world.flashlight);world.flashlight.position.set(.15,-.13,0);world.flashlight.target.position.set(0,0,-7);world.camera.add(world.flashlight.target);world.flashlight.visible=false;
  root.traverse(o=>{if(o.isPointLight)o.intensity*=.7;});world.flicker.userData.baseIntensity*=.7;

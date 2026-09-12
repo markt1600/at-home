@@ -1,22 +1,18 @@
-import {PEOPLE,ODD_ANSWERS} from './content.js';
-export const NAME_CALLS=[
- name=>`${name}… are you still there?`,
- name=>`Don't answer the next voice, ${name}.`,
- name=>`${name}… I thought someone was sitting on the orange sofa.`,
- name=>`${name}… did you remember to close the front door?`,
- name=>`Was that you calling from the bedroom, ${name}?`,
- name=>`${name}… did you hear a doorbell, or was that just me?`,
- name=>`${name}… don't turn around. Look at the mirror.`,
- name=>`${name}… look at the window. Did the reflection move?`,
+import {NEIGHBORS} from './life.js';
+export const cleanName=value=>[...String(value??'').normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} '\u2019-]/gu,'').replace(/\s+/g,' ').trim()].slice(0,28).join('')||'friend';
+export const HOME_LINES=[
+ name=>`Welcome home, ${name}. There is no hurry. Make yourself comfortable.`,
+ name=>`It is good to have a little time for yourself, ${name}.`,
+ name=>`Take a slow breath, ${name}. You can enjoy this moment just as it is.`,
+ name=>`The day is yours, ${name}. A small, happy thing is enough.`,
 ];
-export function cleanName(value){return [...String(value??'').normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} '\u2019-]/gu,'').replace(/\s+/g,' ').trim()].slice(0,28).join('')||'Resident';}
 export function resolveVoiceRequest(body){
  if(!body||typeof body!=='object')return null;
- if(body.kind==='whisper'&&Number.isInteger(body.cue)&&body.cue>=0&&body.cue<NAME_CALLS.length){return {text:NAME_CALLS[body.cue](cleanName(body.name)),whisper:true,speaker:'intercom'};}
- if(body.kind==='dialogue'&&typeof body.text==='string'){
-  const p=PEOPLE.find(p=>p.id===body.personId);if(!p)return null;
-  if(![p.opening,p.alibi,p.memory,p.humanClue,...ODD_ANSWERS].includes(body.text))return null;
-  return {text:body.text,whisper:false,speaker:['aisha','kavitha','siti','goh','farah','mei'].includes(p.id)?'female':'male'};
+ if(body.kind==='home'&&Number.isInteger(body.cue)&&body.cue>=0&&body.cue<HOME_LINES.length)return {text:HOME_LINES[body.cue](cleanName(body.name)),speaker:'companion'};
+ if(body.kind==='neighbor'){
+  const n=NEIGHBORS.find(n=>n.id===body.id);if(!n)return null;
+  const text=body.line==='greeting'?n.greeting:Number.isInteger(body.line)?n.topics[body.line]?.[1]:null;
+  if(text)return {text,speaker:n.id==='ken'?'male':'female'};
  }
  return null;
 }

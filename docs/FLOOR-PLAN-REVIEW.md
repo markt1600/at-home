@@ -32,7 +32,6 @@ Reviewed the video contact sheets and supplied room photographs again. Corrected
 
 New material tiles use physical UV scaling; the cellar island has a separate breccia stone finish. Added pleated curtains, ceiling fans, finer plants, living-room speakers and small fittings. Furniture, artwork and decorative objects remain approximations rather than scans or exact reproductions.
 
-Movement follows small risers automatically, with collision sliding and optional gentle stair bob. Admitted people remain visible at deterministic waiting places listed in the Shelter notebook. Dialogue and existing saved transcripts use apartment language; ambient voice impressions are explicitly uncertain. The standalone ElevenLabs prompt must also be replaced in the agent dashboard if it still contains older instructions.
 
 ## Surface joins and character depth
 
@@ -40,4 +39,4 @@ The later kitchen photo corrects the extra bathroom opening: the only east kitch
 
 A wider surface audit found overlapping bedroom/office partitions, bath/wardrobe partitions, ceiling edge strips and frame corners. Wall runs now stop at shared boundaries, frame rails meet without overlapping corners, and static opaque box faces are clipped to retain only one surface at each coplanar join. This retains texture coordinates and collision geometry rather than hiding complete meshes. The moving front door stays separate. Regression checks cover partial joins at different angles, nearby distinct surfaces, door headers, external walls, viewpoints and walking routes.
 
-Fallen visitors use closed rounded relief meshes reconstructed from the keyed full-body photographs, with edge colours extended around the sides. The front image still supplies the clothing and facial detail; this is a lightweight textured volume, not a fully rigged anatomical model. An independent fall pivot settles it onto the floor regardless of approach angle. Wounds attach to the surface of the volume. Standing visitors, sheltered people and mirror figures have subtle breathing and occasional head tilts, controlled by the motion setting. These animations use the existing images; no generated video is required.
+At Home retains these geometry corrections. Its separate simulation adds friendly guests, pet care, memories and a daylight cycle; the earlier encounter and damage systems are not used.
