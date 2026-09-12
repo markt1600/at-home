@@ -71,5 +71,5 @@ export const HOUSE_VIEWS={
  sunroom:view(418,350,346,248),theatre:view(418,350,346,248),balcony:view(282,607,240,626),
  guest:view(938,416,1010,355),guest_bath:view(1014,534,1039,491),meditation:view(563,232,561,164),
  wine:view(673,562,787,562),powder:view(386,455,329,434),store:view(743,739,714,775),
- records:view(763,678,749,639,-.12),radio:view(869,736,909,708),board:view(570,383,570,393,-.015)
+ records:view(763,678,749,639,-.12),radio:view(869,736,909,708),board:view(583,383,570,393,-.015)
 };

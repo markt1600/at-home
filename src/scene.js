@@ -8,6 +8,7 @@ import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
 import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,planPoint} from './house-layout.js';
 import {BloodEffects} from './blood.js';
+import {Reflector} from 'three/addons/objects/Reflector.js';
 import {MirrorHaunting} from './mirror.js';
 import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,visibleVisitorHit} from './visitors.js';
 
@@ -25,6 +26,16 @@ export class House {
     this.bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.6,.9);this.composer.addPass(this.bloom);this.composer.addPass(new OutputPass());
     this.clock=new THREE.Clock();this.mode='menu';this.keys={};this.yaw=0;this.pitch=0;this.aim=false;this.recoil=0;this.blood=true;this.motion=true;this.particles=[];this.decals=[];this.targets=[];this.dead=false;this.elapsed=0;this.scanUntil=0;this.npc=null;this.depart=null;
     this.mirrorHaunting=new MirrorHaunting();this.materials={};this.colliders=[];this.exploring=false;this.torchOn=false;buildHouse(this);optimizeHouse(this);this.buildGun();this.loadArtwork();this.bloodEffects=new BloodEffects(this.scene,floorHeight);
+    const [mirrorX,mirrorZ,mirrorY]=MIRROR_POSITION;
+    this.mirrorSurface=new Reflector(new THREE.PlaneGeometry(.87,2.08),{color:0x929a94,textureWidth:512,textureHeight:1024,clipBias:.003,multisample:0});
+    this.mirrorSurface.position.set(mirrorX+Math.sin(MIRROR_YAW)*.045,mirrorY,mirrorZ+Math.cos(MIRROR_YAW)*.045);this.mirrorSurface.rotation.y=MIRROR_YAW;this.scene.add(this.mirrorSurface);
+    const renderReflection=this.mirrorSurface.onBeforeRender.bind(this.mirrorSurface);
+    this.mirrorSurface.onBeforeRender=(...args)=>{
+      // The apparition is already part of the mirror image; do not reflect it twice.
+      const apparition=this.mirrorFace,wasVisible=apparition?.visible;
+      if(apparition)apparition.visible=false;
+      try{renderReflection(...args);}finally{if(apparition)apparition.visible=wasVisible;}
+    };
     this.ray=new THREE.Raycaster();this.mouse=new THREE.Vector2(0,0);
     window.addEventListener('resize',()=>this.resize());
     document.addEventListener('pointerlockchange',()=>{document.body.classList.toggle('free-look',document.pointerLockElement===canvas);this.resize();});
