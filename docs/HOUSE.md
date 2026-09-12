@@ -1,19 +1,31 @@
 # The house environment
 
-The environment is an authored 3D approximation based on a 4 minute 5 second phone walkthrough. The reference shows a lift entrance, marble hall, study, storage, orange seating, sage cupboards, raised dining and window-lounge areas, kitchen and utility wing, bedroom, dressing room and bathroom. Distinctive furnishings include the dining pendants, blue study chair, low blue table, telescope, pinball cabinet and orange range.
+The current model uses the supplied 78-page contract drawing set dated 20 March 2023, together with the walkthrough for current furnishings. The earlier rectangular approximation has been replaced with a polygonal plan: angled lift lobby and entrance, sunken living room, two window bays, dining and kitchen, utility/service rooms, home office, wine cellar, bedroom wing, wardrobe, meditation alcove, bathrooms and window lounge/home theatre.
 
-Room dimensions and some connections are inferred. The supplied height of a seated person is only a rough proportion reference; it does not calibrate the entire video. This is not a photogrammetric scan or an architectural survey. The generated materials and geometry represent the home at night for the game.
+## Dimensions and levels
 
-The original video, extracted frames, private pictures and personal documents are not included in this repository. All game characters are fictional adults.
+The plan is calibrated against the 16,880 mm north dimension. Major room outlines and door locations are traced from the dimensioned doors plan (sheet 8), checked against the proposed layout and wet works plans (sheets 2 and 4). Living-room floor datum is 0 mm; entrance, dining, kitchen and service rooms are +450 mm; the wine cellar and bedroom level are +750 mm. The shared stair definitions generate both visible treads and continuous walking heights. Movement cannot jump across a raised edge. Bathroom drainage falls and small threshold drops are simplified.
 
-`src/house-layout.js` defines room bounds, floor heights and viewing positions. `src/house.js` builds the geometry and collision volumes. Static meshes are combined by material for browser performance. Rooms remain connected through traversable doorways, with stair transitions between levels.
+The kitchen uses 900 mm counters and 600 mm cabinet depth from sheets 50–56. The office, 1,975 × 1,200 × 975 mm wine island, bedroom divider, sliding mirror and theatre fittings use the relevant room detail sheets. The walkthrough supplies the red artwork, orange and cream seating, blue table/chair, telescope and pinball machine.
 
-The front door is the main encounter location. A separate mirror event can show a borrowed face briefly in the bedroom mirror, at most four times per play session with a cooldown. Reflections do not reveal a visitor's hidden identity.
+This is an authored game reconstruction, not a survey, CAD conversion or photogrammetric scan. Some opening edges are traced from rendered drawings, and furniture, fixtures, ceiling transitions and finishes remain simplified for browser performance. The contract drawings describe a proposed design; visible current furnishings take precedence where the walkthrough differs.
 
-To export the geometry and color materials as GLB:
+## Implementation
+
+- `src/house-layout.js`: calibrated polygon outlines, floor levels, stair footprints and viewpoints.
+- `src/house.js`: walls, glazing, floors, ceilings, fixtures and collision volumes.
+- `src/plan-geometry.js`: floor cutouts for stair runs.
+- `src/navigation.js`: polygon boundaries and rotated wall collisions.
+- `src/visitors.js`: full-length photographic visitors, ground anchoring, chroma key and visible-pixel hit detection.
+
+The front door remains the main encounter. The bedroom mirror can show a complete reflected figure briefly; it does not reveal a hidden identity. Visitor heights range from 1.63 to 1.80 m. Whole figures face the player, with floor contact shadows, rather than a chest portrait floating above the ground.
+
+The original drawings, walkthrough, extracted pages, address, private pictures and personal documents are not included in the repository. Game characters are fictional adults.
+
+Export reusable geometry, color materials and compatible lights:
 
 ```sh
 node scripts/export-house.mjs ../house-model.glb
 ```
 
-The game adds generated surface maps, atmospheric lighting, rain, physics and interactions at runtime. The GLB export is a reusable static model and includes color materials and compatible lights.
+Surface maps, visitor sprites, rain, lighting effects and gameplay are added by the game at runtime and are not bundled in the static GLB.

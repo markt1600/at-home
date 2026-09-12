@@ -1,6 +1,6 @@
 # LAST BELL
 
-An original first-person paranoia horror game set in a fictionalized home in Singapore, modelled from a supplied walkthrough. Built for the `markt1600/human` repository and Vercel hosting.
+An original first-person paranoia horror game set in a fictionalized home in Singapore, modelled from supplied architectural plans and a walkthrough. Built for the `markt1600/human` repository and Vercel hosting.
 
 This is a complete, playable **indie prototype**, not a recreation of another game's art, dialogue, characters, or code. It combines a real-time 3D house with generated photographic portraits and material textures. All visitors are fictional adults, aged 21–57.
 
@@ -8,8 +8,9 @@ This is a complete, playable **indie prototype**, not a recreation of another ga
 
 You are the resident holding the front door until morning. Twelve people arrive across three watches. Decide whom to admit, reject, or shoot. Their identities change each run.
 
-- Walkthrough-based house: entrance hall, study, storage, living room, dining area, kitchen, utility room, window lounge, balcony, bedroom, dressing room and bathroom. Explore before the first watch with no deadline.
-- Generated photographic visitor portraits and ivory plaster, sage cabinetry, marble and oak textures, combined with rain, fog, shadows and a working torch.
+- House traced from the dimensioned plan: angled entrance, sunken living room, dining, kitchen, wine cellar, office, bedroom wing, window lounge, bays and service rooms. Floor levels and traversable stairs follow the drawing. Explore before the first watch with no deadline. See [model notes](docs/HOUSE.md).
+- Complete photographic visitors with attached heads and bodies, hands, legs and feet at floor level. Dark hair and clothing remain intact; transparent gaps between limbs do not register gunshot hits. See [artwork and prompts](docs/STANDING-ART.md).
+- Ivory plaster, sage cabinetry, marble and oak textures, combined with rain, fog, shadows and a working torch.
 - Minimal encounter interface: large dialogue and scan results, with Talk / Examine / Decide choices. Clues, records, shelter and documents are in the notebook.
 - Seeded encounter order and visitor assignments. Temperature, pulse, UV residue and testimony provide uncertain evidence with false positives.
 - First-person weapon with aim, recoil, muzzle flash, audio report, blood particles and impact pools. Blood and camera movement can be disabled.

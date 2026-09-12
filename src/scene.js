@@ -6,9 +6,9 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { inWalkableArea } from './navigation.js';
 import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
-import {HOUSE_VIEWS,floorHeight} from './house-layout.js';
+import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,planPoint} from './house-layout.js';
 import {MirrorHaunting} from './mirror.js';
-import { maskPortraitBackground } from './portraits.js';
+import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,visibleVisitorHit} from './visitors.js';
 
 const UP=new THREE.Vector3(0,1,0);
 export class House {
@@ -63,12 +63,13 @@ export class House {
   toggleTorch(){this.torchOn=!this.torchOn;this.flashlight.visible=this.torchOn;}
   loadArtwork(){
     const loader=new THREE.TextureLoader();
-    this.portraitAtlas=loader.load('/art/visitors.png',atlas=>{
+    this.standingAtlases=Array.from({length:4},(_,i)=>loader.load('/art/visitors-standing-'+(i+1)+'.png',atlas=>{
       const canvas=document.createElement('canvas');canvas.width=atlas.image.width;canvas.height=atlas.image.height;
       const ctx=canvas.getContext('2d');ctx.drawImage(atlas.image,0,0);const pixels=ctx.getImageData(0,0,canvas.width,canvas.height);
-      maskPortraitBackground(pixels.data,canvas.width,canvas.height);ctx.putImageData(pixels,0,0);atlas.image=canvas;atlas.needsUpdate=true;
-      this.npc?.traverse(o=>{if(o.material?.map)o.material.map.needsUpdate=true;});
-    });this.portraitAtlas.colorSpace=THREE.SRGBColorSpace;
+      atlas.userData.frames=keyStandingAtlas(pixels.data,canvas.width,canvas.height);atlas.userData.pixels=pixels.data;
+      ctx.putImageData(pixels,0,0);atlas.image=canvas;atlas.colorSpace=THREE.SRGBColorSpace;atlas.needsUpdate=true;
+      if(this.waitingPerson&&Math.floor(VISITOR_IDS.indexOf(this.waitingPerson.id)/3)===i)this.showPerson(this.waitingPerson);
+    }));
     loader.load('/art/house-surfaces.png',atlas=>{
       atlas.colorSpace=THREE.SRGBColorSpace;
       const quadrant=(col,row)=>{const t=atlas.clone();t.repeat.set(.498,.498);t.offset.set(col*.5+.001,(1-row)*.5+.001);t.anisotropy=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());t.needsUpdate=true;return t;};
@@ -78,49 +79,48 @@ export class House {
   }
   showPerson(p){
     if(this.npc){this.scene.remove(this.npc);this.npc.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
-    this.dead=false;this.depart=null;if(!p){this.npc=null;return;}
-    const order=['tan','aisha','lim','kavitha','wei','siti','raj','goh','ben','farah','chan','mei'];
-    const index=Math.max(0,order.indexOf(p.id)),map=this.portraitAtlas.clone();
-    map.repeat.set(.249,.332);map.offset.set(index%4*.25+.0005,(2-Math.floor(index/4))/3+.0005);map.needsUpdate=true;
-    const material=new THREE.MeshBasicMaterial({map,color:0xd2d0c5,transparent:true,alphaTest:.035,side:THREE.DoubleSide});
-    const g=new THREE.Group();g.position.set(0,0,-.72);this.scene.add(g);this.npc=g;
-    const portrait=new THREE.Mesh(new THREE.PlaneGeometry(1.45,1.45),material);portrait.position.set(0,1.55,0);g.add(portrait);this.npcMeshes=[portrait];
+    this.dead=false;this.depart=null;this.waitingPerson=null;if(!p){this.npc=null;return;}
+    const index=Math.max(0,VISITOR_IDS.indexOf(p.id)),atlas=this.standingAtlases[Math.floor(index/3)];
+    this.waitingPerson=p;if(!atlas?.userData.frames){this.npc=null;return;}this.waitingPerson=null;
+    const g=createStandingVisitor(atlas,index);g.position.set(...VISITOR_POSITION);this.scene.add(g);this.npc=g;this.npcMeshes=[g.userData.body];
+    g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
   }
   updateMirror(dt){
-    const pos=new THREE.Vector3(-6.2,1.82,17.2),to=pos.clone().sub(this.camera.position),distance=to.length();
+    const [x,z,y]=MIRROR_POSITION,pos=new THREE.Vector3(x,y,z+.015),to=pos.clone().sub(this.camera.position),distance=to.length();
     const facing=this.camera.getWorldDirection(new THREE.Vector3()).dot(to.normalize());
     const event=this.mirrorHaunting.tick(dt,{active:this.mode==='play'&&!this.paused,near:distance<3.4&&facing>.5});
-    if(event?.type==='show'&&this.portraitAtlas.image){
-      if(this.mirrorFace){this.scene.remove(this.mirrorFace);this.mirrorFace.material.map.dispose();this.mirrorFace.material.dispose();this.mirrorFace.geometry.dispose();}
-      const map=this.portraitAtlas.clone(),index=event.portrait;map.repeat.set(-.249,.332);map.offset.set((index%4+1)*.25-.0005,(2-Math.floor(index/4))/3+.0005);map.needsUpdate=true;
-      this.mirrorFace=new THREE.Mesh(new THREE.PlaneGeometry(.85,1.02),new THREE.MeshBasicMaterial({map,color:0xa9b0a4,transparent:true,opacity:.91,side:THREE.DoubleSide}));this.mirrorFace.position.copy(pos);this.scene.add(this.mirrorFace);this.onMirror?.();
+    if(event?.type==='show'){
+      const atlas=this.standingAtlases[Math.floor(event.portrait/3)];if(!atlas?.userData.frames)return;
+      if(this.mirrorFace){this.scene.remove(this.mirrorFace);this.mirrorFace.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
+      this.mirrorFace=createStandingVisitor(atlas,event.portrait,{height:1.8,shadow:false});this.mirrorFace.scale.x=-1;this.mirrorFace.position.set(x,y-1.04,z+.065);this.scene.add(this.mirrorFace);this.onMirror?.();
     }
     if(event?.type==='hide'&&this.mirrorFace)this.mirrorFace.visible=false;
   }
-  setMode(mode){this.mode=mode;this.gun.visible=mode==='play';if(mode==='play'){this.camera.position.set(0,1.67,1.1);this.yaw=0;this.pitch=-.015;this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');}else{this.unlock();this.keys={};this.flashlight.visible=false;}this.resize();}
+
+  setMode(mode){this.mode=mode;this.gun.visible=mode==='play';if(mode==='play'){this.focus('door');this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');}else{this.unlock();this.keys={};this.flashlight.visible=false;}this.resize();}
   lock(){try{const p=this.canvas.requestPointerLock();p?.catch?.(()=>{});}catch{}}
   unlock(){if(document.pointerLockElement)document.exitPointerLock();this.aim=false;}
-  focus(id){const p=HOUSE_VIEWS[id]||HOUSE_VIEWS.door;this.camera.position.set(p[0],p[1],p[2]);this.yaw=p[3];this.pitch=p[4];}
+  focus(id){const p=HOUSE_VIEWS[id]||HOUSE_VIEWS.door;this.camera.position.set(p[0],p[1],p[2]);this.yaw=p[3];this.pitch=p[4];this.viewingRoom=id!=='door';document.body.classList.toggle('room-view',this.viewingRoom);this.resize();}
   scan(kind){this.scanUntil=this.elapsed+1.2;this.scanKind=kind;this.flashlight.color.set(kind==='uv'?0x8245ff:kind==='thermal'?0xff995c:0xc5fff1);this.flashlight.visible=true;}
   fire(force=false){
     if(this.mode!=='play'||!this.npc||this.dead||this.depart)return false;
     this.camera.updateMatrixWorld();this.ray.setFromCamera(new THREE.Vector2(0,0),this.camera);
-    const hit=this.ray.intersectObjects(this.npcMeshes,false)[0];
+    const hit=this.ray.intersectObjects(this.npcMeshes,false).find(visibleVisitorHit);
     if(!force&&!hit)return this.onShoot(false);
     if(this.onShoot(true)===false)return false;
     this.recoil=1;this.muzzleLight.intensity=100;this.muzzleMesh.visible=true;this.dead=true;
-    if(this.blood){const pt=hit?.point||new THREE.Vector3(0,1.2,-.75);for(let i=0;i<78;i++){const mesh=this.sphere(.003+Math.random()*.009,pt.x,pt.y,pt.z,this.mat(i%3?0x721e17:0xa92e23,.23));const v=new THREE.Vector3((Math.random()-.5)*3,Math.random()*3,(Math.random()-.2)*3);this.particles.push({mesh,v,life:1.2+Math.random()});}
-      const pool=new THREE.Mesh(new THREE.CircleGeometry(.42,20),this.mat(0x591812,.2));pool.rotation.x=-Math.PI/2;pool.position.set(0,.027,-.8);pool.scale.set(1,.65,1);this.scene.add(pool);this.decals.push(pool);
+    if(this.blood){const pt=hit?.point||this.npc.position.clone().add(new THREE.Vector3(0,1.2,0));for(let i=0;i<78;i++){const mesh=this.sphere(.003+Math.random()*.009,pt.x,pt.y,pt.z,this.mat(i%3?0x721e17:0xa92e23,.23));const v=new THREE.Vector3((Math.random()-.5)*3,Math.random()*3,(Math.random()-.2)*3);this.particles.push({mesh,v,life:1.2+Math.random()});}
+      const pool=new THREE.Mesh(new THREE.CircleGeometry(.42,20),this.mat(0x591812,.2));pool.rotation.x=-Math.PI/2;pool.position.set(this.npc.position.x,VISITOR_POSITION[1]+.006,this.npc.position.z);pool.scale.set(1,.65,1);this.scene.add(pool);this.decals.push(pool);
     }
     return true;
   }
   leave(action){if(!this.dead)this.depart={action,t:0};if(action==='admit')this.door.rotation.y=-1.75;}
   reset(){this.mirrorHaunting.reset();if(this.mirrorFace)this.mirrorFace.visible=false;this.decals.forEach(p=>{this.scene.remove(p);p.geometry.dispose();});this.decals=[];this.particles.forEach(p=>{this.scene.remove(p.mesh);p.mesh.geometry.dispose();});this.particles=[];this.door.rotation.y=-1.45;}
-  resize(){this.camera.aspect=innerWidth/innerHeight;if(this.mode==='play'&&!this.exploring&&!document.pointerLockElement)this.camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*(innerWidth<=760?.18:.13),innerWidth,innerHeight);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.composer.setSize(innerWidth,innerHeight);}
-  canWalk(x,z){return inWalkableArea(x,z,this.exploring,this.colliders);}
+  resize(){this.camera.aspect=innerWidth/innerHeight;if(this.mode==='play'&&!this.exploring&&!this.viewingRoom&&!document.pointerLockElement)this.camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.25,innerWidth,innerHeight);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.composer.setSize(innerWidth,innerHeight);}
+  canWalk(x,z){return inWalkableArea(x,z,this.exploring,this.colliders)&&Math.abs(floorHeight(x,z)-floorHeight(this.camera.position.x,this.camera.position.z))<=.12;}
   animate(){
     requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);this.elapsed+=dt;const t=this.elapsed;
-    if(this.mode==='menu'){this.camera.position.set(.5+Math.sin(t*.07)*.22,1.73,9.8);this.camera.lookAt(-2,1.2,16.7);}
+    if(this.mode==='menu'){const [x,z]=planPoint(527,683),[tx,tz]=planPoint(404,575);this.camera.position.set(x+Math.sin(t*.07)*.1,1.5,z);this.camera.lookAt(tx,.9,tz);}
     if(this.mode==='play'&&!this.paused){
       const direction=new THREE.Vector3((this.keys.KeyD?1:0)-(this.keys.KeyA?1:0),0,(this.keys.KeyS?1:0)-(this.keys.KeyW?1:0));
       if(direction.length()){direction.normalize().applyAxisAngle(UP,this.yaw);const nx=this.camera.position.x+direction.x*dt*2.1,nz=this.camera.position.z+direction.z*dt*2.1;if(this.canWalk(nx,this.camera.position.z))this.camera.position.x=nx;if(this.canWalk(this.camera.position.x,nz))this.camera.position.z=nz;if(t-(this.lastStep||0)>.5){this.lastStep=t;this.onStep?.();}}
@@ -129,13 +129,22 @@ export class House {
       this.camera.position.y=THREE.MathUtils.lerp(this.camera.position.y,1.67+floorHeight(this.camera.position.x,this.camera.position.z)+(this.motion&&direction.length()?Math.sin(t*10)*.018:0),.24);
       this.gun.position.lerp(new THREE.Vector3(this.aim?.01:.23,-.23,-.65+this.recoil*.08),.18);
       this.gun.rotation.set(this.recoil*.24,0,this.motion?Math.sin(t*1.8)*.009:0);
-      this.camera.fov=THREE.MathUtils.lerp(this.camera.fov,this.aim?49:62,.12);this.camera.updateProjectionMatrix();
+      const dialogueView=!this.exploring&&!this.viewingRoom&&!document.pointerLockElement;
+      this.camera.fov=THREE.MathUtils.lerp(this.camera.fov,this.aim?49:dialogueView?48:62,.12);this.camera.updateProjectionMatrix();
       this.ray.setFromCamera(this.mouse,this.camera);let nearest=null,score=.975;
       for(const target of this.targets){if(target.explorationOnly&&!this.exploring)continue;if(this.exploring&&target.id==='door')continue;const dir=target.pos.clone().sub(this.camera.position);const dist=dir.length();const dot=dir.normalize().dot(this.ray.ray.direction);if(dot>score&&dist<6){nearest=target;score=dot;}}
       if(nearest?.id!==this.lookTarget?.id){this.lookTarget=nearest;this.onLook(nearest);}
     }
     this.recoil=Math.max(0,this.recoil-dt*4);if(this.recoil<.8){this.muzzleLight.intensity=0;this.muzzleMesh.visible=false;}
-    if(this.npc){if(this.dead){this.npc.rotation.x=THREE.MathUtils.lerp(this.npc.rotation.x,-Math.PI/2,.09);this.npc.position.y=THREE.MathUtils.lerp(this.npc.position.y,.15,.08);}else if(this.depart){this.depart.t+=dt;this.npc.position.x+=dt*(this.depart.action==='admit'?-1.3:1.8);this.npc.rotation.y=this.depart.action==='admit'?-Math.PI/2:Math.PI/2;if(this.depart.t>2.5)this.npc.visible=false;}else{this.npc.position.y=Math.sin(t*1.6)*.005;this.npc.rotation.y=Math.sin(t*.5)*.024;}}
+    if(this.npc){
+      if(this.dead){this.npc.rotation.x=THREE.MathUtils.lerp(this.npc.rotation.x,-Math.PI/2,.09);}
+      else{
+        if(this.depart){this.depart.t+=dt;const direction=this.depart.action==='admit'?-1:1;this.npc.position.x+=dt*direction*.7;this.npc.position.z+=dt*direction*.7;if(this.depart.t>2.5)this.npc.visible=false;}
+        this.npc.rotation.y=Math.atan2(this.camera.position.x-this.npc.position.x,this.camera.position.z-this.npc.position.z);
+        this.npc.position.y=VISITOR_POSITION[1];
+      }
+    }
+
     if(this.scanUntil<t&&this.scanUntil>0){this.flashlight.color.set(0xe6f5de);this.flashlight.visible=this.torchOn;this.scanUntil=0;}
     if(this.flicker)this.flicker.intensity=Math.sin(t*24)>.98?1:(this.flicker.userData.baseIntensity||12);
     const r=this.rain.geometry.attributes.position;for(let i=0;i<r.count;i++){r.array[i*3+1]-=dt*8;if(r.array[i*3+1]<-2)r.array[i*3+1]=14;}r.needsUpdate=true;
