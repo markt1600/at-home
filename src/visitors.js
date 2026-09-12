@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {attachVisitorVideo} from './visitor-video.js';
 export const VISITOR_IDS=['tan','aisha','lim','kavitha','wei','siti','raj','goh','ben','farah','chan','mei'];
 const HEIGHTS=[1.75,1.67,1.78,1.66,1.73,1.65,1.8,1.64,1.76,1.68,1.75,1.63];
 // Runtime chroma key preserves dark hair, trousers and the gaps between limbs.
@@ -29,7 +30,7 @@ export function standingTexture(atlas,index){
  map.repeat.set((frame.x1-frame.x0)/image.width,(frame.y1-frame.y0)/image.height);
  map.offset.set(frame.x0/image.width,1-frame.y1/image.height);map.needsUpdate=true;return map;
 }
-export function createStandingVisitor(atlas,index,{height=HEIGHTS[index],shadow=true}={}){
+export function createStandingVisitor(atlas,index,{height=HEIGHTS[index],shadow=true,animation='idle'}={}){
  const g=new THREE.Group(),map=standingTexture(atlas,index),frame=atlas.userData.frames[index%3];
  const width=height*(frame.x1-frame.x0)/(frame.y1-frame.y0);
  const m=new THREE.MeshBasicMaterial({map,color:0xc2c6bb,transparent:true,alphaTest:.18,side:THREE.DoubleSide});
@@ -53,6 +54,7 @@ export function createStandingVisitor(atlas,index,{height=HEIGHTS[index],shadow=
   `);
  };
  const body=new THREE.Mesh(new THREE.PlaneGeometry(width,height,18,48),m);body.name='Complete visitor';body.position.y=height/2;g.add(body);g.userData.body=body;g.userData.height=height;g.userData.idle=idle;
+ g.userData.film=attachVisitorVideo(body,VISITOR_IDS[index],height,animation);
  if(shadow){
   const material=new THREE.ShaderMaterial({transparent:true,depthWrite:false,uniforms:{opacity:{value:.36}},vertexShader:'varying vec2 v; void main(){v=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',fragmentShader:'varying vec2 v; uniform float opacity; void main(){float a=1.0-smoothstep(0.1,0.5,length(v-0.5));gl_FragColor=vec4(0.0,0.0,0.0,a*opacity);}'});
   const contact=new THREE.Mesh(new THREE.PlaneGeometry(width*1.15,.43),material);contact.rotation.x=-Math.PI/2;contact.position.y=.005;g.add(contact);g.userData.contactShadow=contact;
@@ -60,10 +62,13 @@ export function createStandingVisitor(atlas,index,{height=HEIGHTS[index],shadow=
 }
 export function animateStandingVisitor(visitor,dt,enabled=true){
  const idle=visitor.userData.idle;if(!idle||visitor.userData.fall)return;
- idle.strength.value=enabled?1:0;if(enabled)idle.time.value+=dt;
+ const film=visitor.userData.film;film?.update(dt>0&&visitor.visible,enabled);
+ idle.strength.value=enabled&&!film?.active?1:0;if(enabled)idle.time.value+=dt;
 }
 export function visibleVisitorHit(hit){
- const map=hit.object.material.map,pixels=map?.userData.pixels;if(!pixels||!hit.uv)return true;
+ const map=hit.object.material.map,pixels=map?.userData.pixels;
+ if(map?.userData.sampleAlpha&&hit.uv)return map.userData.sampleAlpha(hit.uv);
+ if(!pixels||!hit.uv)return true;
  const u=hit.uv.x*map.repeat.x+map.offset.x,v=hit.uv.y*map.repeat.y+map.offset.y;
  const x=Math.min(map.image.width-1,Math.max(0,Math.floor(u*map.image.width))),y=Math.min(map.image.height-1,Math.max(0,Math.floor((1-v)*map.image.height)));
  return pixels[(y*map.image.width+x)*4+3]>=64;

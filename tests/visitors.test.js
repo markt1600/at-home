@@ -36,3 +36,10 @@ test('idle animation has independent timing, pauses and stops when motion is dis
  animateStandingVisitor(a,.1,true);assert.equal(idle.strength.value,1);
  a.userData.fall=new THREE.Group();const time=idle.time.value;animateStandingVisitor(a,1);assert.equal(idle.time.value,time);
 });
+
+test('animated visitor shots sample the current silhouette instead of the original still',()=>{
+ const map=new THREE.Texture();map.userData.sampleAlpha=uv=>uv.x>.3&&uv.x<.7;
+ const object={material:{map}};
+ assert.equal(visibleVisitorHit({object,uv:new THREE.Vector2(.1,.6)}),false);
+ assert.equal(visibleVisitorHit({object,uv:new THREE.Vector2(.5,.6)}),true);
+});

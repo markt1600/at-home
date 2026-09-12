@@ -7,6 +7,7 @@ export const NAME_CALLS=[
  name=>`Was that you calling from the bedroom, ${name}?`,
  name=>`${name}… did you hear a doorbell, or was that just me?`,
  name=>`${name}… don't turn around. Look at the mirror.`,
+ name=>`${name}… look at the window. Did the reflection move?`,
 ];
 export function cleanName(value){return [...String(value??'').normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} '\u2019-]/gu,'').replace(/\s+/g,' ').trim()].slice(0,28).join('')||'Resident';}
 export function resolveVoiceRequest(body){

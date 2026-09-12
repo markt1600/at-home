@@ -8,10 +8,9 @@ import {buildHouse} from './house.js';
 import {optimizeHouse} from './house-meshes.js';
 import {applyHouseTextures} from './house-materials.js';
 import {shelterLocation} from './shelter.js';
-import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,MIRROR_POSITION,MIRROR_YAW,GUEST_MIRROR_POSITION,planPoint} from './house-layout.js';
+import {HOUSE_VIEWS,floorHeight,VISITOR_POSITION,planPoint} from './house-layout.js';
 import {BloodEffects} from './blood.js';
-import {Reflector} from 'three/addons/objects/Reflector.js';
-import {MirrorHaunting} from './mirror.js';
+import {HouseReflections} from './house-reflections.js';
 import {VISITOR_IDS,keyStandingAtlas,createStandingVisitor,animateStandingVisitor,visibleVisitorHit} from './visitors.js';
 import {collapseVisitor,updateVisitorFall} from './corpse.js';
 
@@ -28,21 +27,8 @@ export class House {
     this.composer=new EffectComposer(this.renderer);this.composer.addPass(new RenderPass(this.scene,this.camera));
     this.bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.12,.6,.9);this.composer.addPass(this.bloom);this.composer.addPass(new OutputPass());
     this.clock=new THREE.Clock();this.mode='menu';this.keys={};this.yaw=0;this.pitch=0;this.aim=false;this.recoil=0;this.blood=true;this.motion=true;this.particles=[];this.decals=[];this.targets=[];this.dead=false;this.elapsed=0;this.scanUntil=0;this.npc=null;this.depart=null;
-    this.mirrorHaunting=new MirrorHaunting();this.materials={};this.colliders=[];this.exploring=false;this.torchOn=false;buildHouse(this);optimizeHouse(this);this.buildGun();this.loadArtwork();this.bloodEffects=new BloodEffects(this.scene,floorHeight);
-    const [mirrorX,mirrorZ,mirrorY]=MIRROR_POSITION;
-    this.mirrorSurface=new Reflector(new THREE.PlaneGeometry(.87,2.08),{color:0x929a94,textureWidth:512,textureHeight:1024,clipBias:.003,multisample:0});
-    this.mirrorSurface.position.set(mirrorX+Math.sin(MIRROR_YAW)*.045,mirrorY,mirrorZ+Math.cos(MIRROR_YAW)*.045);this.mirrorSurface.rotation.y=MIRROR_YAW;this.scene.add(this.mirrorSurface);
-    const [gx,gz,gy]=GUEST_MIRROR_POSITION;
-    this.guestMirror=new Reflector(new THREE.PlaneGeometry(.80,2.1),{color:0xa0a49b,textureWidth:512,textureHeight:1024,clipBias:.003,multisample:0});this.guestMirror.position.set(gx,gy,gz+.048);this.scene.add(this.guestMirror);
-    const mirrors=[this.mirrorSurface,this.guestMirror];
-    for(const surface of mirrors){const renderReflection=surface.onBeforeRender.bind(surface);
-    surface.onBeforeRender=(...args)=>{
-      // The apparition is already part of the mirror image; do not reflect it twice.
-      const apparition=this.mirrorFace,wasVisible=apparition?.visible;
-      const other=mirrors.filter(m=>m!==surface),visibility=other.map(m=>m.visible);
-      if(apparition)apparition.visible=false;other.forEach(m=>m.visible=false);
-      try{renderReflection(...args);}finally{if(apparition)apparition.visible=wasVisible;other.forEach((m,i)=>m.visible=visibility[i]);}
-    };}
+    this.materials={};this.colliders=[];this.exploring=false;this.torchOn=false;buildHouse(this);optimizeHouse(this);this.buildGun();this.loadArtwork();this.bloodEffects=new BloodEffects(this.scene,floorHeight);
+    this.reflections=new HouseReflections(this);
     this.ray=new THREE.Raycaster();this.mouse=new THREE.Vector2(0,0);
     window.addEventListener('resize',()=>this.resize());
     document.addEventListener('pointerlockchange',()=>{document.body.classList.toggle('free-look',document.pointerLockElement===canvas);this.resize();});
@@ -110,19 +96,6 @@ export class House {
       g.visible=!(this.depart?.action==='admit'&&this.doorPersonId===p.id&&this.depart.t<=2.5);
     });
   }
-  updateMirror(dt){
-    const [x,z,y]=MIRROR_POSITION,normal=new THREE.Vector3(Math.sin(MIRROR_YAW),0,Math.cos(MIRROR_YAW)),pos=new THREE.Vector3(x,y,z).addScaledVector(normal,.065),to=pos.clone().sub(this.camera.position),distance=to.length();
-    const facing=this.camera.getWorldDirection(new THREE.Vector3()).dot(to.normalize());
-    const inFront=normal.dot(this.camera.position.clone().sub(pos))>0;
-    const event=this.mirrorHaunting.tick(dt,{active:this.mode==='play'&&!this.paused,near:inFront&&distance<3.4&&facing>.5});
-    if(event?.type==='show'){
-      const atlas=this.standingAtlases[Math.floor(event.portrait/3)];if(!atlas?.userData.frames)return;
-      if(this.mirrorFace){this.scene.remove(this.mirrorFace);this.mirrorFace.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.map?.dispose();o.material.dispose();}});}
-      this.mirrorFace=createStandingVisitor(atlas,event.portrait,{height:1.8,shadow:false});this.mirrorFace.scale.x=-1;this.mirrorFace.rotation.y=MIRROR_YAW;this.mirrorFace.position.set(pos.x,y-1.04,pos.z);this.scene.add(this.mirrorFace);this.onMirror?.();
-    }
-    if(event?.type==='hide'&&this.mirrorFace)this.mirrorFace.visible=false;
-  }
-
   setMode(mode){this.mode=mode;this.gun.visible=mode==='play';if(mode==='play'){this.focus('door');this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');}else{this.unlock();this.keys={};this.flashlight.visible=false;}this.resize();}
   lock(){try{const p=this.canvas.requestPointerLock();p?.catch?.(()=>{});}catch{}}
   unlock(){if(document.pointerLockElement)document.exitPointerLock();this.aim=false;}
@@ -141,7 +114,7 @@ export class House {
     return true;
   }
   leave(action){if(!this.dead)this.depart={action,t:0};if(action==='admit')this.door.rotation.y=-1.75;}
-  reset(){this.bloodEffects.reset();this.mirrorHaunting.reset();if(this.mirrorFace)this.mirrorFace.visible=false;this.decals.forEach(p=>{this.scene.remove(p);p.geometry.dispose();});this.decals=[];this.particles.forEach(p=>{this.scene.remove(p.mesh);p.mesh.geometry.dispose();});this.particles=[];this.door.rotation.y=-1.45;}
+  reset(){this.bloodEffects.reset();this.reflections.reset();this.decals.forEach(p=>{this.scene.remove(p);p.geometry.dispose();});this.decals=[];this.particles.forEach(p=>{this.scene.remove(p.mesh);p.mesh.geometry.dispose();});this.particles=[];this.door.rotation.y=-1.45;}
   resize(){this.camera.aspect=innerWidth/innerHeight;if(this.mode==='play'&&!this.exploring&&!this.viewingRoom&&!document.pointerLockElement)this.camera.setViewOffset(innerWidth,innerHeight,0,innerHeight*.25,innerWidth,innerHeight);else this.camera.clearViewOffset();this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);this.composer.setSize(innerWidth,innerHeight);}
   canWalk(x,z){return inWalkableArea(x,z,this.exploring,this.colliders)&&Math.abs(floorHeight(x,z)-floorHeight(this.camera.position.x,this.camera.position.z))<=.12;}
   animate(){
@@ -178,26 +151,24 @@ export class House {
     if(this.npc){
       if(this.dead){updateVisitorFall(this.npc,dt);}
       else{
-        animateStandingVisitor(this.npc,this.paused?0:dt,this.motion);
+        animateStandingVisitor(this.npc,this.paused||this.mode!=='play'?0:dt,this.motion);
         if(this.depart){this.depart.t+=dt;const direction=this.depart.action==='admit'?-1:1;this.npc.position.x+=dt*direction*.7;this.npc.position.z+=dt*direction*.7;if(this.depart.t>2.5)this.npc.visible=false;}
         this.npc.rotation.y=Math.atan2(this.camera.position.x-this.npc.position.x,this.camera.position.z-this.npc.position.z);
         this.npc.position.y=VISITOR_POSITION[1];
       }
     }
     for(const [id,g] of this.residents||[]){
-      animateStandingVisitor(g,this.paused?0:dt,this.motion);
+      animateStandingVisitor(g,this.paused||this.mode!=='play'||g.position.distanceToSquared(this.camera.position)>144?0:dt,this.motion);
       g.visible=!(this.depart?.action==='admit'&&this.doorPersonId===id&&this.depart.t<=2.5);
       g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);
     }
-
-    if(this.mirrorFace?.visible)animateStandingVisitor(this.mirrorFace,this.paused?0:dt*.75,this.motion);
 
     if(this.scanUntil<t&&this.scanUntil>0){this.flashlight.color.set(0xe6f5de);this.flashlight.visible=this.torchOn;this.scanUntil=0;}
     if(this.flicker)this.flicker.intensity=Math.sin(t*24)>.98?1:(this.flicker.userData.baseIntensity||12);
     const r=this.rain.geometry.attributes.position;for(let i=0;i<r.count;i++){r.array[i*3+1]-=dt*8;if(r.array[i*3+1]<-2)r.array[i*3+1]=14;}r.needsUpdate=true;
     this.particles=this.particles.filter(p=>{p.life-=dt;p.v.y-=dt*9;p.mesh.position.addScaledVector(p.v,dt);if(p.mesh.position.y<.04){p.mesh.position.y=.04;p.v.set(0,0,0);p.mesh.scale.y=.12;}if(p.life<=0){this.scene.remove(p.mesh);p.mesh.geometry.dispose();return false;}return true;});
     this.bloodEffects.update(dt,this.blood);
-    this.updateMirror(dt);
+    this.reflections.update(dt);
     this.composer.render();
   }
 }
