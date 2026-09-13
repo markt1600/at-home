@@ -26,4 +26,4 @@ test('all stair runs join their declared levels continuously',()=>{
   for(const t of [0,.25,.5,.75,1]){const p=axis===0?[lo+t*(hi-lo),other]:[other,lo+t*(hi-lo)];assert.ok(Math.abs(floorHeight(...p)-(s.low+(s.high-s.low)*(s.reverse?1-t:t)))<1e-7,s.id);}
  }
 });
-test('static mesh batching retains the separate moving front door',()=>{assert.ok(world.optimization.originalMeshes>1000);assert.ok(world.optimization.materialGroups<160);assert.ok(world.door.children.length>=2);});
+test('static batching keeps the expanded house within its draw budget and retains moving props',()=>{assert.ok(world.optimization.originalMeshes>1000);assert.ok(world.optimization.materialGroups<180);assert.ok(world.optimization.materialGroups<world.optimization.originalMeshes*.045);assert.ok(world.door.children.length>=2);assert.ok(world.vinyl.children.length>2);});

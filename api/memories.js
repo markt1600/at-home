@@ -2,7 +2,7 @@ import {get,put,list,head,del} from '@vercel/blob';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {configured,passwordMatches,createSession,authenticated,setSession,sameOrigin,parseBody} from '../server/memory-auth.js';
-import {UUID,validateRecord,publicRecord,MAX_SIZE,CONTENT_TYPES} from '../server/memory-record.js';
+import {UUID,validateRecord,publicRecord,recordMediaPaths,MAX_SIZE,CONTENT_TYPES} from '../server/memory-record.js';
 
 export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
@@ -30,7 +30,9 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
     const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
-    const media=await storage.get(found.record.mediaPath,{...options(),useCache:false,...(range?{headers:{Range:range}}:{})});
+    const paths=recordMediaPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
+    if(!path)return res.status(404).end();
+    const media=await storage.get(path,{...options(),useCache:false,...(range?{headers:{Range:range}}:{})});
     if(!media?.stream)return res.status(404).end();
     res.setHeader('Content-Type',media.blob.contentType);res.setHeader('Content-Disposition','inline');res.setHeader('Accept-Ranges','bytes');
     const cr=media.headers.get('content-range');if(cr)res.setHeader('Content-Range',cr);
@@ -57,7 +59,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
      let etag=prior.etag;
      if(!prior.record.deleting){const claimed=await storage.put(`records/${input.id}.json`,JSON.stringify({...prior.record,published:false,deleting:true}),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});etag=claimed.etag;}
      try{
-      await storage.del(prior.record.mediaPath,options());
+      for(const path of recordMediaPaths(prior.record))await storage.del(path,options());
       await storage.del(`records/${input.id}.json`,{...options(),ifMatch:etag});
      }catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry Delete memory.'});}
      return res.status(200).json({ok:true});
@@ -66,7 +68,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     if(prior?.record.deleting)return res.status(409).json({error:'This memory is being deleted. Refresh the library to finish deleting it.'});
     if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
-    if(!prior){const blob=await storage.head(record.mediaPath,options());if(!blob||blob.size>MAX_SIZE||!CONTENT_TYPES.includes(blob.contentType))return res.status(400).json({error:'Upload a supported photo or video first'});}
+    for(const path of recordMediaPaths(record).filter(p=>!recordMediaPaths(prior?.record).includes(p))){const blob=await storage.head(path,options());if(!blob||blob.size>MAX_SIZE||!CONTENT_TYPES.includes(blob.contentType))return res.status(400).json({error:'Upload supported photos or videos first'});}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});
     return res.status(200).json({...publicRecord(record),etag:saved.etag});
    }

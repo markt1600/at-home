@@ -1,6 +1,6 @@
 # At Home
 
-A relaxing first-person home-life game. Watch morning turn into evening, welcome neighbors for tea, care for Miso the cat, Sunny the dog and Pebble the tortoise, and revisit memories in the places where they happened.
+A relaxing first-person home-life game. Watch morning turn into evening, welcome neighbors for tea, care for Miso the cat, Leo the English cream dachshund and Pebble the tortoise, and revisit memories in the places where they happened.
 
 [Play At Home](https://athome.marktan.ai) · [Memory studio](https://athome.marktan.ai/admin)
 
@@ -12,12 +12,13 @@ This is a separate game derived from the authored house reconstruction in `markt
 - An active day takes about 20 minutes; choose slower, faster, or hold the current time. Rest until sunrise or skip to sunset.
 - Ken visits around 09:00, Nia at 13:00, June at 17:00. Chat at the door or invite them inside; guests remain visible for a while.
 - Fill pet food bowls, refresh water and spend time together. Needs pause in menus and while away. Pets cannot become ill or die.
-- Make tea, put on an original gentle melody, tend plants, read, or watch the sky. Small moments are saved in a journal.
+- Make tea, play uploaded music on the turntable, tend plants, read, or watch the sky. Small moments are saved in a journal. The vinyl spins during playback and rests when stopped.
 - Six locally generated MiniMax clips add friendly waves, nods, blinks, tail movements and tortoise movement. Nearby characters animate and appear in ordinary mirror/window reflections.
 - Sunbirds circle the olive tree and drink at the hanging feeder throughout the day. Fictional neighbors walk, wave, stretch and have coffee on balconies across the street.
-- Memory markers open soft-edged photos and videos over a blurred view of the house. Playback pauses the day and quiets game audio. Date and description stay readable below the memory.
+- Blue photo and amber video markers open soft-edged memories over a blurred view of the house. Albums cycle through photos every two seconds. Playback pauses the day and quiets game audio, including the turntable. Date and description stay readable below the memory.
+- Continue a saved day or start a new game. In Pause, filter memories by year or a custom date range. Starting a new day preserves the memory library.
 
-Desktop: enter the house to start walking with a center cursor. WASD/arrows move, mouse looks, Space jumps, E interacts and Esc closes popups or releases the mouse. M opens memories, P pets, R rituals, J journal, N neighbors, V voice, O room navigation and H the key guide. Number keys select popup options. During memories, Space pauses video and Esc returns. Click the room to resume mouse look after releasing it. Touch: drag to look and use the arrow controls to move.
+Desktop: enter the house to start walking with a center cursor. WASD/arrows move, mouse looks, Space jumps, E interacts and Esc closes popups or opens Pause. M opens memories, P pets, R rituals, J journal, N neighbors, V voice, O room navigation and H the key guide. Number keys select popup options. During memories, Space pauses playback, left/right arrows change slides and Esc immediately returns to wandering. Touch: drag to look and use the arrow controls to move.
 
 ## Run locally
 
@@ -44,7 +45,7 @@ Use the new [agent prompt and first message](docs/ELEVENLABS.md). The previous g
 
 No browser text-to-speech fallback is used. If generated speech is unavailable, all neighbor conversations remain readable. Connecting Voice is always an explicit microphone action.
 
-For cloud memories, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 6 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The memory studio is at `/admin`. See [storage and administration](docs/MEMORIES.md).
+For cloud memories and music, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 6 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The studio is at `/admin`. See [memories](docs/MEMORIES.md) and [the music library](docs/MUSIC.md).
 
 ## Memories and source material
 

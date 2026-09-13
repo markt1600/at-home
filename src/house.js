@@ -1,14 +1,16 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {HOUSE_ROOMS,HOUSE_STAIRS,planPoint,PLAN_SCALE,MIRROR_POSITION,MIRROR_YAW,FRONT_DOOR} from './house-layout.js';
+import {HOUSE_ROOMS,HOUSE_STAIRS,LIVING_SEATING,planPoint,PLAN_SCALE,MIRROR_POSITION,MIRROR_YAW,FRONT_DOOR} from './house-layout.js';
 import {floorPieces} from './plan-geometry.js';
 import {buildArchitecture} from './house-architecture.js';
 import {buildSecondBedroom,addHouseDetails,buildMasterVanity,buildLivingAudioShelf} from './house-details.js';
 import {buildHallwayGallery} from './house-gallery.js';
-import {buildMasterBathroom,buildPowderBathroom} from './house-bathrooms.js';
+import {buildMasterBathroom,buildPowderBathroom,buildGuestBathroom} from './house-bathrooms.js';
+import {buildBedroomDetails,buildSageDrawing} from './bedroom-details.js';
 import {buildHomeFurnishings} from './home-furnishings.js';
 import {buildDiningDetails} from './dining-details.js';
 import {buildClawMachine} from './claw-machine.js';
+import {buildLivingSeating} from './living-seating.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -22,7 +24,7 @@ export function buildHouse(world){
  const sphere=(r,x,y,z,m='white',p=root,sx=1,sy=1,sz=1)=>world.sphere(r,x,y,z,mat(m),p,sx,sy,sz);
  const soft=(w,h,d,x,y,z,m,p=root)=>{const o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,3,.06),mat(m));o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;};
  const block=(x,z,w,d,angle=0,top)=>world.colliders.push({x,z,w,d,angle,...(top===undefined?{}:{top,landable:true})});
- const wall=(x0,z0,x1,z1,m='plaster',h=3.5,b=0)=>{const w=Math.hypot(x1-x0,z1-z0),x=(x0+x1)/2,z=(z0+z1)/2,a=-Math.atan2(z1-z0,x1-x0);const mesh=box(w,h,.15,x,b+h/2,z,m);mesh.rotation.y=a;box(w,.05,.17,x,b+.025,z,'white').rotation.y=a;world.colliders.push({x,z,w,d:.15,angle:a,top:b+h});};
+ const wall=(x0,z0,x1,z1,m='plaster',h=3.5,b=0)=>{const w=Math.hypot(x1-x0,z1-z0),x=(x0+x1)/2,z=(z0+z1)/2,a=-Math.atan2(z1-z0,x1-x0);const mesh=box(w,h,.15,x,b+h/2,z,m);mesh.rotation.y=a;box(w,.05,.17,x,b+.025,z,'white').rotation.y=a;world.colliders.push({x,z,w,d:.15,angle:a,top:b+h,wall:'raised perimeter'});};
  const light=(x,y,z,color=0xffdca4,power=15,range=9)=>{const l=new THREE.PointLight(color,power,range,2);l.position.set(x,y,z);root.add(l);return l;};
  const down=(x,z,b=0,p=13)=>{cyl(.09,.09,.025,x,b+2.97,z,new THREE.MeshStandardMaterial({color:0xffe5b6,emissive:0xffcf87,emissiveIntensity:1.4}));return light(x,b+2.87,z,0xffdba8,p);};
  const painting=(x,y,z,w,h,c,a=0)=>{const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=a;root.add(g);box(w+.07,h+.07,.04,0,0,0,'walnut',g);box(w,h,.047,0,0,.012,c,g);return g;};
@@ -59,8 +61,8 @@ export function buildHouse(world){
  for(const r of HOUSE_ROOMS){
   const timber=['bedroom','bedroom_hall','wardrobe','meditation','theatre','wine','guest'].includes(r.id);
   // Solid floor volumes close the exposed risers beneath every raised landing.
-  // Stair footprints are cut out before extrusion, leaving the treads exposed.
-  for(const p of floorPieces(r.polygon,HOUSE_STAIRS)){
+  // Cut out stairs and fitted seating before extrusion; each supplies its own support.
+  for(const p of floorPieces(r.polygon,[...HOUSE_STAIRS,...LIVING_SEATING])){
    const shape=new THREE.Shape(p.map(([x,z])=>new THREE.Vector2(x,-z)));
    const geo=new THREE.ExtrudeGeometry(shape,{depth:r.floor+.08,bevelEnabled:false,steps:1});geo.rotateX(-Math.PI/2);
    const floor=new THREE.Mesh(geo,mat(timber?'oakFloor':'marble'));floor.position.y=-.08;floor.receiveShadow=true;root.add(floor);
@@ -80,7 +82,7 @@ export function buildHouse(world){
  buildArchitecture(world,root,materials);
  buildHallwayGallery(world,root,materials);
  // Raised living-room perimeter/plinths; only the planned stair runs are passable.
- for(const a of [[317,532,458,532],[514,532,611,532],[562,532,562,650],[317,714,431,714],[523,714,539,714]])W(...a,'marble',.45);
+ for(const a of [[317,532,458,532],[317,714,431,714],[523,714,539,714]])W(...a,'marble',.45);
  // GD01: 1,865 mm frame with a 1,150 mm moving leaf and a fixed side leaf.
  const doorFrame=new THREE.Group();doorFrame.rotation.y=FRONT_DOOR.yaw;const [fdx,fdz]=P(...FRONT_DOOR.center);doorFrame.position.set(fdx,.45,fdz);root.add(doorFrame);
  const half=FRONT_DOOR.width/2;
@@ -105,21 +107,15 @@ export function buildHouse(world){
  C(967,554,1.355,2.48,.57,'sage',-Math.PI/2,.75);B(869,566,.69,.04,1.21,1.5,'oak');block(...P(869,566),.69,1.21);B(861,566,.07,.47,.7,1.78,'black');B(862,566,.009,.39,.61,1.79,new THREE.MeshBasicMaterial({color:0x273a33}));
  const [cx,cz]=P(898,566);soft(.6,.14,.63,cx,1.22,cz,'blue');soft(.6,.94,.14,cx+.22,1.6,cz,'blue').rotation.y=Math.PI/2;block(cx,cz,.65,.7);T('media',865,566,1.8,'Listen to the computer recording');
  // Sunken lounge: orange seating, a low audio/display shelf and blue low table.
- // The east sofa occupies the seating ledge, with its back meeting x=611,
- // the wine-cellar walkway. x=562 is the ledge's front edge, not its back.
- S(591,591,118/scale,-Math.PI/2,'orange',.315);S(406,550,2.75,0);buildLivingAudioShelf(world,root,materials);B(436,620,4.8,.012,3.55,.014,0xc0b69e);
- // Continuous L-shaped return from the east sofa to the north stair jamb.
- // Its end meets the existing sofa front; the two seat volumes do not overlap.
- S(542.4,551.9,56.8/scale,0,'orange',.315);
- B(542.4,551.9,56.8/scale,.45,1.03,.225,'marble');
- // The east landing is already a solid volume. The north plinth stops 5 mm
- // below the upholstery, so their side faces never occupy the same plane.
+ buildLivingSeating(world,root,materials);
+ S(406,550,2.75,0);buildLivingAudioShelf(world,root,materials);B(436,620,4.8,.012,3.55,.014,0xc0b69e);
+ // The separate north sofa's plinth stops 5 mm below the upholstery.
  B(406,549,2.77,.135,1.04,.0675,'marble');
  // C-30 follows the bedroom wall: 5,830 mm run, doorway, then 1,685 mm run.
  C(636,429.65,5.83,2.13,.6,'sage',0,.75);C(815.5,429.65,1.685,2.13,.6,'sage',0,.75);
  B(636,429,5.87,.14,.62,2.95,'plaster');B(815.5,429,1.72,.14,.62,2.95,'plaster');
  B(573,442,1.0,.29,.04,2.665,'black');for(let i=0;i<7;i++)B(573,443,1.02,.022,.04,2.54+i*.041,'sage');
- sketch(527,461,2.03,.58,.77,Math.PI/2);
+ buildSageDrawing(world,root,materials);
  // Photo-confirmed wraparound racks and waterfall-stone island.
  C(758,555,1.975,.93,1,'oak',0,.75);B(758,555,2.015,.045,1.04,1.7025,'breccia');
  for(const px of [719.9,796.1])B(px,555,.045,.93,1.04,1.215,'breccia');
@@ -179,7 +175,7 @@ export function buildHouse(world){
  B(738,899,1.24,.08,.5,2.6,'white');for(let i=0;i<5;i++)B(738,891+i*4,1.2,.014,.018,2.4,'steel');
  // Main bedroom: headboard to the west, a genuinely open divider and sofa facing east.
  const [bx,bz]=P(579,331);soft(2.08,.23,2.13,bx,.98,bz,'walnut');soft(2,.23,2,bx,1.19,bz,'blue');soft(.48,.14,1.55,bx-.65,1.38,bz,'cream');block(bx,bz,2.12,2.17,0,1.42);
- B(534,331,.19,2.3,3.62,1.9,'black');for(let i=0;i<11;i++)B(539,275+i*10,.015,.7,.022,1.7+(i%3)*.21,0x81857a,.2);
+ buildBedroomDetails(world,root,materials);
  const [shex,shez]=P(652,337);for(let j=0;j<6;j++)box(.38,.012,4.01,shex,.78+j*.51,shez,'black');for(const z of [-2,-1,0,1,2])for(const x of [-.17,.17])cyl(.011,.011,2.66,shex+x,2.08,shez+z,'black');block(shex,shez,.38,4.01);
  C(652,392,.38,.82,1,'walnut',0,.75);S(680,330,2.3,Math.PI/2,'cream',.75);
  C(570,403,1.84,2.66,.48,'walnut',Math.PI,.75);B(619,402,.4,2.66,.48,2.08,'plaster');
@@ -193,7 +189,7 @@ export function buildHouse(world){
  const [medx,medz]=P(561,178);soft(.88,.35,1.3,medx,1.03,medz,'cream');soft(.83,1.28,.4,medx,1.65,medz-.4,'cream').rotation.x=-.12;soft(.7,.5,.3,medx,2.22,medz-.38,'cream');for(const x of [-.44,.44])soft(.21,.55,1.12,medx+x,1.39,medz,'cream');soft(.68,.55,.52,medx,1.03,medz+.67,'cream');block(medx,medz,1.12,1.96);
  // Supplied bedroom photos supersede the proposed furniture arrangement.
  buildSecondBedroom(world,root,materials);
- C(1038,492,1,.85,.55,'white',-Math.PI/2,.75);B(998,488,.02,2.2,1.2,1.85,'glass');
+ buildGuestBathroom(world,root,materials);
  // Window lounge/home theatre bay, framed glazing, cream seating and telescope.
  S(347,293,2.4,Math.PI/2,0x827d77,.75);C(498,296,3.78,2.6,.45,'black',-Math.PI/2,.75);B(487,296,.025,1.58,2.82,2.04,'black');
  C(369,190,2.65,.8,.38,'teal',0,.75);C(307,287,2.4,.8,.36,'teal',Math.PI/2,.75);

@@ -77,6 +77,23 @@ test('the orange sofa back meets the wine-cellar walkway across its length',()=>
  }
 });
 
+test('fitted orange upholstery covers the former rear walkway and front stone lip',()=>{
+ const ray=new THREE.Raycaster();
+ // Sample the old bare strip near the divider and each exposed front edge.
+ for(const [px,pz] of [[529,486],[547,512],[585,505],[562.3,579],[562.3,610],[562.3,641],[525,569.7],[548,569.7]]){
+  const [x,z]=planPoint(px,pz);ray.set(new THREE.Vector3(x,1.8,z),new THREE.Vector3(0,-1,0));ray.far=1.8;
+  const hit=ray.intersectObject(world.houseRoot,true).find(h=>h.object.isMesh);
+  assert.equal(hit?.object.material,world.houseMaterials.orange,`upholstery reaches edge at ${px},${pz}`);
+  assert.equal(inWalkableArea(x,z,true,world.colliders),false,'covered seating is no longer a walkway');
+ }
+ for(const [px,pz] of [[501,504],[491,526],[595,459],[630,545]])assert.ok(inWalkableArea(...planPoint(px,pz),true,world.colliders),'stairs and real passages remain clear');
+ // The foot of each support meets the remaining floor without a light leak.
+ for(const [px,pz] of [[562.15,590],[530,569.85]]){
+  const [x,z]=planPoint(px,pz);ray.set(new THREE.Vector3(x,.05,z),new THREE.Vector3(0,-1,0));ray.far=.15;
+  assert.ok(ray.intersectObject(world.houseRoot,true).some(h=>h.object.isMesh),'solid floor below the recessed upper edge');
+ }
+});
+
 test('the fridge sits flush beside the only kitchen-to-service doorway',()=>{
  const [x,z]=planPoint(662,812.5),[wallX]=planPoint(650,812.5),ray=new THREE.Raycaster(new THREE.Vector3(x,1.6,z),new THREE.Vector3(-1,0,0),0,2);
  const fridge=ray.intersectObject(world.houseRoot,true).find(h=>h.object.material===world.houseMaterials.steel);

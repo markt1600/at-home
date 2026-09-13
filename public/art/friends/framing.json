@@ -24,10 +24,11 @@
     "bottom": 32
   },
   "sunny": {
+    "asset": "leo",
     "width": 768,
     "height": 512,
-    "bodyHeight": 448,
-    "bottom": 32
+    "bodyHeight": 387,
+    "bottom": 66
   },
   "pebble": {
     "width": 768,

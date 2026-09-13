@@ -1,6 +1,8 @@
 # Memories in the house
 
-Approach a gold floor marker and press E to relive a moment, or press M to open the memory list. Photos and videos float over a blurred house with softly faded edges. Videos start playing automatically after the player chooses a memory; Space pauses them and Esc returns. Playback pauses the day and quiets game audio. The date and description appear beneath the media. Unknown dates stay blank.
+Approach a blue photo marker or amber video marker and press E to relive a moment, or press M to open the memory list. Symbols distinguish the types as well as color. Photos and videos float over a blurred house with softly faded edges. Albums advance after each photo has loaded and been shown for two seconds; videos start automatically and advance when finished. Space pauses, left/right arrows change slides, and Esc immediately returns to wandering. Playback pauses the day and quiets game audio, including the turntable. The date and description appear beneath the media. Unknown dates stay blank.
+
+In Pause, choose a year or an inclusive custom date range and whether to include undated memories. The filter applies to both markers and the memory list and is restored when continuing a saved game. Starting a new game resets the day and filter, preserving stored memories.
 
 ## Current test placements
 
@@ -17,7 +19,9 @@ Positions are visual estimates in the plan coordinate system, not recovered came
 
 Open [the memory studio](https://athome.marktan.ai/admin) or use Memory studio in the game's help/settings. Select a memory to edit its title, date, description and location. The local editor works without a cloud connection and saves metadata in IndexedDB. Local files and edits belong to that browser and site origin; keep the originals.
 
-Choose **Add a memory**, then drop one photo or video into the upload area (or use **Choose file**). A preview appears before saving. Click the floor plan or drag its pin to choose where the memory is triggered. The shaded ring shows the approximately 1.25 m trigger radius. **View a room** zooms the plan; **Focus on pin** zooms to the selected location. With the plan focused, arrow keys move the pin 20 cm; Shift moves it 1 m. Existing memories can be repositioned in the same way. Walls and inaccessible rooms are excluded; choose a clear standing area, avoiding furniture. Floor heights follow the actual game, including stairs.
+Choose **Add a memory**, then drop photos or a video into the upload area, or use the file picker. Up to 30 items can belong to one memory. A preview strip appears before saving. Select an existing memory and use **Add photos** to append photos without replacing its original media. Save changes to retain the additions.
+
+Click the floor plan or drag its pin to choose where the memory is triggered. The plan shows furniture footprints from the game's collision geometry. Placement moves to reachable floor space in the same room, at least 45 cm clear of furniture and 22 cm clear of walls. If no nearby valid position exists, the last valid pin is retained. The rings show clearance and the approximately 1.25 m trigger radius. **View a room** zooms the plan; **Focus on pin** zooms to the selected location. With the plan focused, arrow keys move the pin 20 cm; Shift moves it 1 m. Floor heights follow the actual game, including stairs. The prebuild step regenerates the furniture and reachability snapshot when geometry changes.
 
 On Vercel, sign in using the project's editor password. Add a JPG, PNG, WebP, MP4, WebM or MOV up to 250 MB. MP4 is the most broadly supported video format; MOV support depends on its codec. Uploads go directly to private Blob storage using a short-lived, authenticated upload token. New uploads are private drafts. Existing local memories can be copied as private drafts.
 
@@ -33,7 +37,7 @@ Connect a **private** Blob store to the At Home Vercel project and enable its re
 
 `api/memory-upload.js` authorizes uploads with constrained paths, content types and file sizes. `api/memories.js` manages metadata and proxies private media, including video range requests. Editor sessions last eight hours in HttpOnly, SameSite=Strict cookies, secure on Vercel. Updates use Blob ETags to reject conflicting edits. Login retry throttling is per function instance, not a shared global rate limiter.
 
-Media is stored at `media/{uuid}/image.ext` or `media/{uuid}/video.ext`; metadata is stored at `records/{uuid}.json`. No separate KV service is required for this small catalog. The API reads metadata from Blob without cache and checks publication state for every media request. Published URLs are application URLs, never raw private-store paths.
+Media is stored under `media/{memory-uuid}/`; metadata is stored at `records/{uuid}.json`. Albums retain an ordered list of media paths and accept additional owner-bound paths. Legacy single-file records remain supported. Deletion removes every file belonging to the album. No separate KV service is required for this small catalog. The API reads metadata from Blob without cache and checks publication state for every media request. Published URLs are application URLs, never raw private-store paths.
 
 The plain Vite server does not run Vercel API functions. Local editing remains available there. Test the cloud editor on the Vercel deployment.
 

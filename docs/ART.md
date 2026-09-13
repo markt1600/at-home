@@ -2,7 +2,7 @@
 
 The house retains the authored floor plan, current furniture corrections, prepared hallway artwork, marble, plaster, cabinetry and fabric textures. Original drawings and room photographs are not distributed.
 
-New fictional neighbors Ken, Nia and June and pets Miso, Sunny and Pebble were generated for this game. Their prepared WebP stills are in `public/art/friends`, with crop/framing metadata to keep the matching local MiniMax clips grounded. See [animation details](ANIMATION.md).
+New fictional neighbors Ken, Nia and June and pets Miso, Leo and Pebble were generated for this game. Their prepared WebP stills are in `public/art/friends`, with crop/framing metadata to keep the matching local MiniMax clips grounded. See [animation details](ANIMATION.md).
 
 House atlases: `house-surfaces-v2.png`, `hallway-prints.webp`, `powder-marble.webp`. Exterior tower shapes now follow the balcony reference photographs, including blue glazed wings and curved white balconies. Distances and unseen elevations are estimates; there are no address labels. All visible occupants are fictional.
 
@@ -13,3 +13,5 @@ The personal memory viewer supports ordinary image and video files without AI al
 The balcony wall uses `balcony-collage.webp`, a generated reconstruction of the photographed pink skull collage and white brush circle. Built-in image generation prompt: "Create a clean square front-facing texture of ONLY the artwork shown on the wall in the reference photo. Accurately reproduce its pink/red/black/white dense cartoon skull collage and the large off-white rough circular brush ring. Preserve the artwork's composition, palette, and brush-ring shape. Fill the entire square with the painting edge to edge, straight orthographic view, no frame, no wall, no room, no furniture, no people, no reflections or lighting glare." The private source photograph is not included. The adjacent stack-style bookshelf and two-tier claw machine are modeled geometry.
 
 The living-room speakers use authored Beolab 50 geometry, informed by the user's black-fabric/natural-aluminium pair and [B&O's product documentation](https://support.bang-olufsen.com/hc/en-us/articles/360042003591-Beolab-50). The tapered body, curved grille, aluminium rim, top lens cap and woven bump texture are generated in code; no manufacturer model or product photo is shipped.
+
+The bedroom detail pass adds generated `bedroom-marble.webp` and `sage-flowers.webp`, recreating the photographed black/white slab and floral pitcher drawing as standalone texture faces. The surrounding metal grid, second bathroom's round yellow vanity and fittings, window-sill robot and glass figures, and the trees and buildings visible from the main bedroom are authored 3D geometry. Exterior placement is an approximation from the supplied views. The original room and window photographs remain outside the repository.

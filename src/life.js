@@ -1,3 +1,4 @@
+import {cleanMemoryFilter} from './memory-filter.js';
 export const SAVE_KEY='at-home-save-v1';
 export const cleanName=value=>String(value||'').normalize('NFKC').replace(/[\p{C}<>]/gu,'').trim().slice(0,28)||'Friend';
 export const NEIGHBORS=[
@@ -5,12 +6,12 @@ export const NEIGHBORS=[
  {id:'nia',name:'Nia',detail:'Your plant-loving neighbor',hour:13,height:1.68,greeting:'Hello! I was passing by and thought I would say hi. How is your afternoon?',topics:[['Tell me something nice','A tiny new leaf opened on my monstera this morning. Some days, that is quite enough.'],['Any plant advice?','I like to check the soil before watering. Every plant has its own rhythm.'],['Stay for tea','I would love that. It is good to slow down together.']]},
  {id:'june',name:'June',detail:'A friend with a book to recommend',hour:17,height:1.63,greeting:'Good evening. The light in your living room is beautiful at this time of day.',topics:[['What are you reading?','A collection of short stories about ordinary lives. I keep finding little things that feel familiar.'],['How was your day?','A walk, a good lunch, and a conversation with a friend. A very good day, really.'],['Stay for tea','Just one cup would be lovely. Thank you for having me.']]}
 ];
-export const PETS=[{id:'miso',name:'Miso',kind:'Cat',food:'a bowl of cat food',play:'a feather toy',height:.40,plan:[429,678]}, {id:'sunny',name:'Sunny',kind:'Dog',food:'a bowl of dog food',play:'a favorite soft ball',height:.72,plan:[472,681]}, {id:'pebble',name:'Pebble',kind:'Tortoise',food:'fresh leafy greens',play:'a gentle enrichment moment',height:.20,plan:[350,851]}];
+export const PETS=[{id:'miso',name:'Miso',kind:'Cat',food:'a bowl of cat food',play:'a feather toy',height:.40,plan:[429,678]}, {id:'sunny',name:'Leo',kind:'English cream dachshund',food:'a bowl of dog food',play:'a favorite soft ball',height:.40,plan:[472,681]}, {id:'pebble',name:'Pebble',kind:'Tortoise',food:'fresh leafy greens',play:'a gentle enrichment moment',height:.20,plan:[350,851]}];
 export const ACTIVITIES={tea:{title:'Make a cup of tea',room:'kitchen',text:'The kettle settles. You take a slow sip of warm tea.'},record:{title:'Put on a record',room:'living',text:'A gentle melody fills the living room.'},plants:{title:'Tend the plants',room:'balcony',text:'You check the leaves and water the plants that need it.'},book:{title:'Read a few pages',room:'bedroom',text:'You settle into a story and let the world wait for a moment.'},view:{title:'Watch the sky',room:'balcony',text:'You pause by the balcony and watch the changing light.'}};
-export const newLife=(name='')=>({version:1,name:cleanName(name),hours:7.25,pace:1,personalized:true,visits:[],pending:null,guests:[],journal:[],pets:Object.fromEntries(PETS.map(p=>[p.id,{food:80,water:85,affection:75}]))});
+export const newLife=(name='')=>({version:1,name:cleanName(name),hours:7.25,pace:1,personalized:true,memoryFilter:{from:'',to:'',includeUndated:false},visits:[],pending:null,guests:[],journal:[],pets:Object.fromEntries(PETS.map(p=>[p.id,{food:80,water:85,affection:75}]))});
 const bounded=(n,min,max,fallback)=>Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
 export function restoreLife(raw){
- try{const s=typeof raw==='string'?JSON.parse(raw):raw;if(!s||s.version!==1)return null;const n=newLife(s.name);n.hours=bounded(s.hours,0,240000,7.25);n.pace=[0,.5,1,2].includes(s.pace)?s.pace:1;n.personalized=s.personalized!==false;
+ try{const s=typeof raw==='string'?JSON.parse(raw):raw;if(!s||s.version!==1)return null;const n=newLife(s.name);n.hours=bounded(s.hours,0,240000,7.25);n.pace=[0,.5,1,2].includes(s.pace)?s.pace:1;n.personalized=s.personalized!==false;try{n.memoryFilter=cleanMemoryFilter(s.memoryFilter);}catch{}
  n.visits=Array.isArray(s.visits)?s.visits.filter(x=>typeof x==='string').slice(-18):[];n.pending=NEIGHBORS.some(p=>p.id===s.pending)?s.pending:null;
  n.guests=Array.isArray(s.guests)?s.guests.filter(g=>NEIGHBORS.some(p=>p.id===g.id)&&Number.isFinite(g.until)&&g.until>n.hours).slice(0,3):[];
  n.journal=Array.isArray(s.journal)?s.journal.filter(x=>typeof x.text==='string'&&Number.isFinite(x.hours)).slice(-60):[];

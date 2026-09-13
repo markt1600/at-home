@@ -14,11 +14,36 @@ export class Neighborhood {
   const ground=new THREE.Group();ground.position.y=-52;this.root.add(ground);this.part(ground,'green',[170,.3,190],[-85,-.4,0]);
   for(let i=0;i<170;i++){const a=i*2.399,r=16+(i%13)*3.2;this.part(ground,'green',[2.8+i%3,3,3.6],[-57+Math.cos(a)*r,2+ i%3,Math.sin(a)*r],'crown',.78+(i%5)*.075);}
   for(let i=0;i<18;i++){const h=18+i%7*3,g=new THREE.Group();g.position.set(-132+(i%3)*5,0,-85+i*10);ground.add(g);this.part(g,'cream',[6,h,7],[0,h/2,0]);for(let f=1;f<h/3;f++)this.part(g,'dark',[6.02,.9,7.02],[0,f*3,0]);}
-  this.flush();this.root.updateMatrixWorld(true);
+  this.bedroomOutlook();this.flush();this.root.updateMatrixWorld(true);
   this.frustum=new THREE.Frustum();this.projection=new THREE.Matrix4();this.sphere=new THREE.Sphere();
   this.people=Array.from({length:7},(_,i)=>this.person(i));
   const choices=this.balconies.filter(b=>Math.abs(b.position.y)<8);
   this.people.forEach((p,i)=>this.place(p,choices[Math.floor((i+.5)*choices.length/7)],i%4));
+ }
+ bedroomOutlook(){
+  // North-facing bedroom photographs: a close curved white tower on the left,
+  // low-rise roofs and trees below, and a more distant residential skyline.
+  const g=new THREE.Group();g.name='Main bedroom neighborhood';g.position.y=-52;this.root.add(g);
+  const close=new THREE.Group();close.position.set(-38,0,-61);close.rotation.y=.10;g.add(close);this.whiteTower(close);
+  this.part(g,'green',[185,.4,155],[17,-.7,-105]);
+  for(let i=0;i<34;i++){
+   const x=-5+(i%8)*10.5+(Math.floor(i/8)%2)*3,z=-57-Math.floor(i/8)*17,h=i%3===0?14:5+i%3*2;
+   const home=new THREE.Group();home.position.set(x,0,z);g.add(home);
+   this.part(home,'cream',[7.5,h,10],[0,h/2,0]);
+   if(i%3===0){for(let y=0;y<=h;y+=2.8){this.part(home,'white',[1.45,1,2.9],[0,y,1.2],'slab');this.part(home,'white',[1.45,.75,2.9],[0,y+.65,1.2],'rail');this.part(home,'dark',[6.2,1.6,.12],[0,y+1.6,1.5]);}this.part(home,'white',[7.9,.28,10.3],[0,h-.5,0]);}
+   else{this.part(home,'roof',[8.2,.45,10.7],[0,h+.2,0]);this.part(home,'roof',[6.8,.6,8.9],[0,h+.62,0]);this.part(home,'roof',[5.2,.5,6.8],[0,h+1.10,0]);}
+   for(let floor=0;floor<Math.floor(h/2.8);floor++)for(let c=0;c<3;c++)this.part(home,'dark',[1.1,1.3,.06],[-2.5+c*2.5,1.7+floor*2.8,5.03]);
+  }
+  for(let i=0;i<180;i++){const x=-15+(i*17.731%105),z=-40-(i*11.37%94),s=2.8+i%5*.55;this.part(g,'green',[s,s*.8,s],[x,3.8+i%4,z],'crown',.8+(i%7)*.055);}
+  for(let i=0;i<8;i++){const x=-11+i*12,z=-113-(i%2)*9,h=21+i%3*4;this.part(g,'cream',[10,h,10],[x,h/2,z]);for(let y=2;y<h;y+=2.8){this.part(g,'white',[10.3,.3,10.3],[x,y,z]);for(let c=0;c<5;c++)this.part(g,'glass',[1.25,1.9,.06],[x-4+c*2,y+1.2,z+5.03]);}}
+  for(let i=0;i<18;i++){
+   const x=-50+i*7.8,z=-146-(i%3)*12,h=43+(i*13%36),w=5.7+i%3*1.1;
+   this.part(g,'cream',[w,h,8],[x,h/2,z]);this.part(g,'white',[w+.35,.65,8.4],[x,h,z]);
+   for(let y=2;y<h-2;y+=2.7){this.part(g,'white',[w+.12,.22,8.1],[x,y,z]);for(let c=0;c<3;c++)this.part(g,'glass',[w/4,1.85,.08],[x-w*.32+c*w*.32,y+1.15,z+4.04]);}
+   if(i%4===1)this.part(g,'roof',[.8,h,.12],[x+w*.40,h/2,z+4.12]);
+   for(const dx of [-w/2,w/2])this.part(g,'white',[.18,h,.15],[x+dx,h/2,z+4.13]);
+  }
+  for(const [x,z,h] of [[17,-153,84],[38,-171,78]]){this.part(g,'roof',[.35,h,.35],[x,h/2,z]);this.part(g,'roof',[22,.32,.5],[x+5,h,z]);this.part(g,'roof',[.09,8,.09],[x+12,h-4,z]);for(let i=0;i<9;i++)this.part(g,'roof',[.12,.8,.6],[x-5+i*2.5,h+.4,z]);}
  }
  part(parent,key,size,position,shape='box',tint=1){
   parent.updateWorldMatrix(true,false);const local=new THREE.Matrix4().compose(new THREE.Vector3(...position),new THREE.Quaternion(),new THREE.Vector3(...size));

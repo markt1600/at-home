@@ -1,21 +1,23 @@
 import './admin.css';
 import {upload} from '@vercel/blob/client';
-import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,removeLocalMemory} from './memories.js';
+import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,removeLocalMemory} from './memories.js';
 import {cleanMemoryMetadata,formatMemoryDate} from './memory-metadata.js';
+import {memoryMedia,releaseMemoryUrls,validateMemoryFiles} from './memory-media.js';
 import {mountMemoryFloorPlan} from './memory-placement.js';
+import {mountMusicLibrary} from './music-admin.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFile=null,filePreview='';
+let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[];
 let libraryQuery='',libraryFilter='all';
-function clearFile(){pendingFile=null;if(filePreview)URL.revokeObjectURL(filePreview);filePreview='';}
+function clearFile(){pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
 async function api(path='',body){
  const r=await fetch('/api/memories'+path,{...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{}),credentials:'same-origin'});
  let data;try{data=await r.json();}catch{throw Error('Cloud storage is available on the Vercel deployment. Local editing still works here.');}
  if(!r.ok)throw Error(data.error||'Unable to connect');return data;
 }
 async function refresh(){
- for(const m of items)if(m.src?.startsWith('blob:'))URL.revokeObjectURL(m.src);
+ for(const m of items)releaseMemoryUrls(m);
  items=await loadMemories({cloud:false});
  try{session=await api('?action=session');}catch{session={};}
  if(session.authenticated)try{items.push(...await api('?admin=1'));}catch(error){status('Could not load your cloud memories. Use Refresh library to try again. '+error.message);}
@@ -26,7 +28,7 @@ const memoryState=m=>m.deleting?'Deletion incomplete':m.cloud?(m.published?'Publ
 function libraryContents(){
  const query=libraryQuery.trim().toLocaleLowerCase();
  const matches=items.filter(m=>(!query||[m.title,m.description,m.date].some(s=>String(s||'').toLocaleLowerCase().includes(query)))&&(libraryFilter==='all'||libraryFilter==='published'&&m.cloud&&m.published||libraryFilter==='draft'&&m.cloud&&!m.published||libraryFilter==='device'&&!m.cloud));
- return `<p class="library-count">${matches.length} of ${items.length} saved ${items.length===1?'memory':'memories'}</p>${matches.map(m=>`<button data-id="${esc(m.id)}" class="memory-card ${m.id===selected?'selected':''}" aria-pressed="${m.id===selected}"><span class="memory-thumb" aria-hidden="true">${m.type==='image'&&!m.deleting?`<img src="${esc(m.src)}" alt="" loading="lazy">`:m.type==='video'?'▶':'✧'}</span><span class="memory-card-copy"><strong>${esc(m.title)}</strong><small>${esc(memoryState(m))}${m.date?' · '+esc(formatMemoryDate(m.date)):''}</small><span class="memory-kind">${m.type==='video'?'Video':'Photo'}</span></span></button>`).join('')||`<p>${items.length?'No memories match. Try another search or filter.':session.authenticated?'Your library is empty. Drop in a photo or video to start.':'Sign in to see your saved cloud memories. Device memories also appear here.'}</p>`}`;
+ return `<p class="library-count">${matches.length} of ${items.length} saved ${items.length===1?'memory':'memories'}</p>${matches.map(m=>`<button data-id="${esc(m.id)}" class="memory-card ${m.id===selected?'selected':''}" aria-pressed="${m.id===selected}"><span class="memory-thumb" aria-hidden="true">${m.type==='image'&&!m.deleting?`<img src="${esc(m.src)}" alt="" loading="lazy">`:m.type==='video'?'▶':'✧'}</span><span class="memory-card-copy"><strong>${esc(m.title)}</strong><small>${esc(memoryState(m))}${m.date?' · '+esc(formatMemoryDate(m.date)):''}</small><span class="memory-kind">${m.type==='video'?'Video':'Photo'}${memoryMedia(m).length>1?` · ${memoryMedia(m).length} items`:''}</span></span></button>`).join('')||`<p>${items.length?'No memories match. Try another search or filter.':session.authenticated?'Your library is empty. Drop in a photo or video to start.':'Sign in to see your saved cloud memories. Device memories also appear here.'}</p>`}`;
 }
 function renderLibrary(){const el=root.querySelector('.library');if(el)el.innerHTML=libraryContents();}
 function confirmDelete(memory){return new Promise(resolve=>{
@@ -35,13 +37,13 @@ function confirmDelete(memory){return new Promise(resolve=>{
  dialog.addEventListener('close',()=>{const confirmed=dialog.returnValue==='delete';dialog.remove();resolve(confirmed);},{once:true});document.body.append(dialog);dialog.showModal();
  });}
 const locations=()=>MEMORY_PLACEMENTS.map(p=>`<option value="${p.id}">${esc(p.title)} · ${esc(p.room)}</option>`).join('');
-const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-symbol" aria-hidden="true">↥</span><strong>Drop a photo or video here</strong><span>or choose a file from your device</span><label class="file-choice">Choose file<input name="file" type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><p class="fine">One memory at a time · JPG, PNG, WebP, MP4, WebM or MOV · Up to 250 MB</p><div id="file-selection" role="status"></div></div>`;
+const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-symbol" aria-hidden="true">↥</span><strong>Drop photos or a video here</strong><span>or choose a file from your device</span><label class="file-choice">Choose files<input name="file" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><p class="fine">Up to 30 items in one memory · Photos advance every 2 seconds · Up to 250 MB each</p><div id="file-selection" role="status"></div></div>`;
 const spotPicker=(edit=false)=>`<label>Start from a familiar spot<select name="placement">${edit?'<option value="keep">Keep current location</option>':''}${locations()}<option value="custom" hidden>Custom spot on floor plan</option></select></label><div id="floor-plan"></div>`;
 function editorContent(m){
  if(m?.deleting)return `<div class="empty"><h2>${esc(m.title)}</h2><p>This memory is hidden while deletion finishes. Retry to remove the remaining stored files.</p><button type="button" class="danger" data-action="delete">Delete memory</button></div>`;
  if(selected==='new')return `<h2>A new memory</h2><form id="new-memory">${dropzone()}<label>Title<input name="title" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date"></label><label>Description<textarea name="description" rows="3" maxlength="1600"></textarea></label>${spotPicker()}<p class="fine">MP4 gives the widest video playback support.</p><button class="primary">${session.authenticated?'Upload as private draft':'Save on this device'}</button><progress id="progress" max="100" value="0" hidden></progress></form>`;
  if(!m)return `<div class="empty" data-dropzone><span>✧</span><h2>Make a moment your own.</h2><p>Select a memory to edit its story, or drop a photo or video here to start.</p><button type="button" data-action="new">Choose a photo or video</button></div>`;
- return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${m.type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
+ return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${memoryMedia(m)[0].type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><div class="album-strip">${memoryMedia(m).map((a,i)=>`<div>${a.type==='video'?'<span>▷</span>':`<img src="${esc(a.src)}" alt="Photo ${i+1}" loading="lazy">`}<small>${i+1}</small></div>`).join('')}</div><div class="append-photos" data-dropzone><strong>Add photos to this memory</strong><p class="fine">Drop more photos here, or select them below. They will be added to the slideshow when you save.</p><label>Choose additional photos<input name="append-photos" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><div id="file-selection" role="status"></div></div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
 }
 function render(){
  const m=items.find(m=>m.id===selected);floorPlan=null;
@@ -49,46 +51,56 @@ function render(){
  ${!session.authenticated?`<section class="connection"><div><h2>Cloud memories</h2><p>${session.configured?'Sign in to upload and edit memories across devices.':session.storage?'Your private store is connected. Set MEMORY_ADMIN_PASSWORD in the At Home Vercel project to enable the editor.':'Local editing is available now. Open this editor on the Vercel deployment for cloud storage.'}</p></div><form id="login"><label>Editor password<input type="password" name="password" autocomplete="current-password" required></label><button>Sign in</button></form></section>`:'<p class="connection-note">Private storage connected · New uploads start as drafts. Published memories are visible to anyone who can open the game.</p>'}
  <div class="workspace"><aside><button class="primary" data-action="new">+ Add a memory</button><div class="library-heading"><h2>Saved memories</h2><button type="button" data-action="refresh" aria-label="Refresh library">↻</button></div><label class="library-search">Search memories<input type="search" name="library-search" value="${esc(libraryQuery)}" placeholder="Title, story or date"></label><label class="library-filter">Show<select name="library-filter"><option value="all">All memories</option><option value="published">Published</option><option value="draft">Private drafts</option><option value="device">On this device</option></select></label><div class="library">${libraryContents()}</div></aside><section class="editor">${editorContent(m)}</section></div></main>`;
  root.querySelector('[name="library-filter"]').value=libraryFilter;
+ const musicHost=document.createElement('section');musicHost.id='music-studio';root.querySelector('main').append(musicHost);mountMusicLibrary(musicHost,{authenticated:session.authenticated});
+ const musicLink=document.createElement('a');musicLink.href='#music-studio';musicLink.textContent='Turntable music';root.querySelector('header').append(musicLink);
  const host=document.querySelector('#floor-plan');
  if(host)floorPlan=mountMemoryFloorPlan(host,{position:m?.position||placedMemory(MEMORY_PLACEMENTS[0]).position,memories:items.filter(i=>i.id!==selected),disabled:()=>busy,onChange:()=>{document.querySelector('select[name="placement"]').value='custom';}});
 }
 function status(text){message=text;const el=document.querySelector('#status');if(el)el.textContent=text;}
 function lock(value){busy=value;for(const el of root.querySelectorAll('button,input,textarea,select'))el.disabled=value;}
 const metadata=form=>cleanMemoryMetadata(Object.fromEntries(new FormData(form)));
-function selectFile(file){
- if(!file||!file.size)throw Error('Choose a photo or video first.');
- if(!/^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/.test(file.type)||file.size>250*1024*1024)throw Error('Choose a JPG, PNG, WebP, MP4, WebM or MOV file smaller than 250 MB.');
- if(selected!=='new'){clearFile();selected='new';render();}
- clearFile();pendingFile=file;filePreview=URL.createObjectURL(file);
- const target=document.querySelector('#file-selection');target.innerHTML=`<div class="upload-preview">${file.type.startsWith('video/')?`<video src="${esc(filePreview)}" controls playsinline preload="metadata"></video>`:`<img src="${esc(filePreview)}" alt="Selected memory preview">`}</div><strong>${esc(file.name)}</strong><small>${(file.size/1024/1024).toFixed(1)} MB · Ready to ${session.authenticated?'upload':'save'}</small>`;
- const title=document.querySelector('#new-memory input[name="title"]');if(!title.value)title.value=file.name.replace(/\.[^.]+$/,'').slice(0,100);
- status('File ready. Add its story and choose a spot on the floor plan.');
+function selectFiles(input){
+ const m=items.find(m=>m.id===selected),append=!!m;
+ const files=validateMemoryFiles(input,{photosOnly:append,existing:append?memoryMedia(m).length:0});
+ if(!append&&selected!=='new'){clearFile();selected='new';render();}
+ clearFile();pendingFiles=files;filePreviews=files.map(file=>URL.createObjectURL(file));
+ document.querySelector('#file-selection').innerHTML=`<div class="album-strip">${files.map((file,i)=>`<div>${file.type.startsWith('video/')?'<span>▷</span>':`<img src="${esc(filePreviews[i])}" alt="Selected photo ${i+1}">`}<small>${esc(file.name)}</small></div>`).join('')}</div><p>${files.length} ${append?'additional ':''}item${files.length===1?'':'s'} ready to save.</p>`;
+ const title=document.querySelector('#new-memory input[name="title"]');if(title&&!title.value)title.value=files[0].name.replace(/\.[^.]+$/,'').slice(0,100);
+ status(append?'Photos ready. Save changes to add them to this memory.':'Files ready. Add their story and choose a spot on the floor plan.');
 }
 root.addEventListener('dragover',e=>{const zone=e.target.closest('[data-dropzone]');if(!zone)return;e.preventDefault();if(!busy){e.dataTransfer.dropEffect='copy';zone.classList.add('drag-over');}});
 root.addEventListener('dragleave',e=>{const zone=e.target.closest('[data-dropzone]');if(zone&&!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');});
-root.addEventListener('drop',e=>{const zone=e.target.closest('[data-dropzone]');if(!zone)return;e.preventDefault();zone.classList.remove('drag-over');if(busy)return;try{const files=[...e.dataTransfer.files];if(files.length!==1)throw Error('Drop one photo or video at a time, so each memory can have its own story and spot.');selectFile(files[0]);}catch(error){status(error.message);}});
+root.addEventListener('drop',e=>{const zone=e.target.closest('[data-dropzone]');if(!zone)return;e.preventDefault();zone.classList.remove('drag-over');if(busy)return;try{selectFiles(e.dataTransfer.files);}catch(error){status(error.message);}});
 // Prevent accidental navigation away from an unsaved form when a file misses the zone.
 window.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault();});
 window.addEventListener('drop',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault();});
 root.addEventListener('input',e=>{if(!busy&&e.target.name==='library-search'){libraryQuery=e.target.value;renderLibrary();}});
 root.addEventListener('change',e=>{
+ if(e.target.closest('#music-studio'))return;
  if(busy)return;try{
   if(e.target.name==='library-filter'){libraryFilter=e.target.value;renderLibrary();}
-  if(e.target.matches('input[type="file"]')&&e.target.files.length)selectFile(e.target.files[0]);
+  if(e.target.matches('input[type="file"]')&&e.target.files.length)selectFiles(e.target.files);
   if(e.target.matches('select[name="placement"]')){const id=e.target.value,m=items.find(m=>m.id===selected);if(id==='keep'&&m)floorPlan.setPosition(m.position);else if(id!=='custom')floorPlan.setPosition(placedMemory(MEMORY_PLACEMENTS.find(p=>p.id===id)).position);}
  }catch(error){status(error.message);}
 });
-async function cloudUpload(file,meta,position){
- const extensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'},ext=extensions[file.type];
- if(!ext||file.size>250*1024*1024)throw Error('Choose a supported photo or video smaller than 250 MB.');
- const id=crypto.randomUUID(),mediaPath=`media/${id}/${file.type.startsWith('video/')?'video':'image'}.${ext}`;
- status('Uploading securely…');const progress=document.querySelector('#progress');if(progress)progress.hidden=false;
- await upload(mediaPath,file,{access:'private',handleUploadUrl:'/api/memory-upload',multipart:true,contentType:file.type,onUploadProgress:({percentage})=>{if(progress)progress.value=percentage;}});
- const saved=await api('',{id,...meta,position,mediaPath,published:false});selected=saved.id;status('Saved to the cloud as a private draft.');
+async function uploadPhotos(files,id,existingCount=0){
+ files=validateMemoryFiles(files,{existing:existingCount});const paths=[];
+ const extensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'};
+ const progress=document.querySelector('#progress');if(progress)progress.hidden=false;
+ for(let i=0;i<files.length;i++){
+  const file=files[i],path=`media/${id}/${crypto.randomUUID()}.${extensions[file.type]}`;status(`Uploading item ${i+1} of ${files.length}…`);
+  await upload(path,file,{access:'private',handleUploadUrl:'/api/memory-upload',multipart:true,contentType:file.type,onUploadProgress:({percentage})=>{if(progress)progress.value=(i+percentage/100)/files.length*100;}});paths.push(path);
+ }
+ return paths;
+}
+async function cloudUpload(files,meta,position){
+ const id=crypto.randomUUID(),addMediaPaths=await uploadPhotos(files,id);
+ const saved=await api('',{id,...meta,position,addMediaPaths,published:false});selected=saved.id;status('Saved to the cloud as a private draft.');
 }
 root.addEventListener('click',async e=>{
+ if(e.target.closest('#music-studio'))return;
  const b=e.target.closest('button');if(!b||busy)return;try{
-  if(b.dataset.action==='refresh'){lock(true);message='';await refresh();return;}
+  if(b.dataset.action==='refresh'){clearFile();lock(true);message='';await refresh();return;}
   if(b.dataset.action==='delete'){
    const m=items.find(m=>m.id===selected);if(!m||!await confirmDelete(m))return;lock(true);
    try{if(m.cloud)await api('?action=delete',{id:m.id,etag:m.etag});else await removeLocalMemory(m);selected=null;status(m.cloud?'Memory deleted from cloud storage and the game.':'Memory removed from this device.');}
@@ -98,7 +110,7 @@ root.addEventListener('click',async e=>{
   if(b.dataset.id){clearFile();selected=b.dataset.id;message='';render();return;}
   if(b.dataset.action==='new'){clearFile();selected='new';message='';render();return;}
   if(b.dataset.action==='logout'){clearFile();lock(true);await api('?action=logout',{});selected=null;await refresh();}
-  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const r=await fetch(m.src);if(!r.ok)throw Error('Could not read the original file');await cloudUpload(m.file||await r.blob(),meta,position);await refresh();}
+  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const files=[];for(const a of memoryMedia(m)){if(a.file)files.push(a.file);else{const r=await fetch(a.src);if(!r.ok)throw Error('Could not read an original file');files.push(await r.blob());}}files.push(...pendingFiles);await cloudUpload(files,meta,position);clearFile();await refresh();}
  }catch(error){status(error.message);}finally{lock(false);}
 });
 root.addEventListener('submit',async e=>{
@@ -108,11 +120,11 @@ root.addEventListener('submit',async e=>{
   if(form.id==='login'){lock(true);await api('?action=login',{password:fields.get('password')});clearFile();status('Signed in.');await refresh();return;}
   const meta=metadata(form),m=items.find(m=>m.id===selected),position=floorPlan.getPosition();lock(true);
   if(form.id==='new-memory'){
-   const file=pendingFile;if(!file)throw Error('Choose or drop a photo or video first.');
-   if(session.authenticated)await cloudUpload(file,meta,position);
-   else{const added=await addLocalMemory(file,{position,description:meta.description},meta.title);await saveLocalMetadata(added.id,{...meta,position});URL.revokeObjectURL(added.src);selected=added.id;status('Saved on this device.');}
-  }else if(m.cloud){await api('',{...m,...meta,position,published:fields.has('published')});status('Changes saved to the cloud.');}
-  else{await saveLocalMetadata(m.id,{...meta,position});status('Changes saved on this device.');}
+   const files=pendingFiles;if(!files.length)throw Error('Choose or drop photos or a video first.');
+   if(session.authenticated)await cloudUpload(files,meta,position);
+   else{const added=await addLocalMemory(files,{position,description:meta.description},meta.title);await saveLocalMetadata(added.id,{...meta,position});releaseMemoryUrls(added);selected=added.id;status('Saved on this device.');}
+  }else if(m.cloud){const addMediaPaths=pendingFiles.length?await uploadPhotos(pendingFiles,m.id,memoryMedia(m).length):[];await api('',{id:m.id,etag:m.etag,...meta,position,addMediaPaths,published:fields.has('published')});status('Changes saved to the cloud.');}
+  else{if(pendingFiles.length)await appendLocalPhotos({...m,position},pendingFiles);await saveLocalMetadata(m.id,{...meta,position});status('Changes saved on this device.');}
   clearFile();await refresh();
  }catch(error){status(error.message);}finally{lock(false);}
 });

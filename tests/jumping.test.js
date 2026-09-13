@@ -22,3 +22,13 @@ test('a held jump does not tunnel through a full-height wall or launch while air
  assert.ok(p.x<x+.7-.2);assert.ok(p.y<1.2);
  const falling=moveWithJump({x,z,y:.6,vy:-1,grounded:false},0,0,.1,[],true);assert.ok(falling.vy<-1);
 });
+
+test('the fitted corner cushions support a jump from the living room',()=>{
+ const w=createHouseModel({optimize:false}),[x,z]=planPoint(549,607);
+ let p={x,z,y:0,vy:0,grounded:true};
+ const blocked=moveWithJump(p,.35,0,.15,w.colliders);
+ assert.ok(blocked.x<x+.25,'cannot walk through the cushion front');
+ for(let i=0;i<120;i++)p=moveWithJump(p,i<37?.025:0,0,1/60,w.colliders,i===0);
+ assert.ok(p.x>planPoint(562,607)[0],'jump reaches the seat');
+ assert.equal(p.grounded,true);assert.ok(Math.abs(p.y-.9)<.001,'feet rest on the visible cushion top');
+});

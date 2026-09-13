@@ -36,6 +36,10 @@ export const HOUSE_ROOMS=[
  room('powder','Powder room',[[299,409],[314,397],[415,397],[415,482],[314,482],[299,468]])
 ];
 export const MODEL_ROOMS=HOUSE_ROOMS;
+// Fitted orange seating replaces the raised passage within these footprints.
+// The north edge meets the divider at z=482; x=514 is the clear stair jamb.
+export const LIVING_SEATING=[rect(514,482,611,570),rect(562,570,611,650)]
+ .map(plan=>({plan,polygon:plan.map(p=>planPoint(...p)),floor:.45}));
 export const HOUSE_STAIRS=[
  {id:'entry',plan:rect(611,611,653,650),axis:'z',reverse:true,low:.45,high:.75,risers:2},
  {id:'office_entry',plan:rect(910,625,947,664),axis:'z',reverse:true,low:.45,high:.75,risers:2},
@@ -55,7 +59,7 @@ export function floorHeight(x,z){
   const axis=s.axis==='x'?0:1,values=s.polygon.map(p=>p[axis]),lo=Math.min(...values),hi=Math.max(...values);
   const t=((axis===0?x:z)-lo)/(hi-lo);return s.low+(s.high-s.low)*(s.reverse?1-t:t);
  }
- return HOUSE_ROOMS.find(r=>pointInPolygon(x,z,r.polygon))?.floor??.45;
+ return LIVING_SEATING.find(r=>pointInPolygon(x,z,r.polygon))?.floor??HOUSE_ROOMS.find(r=>pointInPolygon(x,z,r.polygon))?.floor??.45;
 }
 export const FRONT_DOOR={center:[890.5,784.5],yaw:Math.PI/4,width:1.865,height:2.2,floor:.45};
 export const BALCONY_DOORS=[
@@ -71,12 +75,12 @@ export const GUEST_MIRROR_POSITION=[...planPoint(880,419),1.93];
 export const MASTER_VANITY={center:[826,222.65],width:1.9,depth:.6,height:.9,floor:.75,basinWidth:1.5,basinDepth:.25,mirror:[826,212],mirrorY:2.375,mirrorWidth:1.165,mirrorHeight:1.05};
 const view=(x,z,tx,tz,pitch=-.035)=>{const [a,b]=planPoint(x,z),[c,d]=planPoint(tx,tz);return[a,1.67+floorHeight(a,b),b,Math.atan2(a-c,b-d),pitch];};
 export const HOUSE_VIEWS={
- door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,506,545,453),shoe_cabinet:view(900,709,946,699,-.08),
+ door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,459,545,453),shoe_cabinet:view(900,709,946,699,-.08),
  living:view(630,676,445,578,-.26),dining:view(493,846,406,806,-.08),kitchen:view(537,841,642,794,-.13),
  utility:view(677,873,738,923,-.12),study:view(928,601,864,566,-.08),media:view(928,601,864,566,-.08),
- bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
+ bedroom_window:view(695,240,695,208,-.14),bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
  sunroom:view(418,350,346,248),theatre:view(418,350,346,248),balcony:view(286,619,218,628),dining_balcony:view(292,812,248,796),
- guest:view(979,435,980,333,-.09),guest_entry:view(866,444,916,435,-.06),guest_closet:view(983,415,947,457,-.04),guest_bath:view(1014,534,1039,491),meditation:view(563,232,561,164),
+ guest:view(979,435,980,333,-.09),guest_entry:view(866,444,916,435,-.06),guest_closet:view(983,415,947,457,-.04),guest_bath:view(1025,479,997,502,-.15),meditation:view(563,232,561,164),
  wine:view(673,562,787,562),powder:view(393,432,352,465,-.12),store:view(743,739,714,775),
- records:view(763,678,781,636,-.12),radio:view(869,736,909,708),board:view(583,383,570,393,-.015)
+ turntable:view(365,682,333,700,-.7),records:view(763,678,781,636,-.12),radio:view(869,736,909,708),board:view(583,383,570,393,-.015)
 };

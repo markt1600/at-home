@@ -4,6 +4,7 @@ import {optimizeHouse} from './house-meshes.js';
 import {applyHouseTextures} from './house-materials.js';
 import {applyHallwayArt} from './house-gallery.js';
 import {applyBathroomTextures} from './house-bathrooms.js';
+import {applyDetailTexture} from './bedroom-details.js';
 import {HouseReflections} from './house-reflections.js';
 import {Daylight} from './daylight.js';
 import {HOUSE_VIEWS,HOUSE_ROOMS,planPoint,floorHeight,pointInPolygon,VISITOR_POSITION} from './house-layout.js';
@@ -13,6 +14,7 @@ import {applyHomeDetails} from './home-furnishings.js';
 import {applyDiningArt} from './dining-details.js';
 import {applyBalconyWallArt} from './balcony-wall-details.js';
 import {createActor} from './actors.js';
+import {createMemoryMarker} from './memory-marker.js';
 import {PETS,NEIGHBORS} from './life.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
@@ -23,8 +25,8 @@ export class House{
   this.balconyLife=new BalconyLife(this);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   window.addEventListener('resize',()=>this.resize());window.addEventListener('blur',()=>{this.keys={};});
   document.addEventListener('keydown',e=>{if(this.mode!=='play'||this.paused||e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,textarea,select,[contenteditable="true"]'))return;if(e.code==='Space'){e.preventDefault();if(!e.repeat)this.jumpQueued=true;return;}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();this.keys[e.code]=true;}});
-  document.addEventListener('keyup',e=>delete this.keys[e.code]);document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;document.body.classList.toggle('wandering',locked);if(!locked){this.keys={};if(this.mode==='play'&&!this.paused&&!document.hidden)this.onUnlock?.();}});
-  document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==canvas||this.paused)return;this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
+  document.addEventListener('keyup',e=>delete this.keys[e.code]);document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;document.body.classList.toggle('wandering',locked||this.freeLook);if(!locked){this.keys={};if(this.mode==='play'&&!this.paused&&!document.hidden&&!this.freeLook)this.onUnlock?.();}});
+  document.addEventListener('mousemove',e=>{if((document.pointerLockElement!==canvas&&!this.freeLook)||this.paused||this.mode!=='play')return;this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
   canvas.addEventListener('click',()=>this.lock());this.animate();
   let drag=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!this.paused)drag=[e.clientX,e.clientY];});canvas.addEventListener('pointermove',e=>{if(!drag)return;this.yaw-=(e.clientX-drag[0])*.005;this.pitch=THREE.MathUtils.clamp(this.pitch-(e.clientY-drag[1])*.005,-1.3,1.05);drag=[e.clientX,e.clientY];});canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
  }
@@ -36,8 +38,8 @@ export class House{
   if(p.id==='sunny')this.sphere(.07,-.55,.07,.18,this.mat(0xc88557,.95),g);this.petCorners.set(p.id,{g,contents,care:0});}}
  showCare(id,action){const corner=this.petCorners.get(id);if(corner){corner.care=2.8;corner.action=action;}const actor=this.actors.get(id);if(actor)actor.userData.careUntil=this.elapsed+6;}
  lookAtActor(id){const actor=this.actors.get(id);if(!actor)return;const h=PETS.find(p=>p.id===id)?.height||1.7;this.camera.lookAt(actor.position.clone().add(new THREE.Vector3(0,h*.75,0)));const e=new THREE.Euler().setFromQuaternion(this.camera.quaternion,'YXZ');this.yaw=e.y;this.pitch=e.x;}
- setMemories(memories){if(this.memoryMarkers){this.scene.remove(this.memoryMarkers);this.memoryMarkers.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});}this.memoryMarkers=new THREE.Group();this.scene.add(this.memoryMarkers);for(const memory of memories){const g=new THREE.Group();g.position.set(...memory.position);const disk=new THREE.Mesh(new THREE.RingGeometry(.16,.19,48),new THREE.MeshBasicMaterial({color:0xc2b676,transparent:true,opacity:.65,depthWrite:false}));disk.rotation.x=-Math.PI/2;disk.position.y=.025;g.add(disk);this.memoryMarkers.add(g);}}
- loadArtwork(){const loader=new THREE.TextureLoader(),a=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());loader.load('/art/balcony-collage.webp',t=>applyBalconyWallArt(t,this.houseMaterials,a));loader.load('/art/dining-prints.webp',t=>applyDiningArt(t,this.houseMaterials,a));loader.load('/art/entry-details-atlas.webp',t=>applyHomeDetails(t,this.houseMaterials,a));loader.load('/art/house-surfaces-v2.png',t=>applyHouseTextures(t,this.houseMaterials,a));loader.load('/art/hallway-prints.webp',t=>applyHallwayArt(t,this.houseMaterials,a));loader.load('/art/powder-marble.webp',t=>applyBathroomTextures(t,this.houseMaterials,a));fetch('/art/friends/framing.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(f=>{this.framing=f;this.syncPeople(this.life);}).catch(()=>this.onAssetError?.());}
+ setMemories(memories){if(this.memoryMarkers){this.scene.remove(this.memoryMarkers);this.memoryMarkers.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});}this.memoryMarkers=new THREE.Group();this.scene.add(this.memoryMarkers);for(const memory of memories)this.memoryMarkers.add(createMemoryMarker(memory));}
+ loadArtwork(){const loader=new THREE.TextureLoader(),a=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());loader.load('/art/bedroom-marble.webp',t=>applyDetailTexture(t,this.houseMaterials.bedroomMarble,a));loader.load('/art/sage-flowers.webp',t=>applyDetailTexture(t,this.houseMaterials.sageDrawing,a));loader.load('/art/balcony-collage.webp',t=>applyBalconyWallArt(t,this.houseMaterials,a));loader.load('/art/dining-prints.webp',t=>applyDiningArt(t,this.houseMaterials,a));loader.load('/art/entry-details-atlas.webp',t=>applyHomeDetails(t,this.houseMaterials,a));loader.load('/art/house-surfaces-v2.png',t=>applyHouseTextures(t,this.houseMaterials,a));loader.load('/art/hallway-prints.webp',t=>applyHallwayArt(t,this.houseMaterials,a));loader.load('/art/powder-marble.webp',t=>applyBathroomTextures(t,this.houseMaterials,a));fetch('/art/friends/framing.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(f=>{this.framing=f;this.syncPeople(this.life);}).catch(()=>this.onAssetError?.());}
  syncPeople(s){this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
   if(s.pending){const n=NEIGHBORS.find(n=>n.id===s.pending);specs.push({...n,position:[VISITOR_POSITION[0],VISITOR_POSITION[2]]});}
   for(const [i,v] of s.guests.entries()){const n=NEIGHBORS.find(n=>n.id===v.id);specs.push({...n,position:planPoint(...[[497,604],[495,578],[345,820]][i])});}
@@ -47,7 +49,8 @@ export class House{
  focus(id){const p=HOUSE_VIEWS[id]||HOUSE_VIEWS.living;this.camera.position.set(...p.slice(0,3));this.yaw=p[3];this.pitch=p[4];this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.room=id;this.keys={};this.eyeHeight=1.67;this.feet={x:this.camera.position.x,y:floorHeight(this.camera.position.x,this.camera.position.z),z:this.camera.position.z,vy:0,grounded:true};this.jumpQueued=false;}
  lookAtPet(id){const p=PETS.find(p=>p.id===id);if(!p)return;const [x,z]=planPoint(...p.plan);this.focus(id==='pebble'?'dining':'living');const positions={miso:[417,696],sunny:[502,681],pebble:[346,812]},[a,b]=planPoint(...positions[id]);this.eyeHeight=id==='sunny'?1:.65;this.camera.position.set(a,floorHeight(a,b)+this.eyeHeight,b);this.feet={x:a,y:floorHeight(a,b),z:b,vy:0,grounded:true};this.camera.lookAt(x,floorHeight(x,z)+p.height/2,z);const e=new THREE.Euler().setFromQuaternion(this.camera.quaternion,'YXZ');this.yaw=e.y;this.pitch=e.x;}
  lock(){if(this.mode!=='play'||this.paused||matchMedia('(pointer:coarse)').matches)return;this.canvas.requestPointerLock()?.catch(()=>{});}
- unlock(){this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
+ resumeWandering(){this.freeLook=true;this.keys={};this.canvas.classList.add('free-wander');document.body.classList.add('wandering');this.lock();}
+ unlock(){this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
  resize(){this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);}
  animate(){requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);this.elapsed+=dt;const active=this.mode==='play'&&!this.paused&&!document.hidden;this.walking=false;
   if(active){const v=new THREE.Vector3((this.keys.KeyD||this.keys.ArrowRight?1:0)-(this.keys.KeyA||this.keys.ArrowLeft?1:0),0,(this.keys.KeyS||this.keys.ArrowDown?1:0)-(this.keys.KeyW||this.keys.ArrowUp?1:0));
@@ -67,6 +70,8 @@ export class House{
   const animated=this.mode==='play'&&!document.hidden&&(!this.paused||this.previewAnimation);
   for(const [id,g] of this.actors){const distance=g.position.distanceTo(this.camera.position);g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);g.userData.update(animated?dt:0,this.motion,distance<9);const d=g.position.clone().add(new THREE.Vector3(0,PETS.find(p=>p.id===id)?.height/2||1.3,0)).sub(this.camera.position);if(distance<3.3&&forward.dot(d.clone().normalize())>.85){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.08);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest=id;}}
   for(const corner of this.petCorners.values()){corner.care=Math.max(0,corner.care-(animated?dt:0));for(const content of corner.contents){content.scale.setScalar(corner.care>0?1+Math.sin(corner.care*7)*.05:1);}}
+  if(this.turntablePosition){const d=this.turntablePosition.clone().sub(this.camera.position);if(d.length()<2.3&&forward.dot(d.clone().normalize())>.72){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.30);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='turntable';}}
+  if(this.vinyl&&this.recordPlaying&&!document.hidden)this.vinyl.rotation.y-=dt*Math.PI*2*(33+1/3)/60;
   if(nearest!==this.lookTarget){this.lookTarget=nearest;this.onLook(nearest);}this.reflections.update();this.renderer.render(this.scene,this.camera);
  }
 }

@@ -53,7 +53,12 @@ test('private memory API protects drafts, detects conflicts, serves ranges and s
  const listing=await (await request('?admin=1',null,cookie)).json();assert.equal(listing.length,1);assert.equal(listing[0].etag,saved.etag);
  assert.equal((await request('?action=media&id='+id,null,cookie)).status,200);
  assert.equal((await request('',{...draft,published:true,etag:'old'},cookie)).status,409);
- const publish=await request('',{...draft,published:true,etag:saved.etag},cookie);assert.equal(publish.status,200);const published=await publish.json();
+ const photo=`media/${id}/c0779408-a4dc-4c40-92a7-6c9bc04af079.jpg`;
+ const appended=await request('',{...draft,etag:saved.etag,addMediaPaths:[photo]},cookie);assert.equal(appended.status,200);const album=await appended.json();assert.equal(album.media.length,2);
+ const callsBefore=mediaCalls.length;assert.equal((await request(album.media[1].src.replace('/api/memories',''))).status,404);assert.equal(mediaCalls.length,callsBefore,'appended draft photos remain private');
+ assert.equal((await request('?action=media&id='+id+'&asset=unlisted.jpg',null,cookie)).status,404);assert.equal(mediaCalls.length,callsBefore,'unlisted files under the same memory cannot be read');
+ const publish=await request('',{...draft,published:true,etag:album.etag},cookie);assert.equal(publish.status,200);const published=await publish.json();
+ assert.equal((await request(published.media[1].src.replace('/api/memories',''))).status,200);assert.equal(mediaCalls.at(-1).path,photo);
  const shared=await (await request()).json();assert.equal(shared.length,1);assert.ok(!shared[0].mediaPath);assert.ok(!shared[0].etag);
  const range=await request('?action=media&id='+id,null,null,{Range:'bytes=0-2'});assert.equal(range.status,206);assert.equal(range.headers.get('content-range'),'bytes 0-2/10');assert.equal(await range.text(),'vid');assert.equal(mediaCalls.at(-1).options.headers.Range,'bytes=0-2');
  const hide=await request('',{...draft,published:false,etag:published.etag},cookie);assert.equal(hide.status,200);assert.equal((await request('?action=media&id='+id)).status,404);
@@ -73,12 +78,12 @@ test('private memory API protects drafts, detects conflicts, serves ranges and s
  const pending=(await (await request('?admin=1',null,cookie)).json())[0];assert.ok(pending.deleting);assert.equal(pending.published,false);
  assert.equal((await request('',{...draft,published:true,etag:pending.etag},cookie)).status,409,'deleting records cannot be republished');
  assert.equal((await request('?action=delete',{id,etag:pending.etag,mediaPath:'media/do-not-delete'},cookie)).status,200);
- assert.deepEqual(deletions.map(d=>d.path),[draft.mediaPath,draft.mediaPath,`records/${id}.json`],'only the server-owned media path and record are deleted');
+ assert.deepEqual(deletions.map(d=>d.path),[draft.mediaPath,draft.mediaPath,photo,`records/${id}.json`],'every server-owned album file and its record are deleted');
  assert.deepEqual(await (await request('?admin=1',null,cookie)).json(),[]);
  assert.equal((await request('?action=media&id='+id)).status,404);
  assert.equal((await request('',{...draft,etag:pending.etag},cookie)).status,409,'a stale editor cannot recreate a deleted record');
  assert.equal((await request('?action=delete',{id,etag:pending.etag},cookie)).status,200,'retry after successful deletion is harmless');
- assert.equal(deletions.length,3);
+ assert.equal(deletions.length,4);
 });
 
 test('memory records reject foreign paths and impossible locations, and normalize dates safely',()=>{

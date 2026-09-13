@@ -16,3 +16,12 @@ kbd{font:11px 'DM Sans',sans-serif}.choice-key{display:inline-grid;place-items:c
 @media(max-width:600px){.memory-proximity{bottom:94px}.memory-media video,.memory-media img{max-height:59dvh}.dream-caption{padding:10px 14px}.dream-caption h2{font-size:25px}.dream-caption .memory-caption{font-size:12px}.panel.memory-panel{padding:35px 10px 15px}.controls{bottom:8px}.touch-walk{bottom:30px}}
 @media(prefers-reduced-motion:reduce){.dream{animation:none}}
 .memory-media{mask-image:none}.memory-media video,.memory-media img{mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent),linear-gradient(to bottom,transparent,#000 7%,#000 92%,transparent);mask-composite:intersect}.wandering .quiet-controls{opacity:0}
+
+/* Memory albums, date ranges and immediate return to wandering. */
+#scene.free-wander{cursor:none}.welcome-card .dream-return{color:var(--green)}
+.memory-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;margin:12px 0 18px}.photo-key{color:#367ba8}.video-key{color:#9a691e}
+.slideshow-controls{display:flex;align-items:center;justify-content:center;gap:12px;margin:10px 0}.slideshow-controls button{color:#fffaf0;border-color:#ffffff60;padding:7px 12px;font-size:12px;background:#24342f28}.slideshow-controls button:hover{background:#ffffff25}.slide-counter{font-size:12px;min-width:42px;font-variant-numeric:tabular-nums}
+.memory-media img{animation:memory-image-in .4s ease-out}.memory-date-filter{padding:18px 0 22px;border-bottom:1px solid var(--line);margin-bottom:25px}.memory-date-filter h3{font:24px Georgia,serif;margin:0}.date-fields{display:grid;grid-template-columns:1fr 1fr;gap:14px}.date-fields input{min-width:0;width:100%;padding:10px;border:1px solid #bdc7b2;border-radius:8px;background:#fffef7;color:inherit}.date-fields .field{margin:0 0 10px}.memory-date-filter button{font-size:13px}
+@keyframes memory-image-in{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:blur(0)}}
+@media(prefers-reduced-motion:reduce){.memory-media img{animation:none}}
+@media(max-height:780px){.memory-media img,.memory-media video{max-height:55dvh}.dream-caption h2{font-size:26px}}

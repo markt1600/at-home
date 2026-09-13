@@ -1,3 +1,6 @@
+import {memoryMedia,releaseMemoryUrls,validateMemoryFiles} from './memory-media.js';
+import {accessibleMemorySpot} from './memory-access.js';
+import {PLAN_SCALE} from './house-layout.js';
 import {planPoint,floorHeight} from './house-layout.js';
 // These are approximate viewing positions, not photogrammetry measurements.
 export const MEMORY_PLACEMENTS=[
@@ -14,18 +17,28 @@ export async function loadMemories({cloud=true}={}){let shared=[];try{const r=aw
  let local=[];try{local=await transact('readonly',store=>store.getAll());}catch{}
  let overrides=[];try{overrides=await transact('readonly',s=>s.getAll(),'metadata');}catch{}
  let remote=[];if(cloud)try{const r=await fetch('/api/memories');if(r.ok){const data=await r.json();if(Array.isArray(data))remote=data;}}catch{}
- return [...shared.map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(m=>({...m,local:true,src:URL.createObjectURL(m.file)}))].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).filter(m=>!m.deleted).concat(remote);
+ return [...shared.filter(m=>!local.some(l=>l.id===m.id)).map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(hydrateLocalMemory)].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).filter(m=>!m.deleted).concat(remote).map(m=>{try{return {...m,position:safePosition(m.position)};}catch{return m;}});
 }
-export async function saveLocalMetadata(id,metadata){await transact('readwrite',s=>s.put({id,...metadata}),'metadata');}
-export async function addLocalMemory(file,placement,title){if(!/^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/.test(file.type))throw new Error('Choose a JPG, PNG, WebP, MP4, MOV or WebM file.');if(file.size>250*1024*1024)throw new Error('Please choose a file smaller than 250 MB.');
- const record={id:crypto.randomUUID(),title:title||file.name.replace(/\.[^.]+$/,''),type:file.type.startsWith('video/')?'video':'image',position:[...placement.position],description:placement.description||'A moment saved here.',file};await transact('readwrite',s=>s.put(record));return {...record,local:true,src:URL.createObjectURL(file)};
+function safePosition(position){const spot=accessibleMemorySpot(position[0]*PLAN_SCALE+881,position[2]*PLAN_SCALE+789);if(!spot)throw Error('Choose an accessible location away from furniture.');return spot.position;}
+function hydrateLocalMemory(m){const media=(m.files||[{id:'original',file:m.file,type:m.type}]).map(a=>({...a,src:a.file?URL.createObjectURL(a.file):a.src}));return {...m,local:true,media,src:media[0].src};}
+export async function saveLocalMetadata(id,metadata){await transact('readwrite',s=>s.put({id,...metadata,...(metadata.position?{position:safePosition(metadata.position)}:{})}),'metadata');}
+export async function addLocalMemory(fileOrFiles,placement,title){
+ const files=validateMemoryFiles(Array.isArray(fileOrFiles)?fileOrFiles:[fileOrFiles]);
+ const record={id:crypto.randomUUID(),title:title||files[0].name.replace(/\.[^.]+$/,''),type:files.some(f=>f.type.startsWith('video/'))?'video':'image',position:safePosition(placement.position),description:placement.description||'A moment saved here.',files:files.map(file=>({id:crypto.randomUUID(),type:file.type.startsWith('video/')?'video':'image',file}))};
+ await transact('readwrite',s=>s.put(record));return hydrateLocalMemory(record);
+}
+export async function appendLocalPhotos(memory,photos){
+ const current=memory.files|| (memory.file?[{id:'original',file:memory.file,type:memory.type}]:memoryMedia(memory));
+ const files=validateMemoryFiles(photos,{photosOnly:true,existing:current.length});
+ const record={id:memory.id,title:memory.title,date:memory.date,description:memory.description,position:safePosition(memory.position),view:memory.view,type:memory.type,files:[...current,...files.map(file=>({id:crypto.randomUUID(),type:'image',file}))]};
+ await transact('readwrite',s=>s.put(record));
 }
 export async function removeLocalMemory(memory){
  const d=await db();try{await new Promise((resolve,reject)=>{
   const t=d.transaction(['memories','metadata'],'readwrite');t.objectStore('memories').delete(memory.id);
-  if(memory.local)t.objectStore('metadata').delete(memory.id);
+  if(memory.local&&!MEMORY_PLACEMENTS.some(m=>m.id===memory.id))t.objectStore('metadata').delete(memory.id);
   else t.objectStore('metadata').put({id:memory.id,deleted:true}); // Hide a bundled/local test copy in this browser.
   t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);
  });}finally{d.close();}
- if(memory.src?.startsWith('blob:'))URL.revokeObjectURL(memory.src);
+ releaseMemoryUrls(memory);
 }

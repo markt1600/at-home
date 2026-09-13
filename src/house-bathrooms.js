@@ -4,6 +4,7 @@ import {planPoint} from './house-layout.js';
 
 // The mirror belongs above the powder-room basin, on the south wall.
 export const POWDER_MIRROR={plan:[391,478.6],y:2.48,width:.64,height:.965,yaw:Math.PI};
+export const GUEST_BATH_MIRROR={plan:[987.5,502],y:2.47,width:.66,height:.94,yaw:Math.PI/2};
 
 function fixtures(world,root,m){
  m.ceramic??=new THREE.MeshStandardMaterial({color:0xeceae1,roughness:.22});
@@ -134,6 +135,34 @@ export function buildPowderBathroom(world,root,m){
  box(.035,.075,.03,0,.32,.015,m.chrome,towel);soft(.17,.59,.027,0,0,.04,m.blue,towel,.01);
 }
 
+export function buildGuestBathroom(world,root,m){
+ const f=fixtures(world,root,m),{at,box,mesh,soft,disc,tube,lathe,block}=f;
+ m.guestStone=new THREE.MeshStandardMaterial({color:0x847567,roughness:.52});m.guestStone.userData.textureMeters=.85;
+ const wall=(a,b,base=.758,h=2.64)=>{const [x,z]=planPoint(...a),[xx,zz]=planPoint(...b),g=new THREE.Group();g.name='Second bathroom stone';root.add(g);const o=box(Math.hypot(xx-x,zz-z),h,.014,(x+xx)/2,base+h/2,(z+zz)/2,m.guestStone,g);o.rotation.y=-Math.atan2(zz-z,xx-x);};
+ wall([987.5,460],[987.5,559.5]);wall([1049.5,460],[1049.5,559.5]);
+ wall([987.5,559.5],[1029.3,559.5]);wall([1044.7,559.5],[1049.5,559.5]);
+ wall([1029.3,559.5],[1044.7,559.5],.758,.692);wall([1029.3,559.5],[1044.7,559.5],3.15,.25);
+ const wc=f.toilet(998,477,Math.PI/2);wc.name='Second bathroom toilet';
+ const shelf=at('Second bathroom shelf and toilet paper',987.7,478,1.82,Math.PI/2);
+ box(.55,.025,.13,0,0,.065,m.chrome,shelf);for(const x of [-.14,.04])disc(.06,.09,x,.06,.08,shelf,m.white);
+ const paper=at('Second bathroom toilet roll',987.8,464,1.3,Math.PI/2);disc(.052,.105,0,0,.10,paper,m.white).rotation.z=Math.PI/2;box(.15,.017,.14,0,.065,.07,m.chrome,paper);
+ const vanity=at('Round yellow second bathroom vanity',996,502,.75,Math.PI/2),yellow=world.mat(0xe5bc21,.28);
+ for(const [r,h,y,material] of [[.30,.73,.405,yellow],[.32,.032,.786,yellow],[.27,.045,.034,m.walnut]]){const drum=disc(r,h,0,y,0,vanity,material);drum.scale.z=.77;}
+ box(.007,.67,.009,0,.412,.234,m.walnut,vanity);block(vanity,.65,.51);
+ const bowl=new THREE.Group();bowl.position.y=.804;vanity.add(bowl);
+ lathe([[0,0],[.09,0],[.15,.035],[.20,.13],[.216,.177],[.21,.184],[.204,.175],[.185,.13],[.13,.049],[0,.035]],bowl,m.chrome);disc(.022,.004,0,.039,0,bowl);
+ const tap=at('Second bathroom wall tap',987.7,502,1.90,Math.PI/2);disc(.042,.018,0,0,.01,tap).rotation.x=Math.PI/2;tube([[0,0,.01],[0,.015,.15],[0,-.015,.26],[0,-.06,.26]],.013,tap);
+ const spec=GUEST_BATH_MIRROR,mirror=at('Illuminated second bathroom mirror',...spec.plan,spec.y,spec.yaw);
+ box(spec.width+.018,spec.height+.018,.014,0,0,0,m.chrome,mirror);
+ const ring=mesh(new THREE.TorusGeometry(.285,.005,8,80),new THREE.MeshBasicMaterial({color:0xffdc98}),mirror,0,0,.045);ring.scale.y=1.35;
+ const light=new THREE.PointLight(0xffe4b6,1.6,2.1,2);light.position.set(0,0,.12);mirror.add(light);
+ f.enclosure(1018.5,524,1.61,Math.PI,1);f.shower(987.8,548,Math.PI/2);
+ const towel=at('Pink shower towel',1037,524,1.85,Math.PI);box(.36,.017,.075,0,.28,.08,m.chrome,towel);soft(.29,.54,.023,0,0,.12,world.mat(0xb96b7b,.95),towel,.012);
+ const wet=at('Second bathroom shower floor',1018.5,542,.765);box(1.59,.013,.88,0,0,0,m.guestStone,wet);
+ for(let i=0;i<12;i++)box(.64,.017,.021,0,.018,-.25+i*.041,world.mat(0x887190,.9),wet);
+ const ledge=at('Shower bottles',988,556,1.55,Math.PI/2);box(.33,.02,.12,0,0,.08,m.chrome,ledge);for(let i=0;i<3;i++){box(.06,.15+i*.018,.04,-.11+i*.1,.09,.08,i===1?m.teal:m.white,ledge);box(.03,.022,.03,-.11+i*.1,.175+i*.018,.08,m.black,ledge);}
+}
+
 export function applyBathroomTextures(tile,materials,anisotropy){
  tile.colorSpace=THREE.SRGBColorSpace;tile.wrapS=tile.wrapT=THREE.RepeatWrapping;tile.anisotropy=anisotropy;
  materials.powderTile.map=tile;materials.powderTile.needsUpdate=true;
@@ -143,4 +172,5 @@ export function applyBathroomTextures(tile,materials,anisotropy){
  for(let i=0;i<256;i++){const v=170+Math.round(8*Math.sin(i*4.13)+4*Math.sin(i*.43));ctx.fillStyle=`rgb(${v+16},${v+14},${v+6})`;ctx.fillRect(i,0,1,256);}
  const stone=new THREE.CanvasTexture(canvas);stone.colorSpace=THREE.SRGBColorSpace;stone.wrapS=stone.wrapT=THREE.RepeatWrapping;stone.anisotropy=anisotropy;
  materials.powderStone.map=stone;materials.powderStone.bumpMap=stone;materials.powderStone.bumpScale=.0006;materials.powderStone.needsUpdate=true;
+ materials.guestStone.map=stone;materials.guestStone.bumpMap=stone;materials.guestStone.bumpScale=.0008;materials.guestStone.needsUpdate=true;
 }
