@@ -14,10 +14,18 @@ export async function loadMemories({cloud=true}={}){let shared=[];try{const r=aw
  let local=[];try{local=await transact('readonly',store=>store.getAll());}catch{}
  let overrides=[];try{overrides=await transact('readonly',s=>s.getAll(),'metadata');}catch{}
  let remote=[];if(cloud)try{const r=await fetch('/api/memories');if(r.ok){const data=await r.json();if(Array.isArray(data))remote=data;}}catch{}
- return [...shared.map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(m=>({...m,local:true,src:URL.createObjectURL(m.file)}))].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).concat(remote);
+ return [...shared.map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(m=>({...m,local:true,src:URL.createObjectURL(m.file)}))].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).filter(m=>!m.deleted).concat(remote);
 }
 export async function saveLocalMetadata(id,metadata){await transact('readwrite',s=>s.put({id,...metadata}),'metadata');}
 export async function addLocalMemory(file,placement,title){if(!/^(image\/(jpeg|png|webp)|video\/(mp4|webm|quicktime))$/.test(file.type))throw new Error('Choose a JPG, PNG, WebP, MP4, MOV or WebM file.');if(file.size>250*1024*1024)throw new Error('Please choose a file smaller than 250 MB.');
  const record={id:crypto.randomUUID(),title:title||file.name.replace(/\.[^.]+$/,''),type:file.type.startsWith('video/')?'video':'image',position:[...placement.position],description:placement.description||'A moment saved here.',file};await transact('readwrite',s=>s.put(record));return {...record,local:true,src:URL.createObjectURL(file)};
 }
-export async function removeLocalMemory(memory){await transact('readwrite',s=>s.delete(memory.id));URL.revokeObjectURL(memory.src);}
+export async function removeLocalMemory(memory){
+ const d=await db();try{await new Promise((resolve,reject)=>{
+  const t=d.transaction(['memories','metadata'],'readwrite');t.objectStore('memories').delete(memory.id);
+  if(memory.local)t.objectStore('metadata').delete(memory.id);
+  else t.objectStore('metadata').put({id:memory.id,deleted:true}); // Hide a bundled/local test copy in this browser.
+  t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error);
+ });}finally{d.close();}
+ if(memory.src?.startsWith('blob:'))URL.revokeObjectURL(memory.src);
+}

@@ -21,6 +21,10 @@ Choose **Add a memory**, then drop one photo or video into the upload area (or u
 
 On Vercel, sign in using the project's editor password. Add a JPG, PNG, WebP, MP4, WebM or MOV up to 250 MB. MP4 is the most broadly supported video format; MOV support depends on its codec. Uploads go directly to private Blob storage using a short-lived, authenticated upload token. New uploads are private drafts. Existing local memories can be copied as private drafts.
 
+**Saved memories** lists cloud drafts, published memories and files saved on this device. Search by title, description or date, or filter by status. Select an item to preview it and edit its story or floor-plan position. **Refresh library** reloads cloud changes from other devices.
+
+**Delete memory** asks for confirmation. Deleting a cloud memory removes both its stored media and metadata, and revokes access in the game. Deleting a device memory removes its browser copy and edits; bundled test memories are hidden on that device. Original source files and separately uploaded copies are unaffected. If a cloud deletion is interrupted, the memory stays hidden and is marked **Deletion incomplete** in the editor; select it and retry deletion. A stale browser tab cannot overwrite or delete a newer edit.
+
 **Show this memory in the game** explicitly publishes a memory: anyone able to open the game can then play it. Clearing that checkbox removes public access. A private draft is visible only in the authenticated editor, not in the public catalog or media endpoint. Personal media is never sent to the voice agent.
 
 ## Deployment configuration

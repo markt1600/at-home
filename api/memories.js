@@ -1,10 +1,10 @@
-import {get,put,list,head} from '@vercel/blob';
+import {get,put,list,head,del} from '@vercel/blob';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {configured,passwordMatches,createSession,authenticated,setSession,sameOrigin,parseBody} from '../server/memory-auth.js';
 import {UUID,validateRecord,publicRecord,MAX_SIZE,CONTENT_TYPES} from '../server/memory-record.js';
 
-export function createMemoryHandler({storage={get,put,list,head},env=process.env,now=Date.now}={}){
+export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
  const options=()=>({access:'private',...(env.BLOB_READ_WRITE_TOKEN?{token:env.BLOB_READ_WRITE_TOKEN}:{storeId:env.BLOB_STORE_ID})});
  const read=async id=>{const r=await storage.get(`records/${id}.json`,{...options(),useCache:false});if(!r||!r.stream)return null;return {record:await new Response(r.stream).json(),etag:r.blob.etag};};
@@ -28,7 +28,7 @@ export function createMemoryHandler({storage={get,put,list,head},env=process.env
    if(!(env.BLOB_READ_WRITE_TOKEN||env.BLOB_STORE_ID))return res.status(503).json({error:'Connect the private At Home Blob store to this project and redeploy.'});
    if(req.method==='GET'&&action==='media'){
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
-    const found=await read(id);if(!found||(!found.record.published&&!admin))return res.status(404).end();
+    const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
     const media=await storage.get(found.record.mediaPath,{...options(),useCache:false,...(range?{headers:{Range:range}}:{})});
     if(!media?.stream)return res.status(404).end();
@@ -41,7 +41,7 @@ export function createMemoryHandler({storage={get,put,list,head},env=process.env
     const all=url.searchParams.get('admin')==='1';if(all&&!admin)return res.status(401).json({error:'Sign in to edit memories'});
     const records=[];let cursor;
     do{const page=await storage.list({...options(),prefix:'records/',limit:100,cursor});
-     for(let i=0;i<page.blobs.length;i+=8){const group=await Promise.all(page.blobs.slice(i,i+8).map(async b=>{const id=b.pathname.slice(8,-5);if(!UUID.test(id))return null;return read(id);}));for(const entry of group)if(entry&&(all||entry.record.published))records.push({...publicRecord(entry.record),...(all?{etag:entry.etag}:{})});}
+     for(let i=0;i<page.blobs.length;i+=8){const group=await Promise.all(page.blobs.slice(i,i+8).map(async b=>{const id=b.pathname.slice(8,-5);if(!UUID.test(id))return null;return read(id);}));for(const entry of group)if(entry&&(all||(entry.record.published&&!entry.record.deleting)))records.push({...publicRecord(entry.record),...(all?{etag:entry.etag}:{})});}
      cursor=page.hasMore?page.cursor:undefined;
     }while(cursor);
     return res.status(200).json(records.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)));
@@ -49,7 +49,22 @@ export function createMemoryHandler({storage={get,put,list,head},env=process.env
    if(req.method==='POST'){
     if(!admin)return res.status(401).json({error:'Sign in to edit memories'});
     const input=parseBody(req);if(!UUID.test(input.id||''))return res.status(400).json({error:'Invalid memory ID'});
-    const prior=await read(input.id);if(prior&&input.etag!==prior.etag)return res.status(409).json({error:'This memory changed in another tab. Reload before saving.'});
+    const prior=await read(input.id);if(prior&&input.etag!==prior.etag)return res.status(409).json({error:'This memory changed in another tab. Refresh the library before trying again.'});
+    if(action==='delete'){
+     if(!prior)return res.status(200).json({ok:true});
+     // Claim deletion with a conditional write first. It immediately revokes media
+     // access and prevents another tab from editing a record while its file is removed.
+     let etag=prior.etag;
+     if(!prior.record.deleting){const claimed=await storage.put(`records/${input.id}.json`,JSON.stringify({...prior.record,published:false,deleting:true}),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});etag=claimed.etag;}
+     try{
+      await storage.del(prior.record.mediaPath,options());
+      await storage.del(`records/${input.id}.json`,{...options(),ifMatch:etag});
+     }catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry Delete memory.'});}
+     return res.status(200).json({ok:true});
+    }
+    if(action)return res.status(400).json({error:'Unknown memory action'});
+    if(prior?.record.deleting)return res.status(409).json({error:'This memory is being deleted. Refresh the library to finish deleting it.'});
+    if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
     if(!prior){const blob=await storage.head(record.mediaPath,options());if(!blob||blob.size>MAX_SIZE||!CONTENT_TYPES.includes(blob.contentType))return res.status(400).json({error:'Upload a supported photo or video first'});}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});

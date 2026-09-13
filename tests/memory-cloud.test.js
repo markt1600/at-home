@@ -24,14 +24,15 @@ test('editor sessions reject tampering, expiration and changed passwords',()=>{
  assert.ok(!authenticated(req,{},now));
 });
 
-test('private memory API protects drafts, detects conflicts and serves published video ranges',async t=>{
- const records=new Map();let version=0;const mediaCalls=[];
+test('private memory API protects drafts, detects conflicts, serves ranges and safely deletes stored files',async t=>{
+ const records=new Map();let version=0,failNextDelete=false;const mediaCalls=[],deletions=[];
  const storage={
   get:async(path,options)=>{if(path.startsWith('records/')){const v=records.get(path);return v?{stream:new Response(v.body).body,blob:{etag:v.etag}}:null;}
    mediaCalls.push({path,options});const range=options.headers?.Range;return {stream:new Response(range?'vid':'video-data').body,blob:{contentType:'video/mp4'},headers:new Headers(range?{'content-range':'bytes 0-2/10','content-length':'3'}:{'content-length':'10'})};},
   list:async()=>({blobs:[...records.keys()].map(pathname=>({pathname})),hasMore:false}),
   head:async()=>({size:10,contentType:'video/mp4'}),
-  put:async(path,body,options)=>{const current=records.get(path);if(current&&current.etag!==options.ifMatch)throw Error('precondition failed');const etag='version-'+(++version);records.set(path,{body,etag});return {etag};}
+  put:async(path,body,options)=>{const current=records.get(path);if(current&&current.etag!==options.ifMatch)throw Error('precondition failed');const etag='version-'+(++version);records.set(path,{body,etag});return {etag};},
+  del:async(path,options)=>{deletions.push({path,options});if(failNextDelete){failNextDelete=false;throw Error('Blob storage interrupted');}const current=records.get(path);if(current){assert.equal(options.ifMatch,current.etag,'record cleanup must be conditional');records.delete(path);}}
  };
  const handler=createMemoryHandler({storage,env}),server=createServer(async(req,res)=>{
   const chunks=[];for await(const chunk of req)chunks.push(chunk);if(chunks.length)req.body=Buffer.concat(chunks).toString();
@@ -57,6 +58,27 @@ test('private memory API protects drafts, detects conflicts and serves published
  const range=await request('?action=media&id='+id,null,null,{Range:'bytes=0-2'});assert.equal(range.status,206);assert.equal(range.headers.get('content-range'),'bytes 0-2/10');assert.equal(await range.text(),'vid');assert.equal(mediaCalls.at(-1).options.headers.Range,'bytes=0-2');
  const hide=await request('',{...draft,published:false,etag:published.etag},cookie);assert.equal(hide.status,200);assert.equal((await request('?action=media&id='+id)).status,404);
  assert.equal((await request('',{...draft,position:[999,0,999],etag:(await hide.json()).etag},cookie)).status,400);
+ const current=(await (await request('?admin=1',null,cookie)).json())[0];
+ assert.equal((await request('?action=delete',{id,etag:current.etag})).status,401);
+ assert.equal((await request('?action=delete',{id,etag:current.etag},cookie,{Origin:'https://foreign.example'})).status,403);
+ assert.equal((await request('?action=delete',{id:'../../records/other'},cookie)).status,400);
+ assert.equal((await request('?action=delete',{id,etag:saved.etag},cookie)).status,409);
+ assert.equal(deletions.length,0,'rejected requests must not remove any files');
+ // Publish before interruption to prove deletion revokes all public access first.
+ const visible=await (await request('',{...draft,published:true,etag:current.etag},cookie)).json();
+ failNextDelete=true;
+ assert.equal((await request('?action=delete',{id,etag:visible.etag},cookie)).status,502);
+ assert.deepEqual(await (await request()).json(),[]);
+ assert.equal((await request('?action=media&id='+id,null,cookie)).status,404);
+ const pending=(await (await request('?admin=1',null,cookie)).json())[0];assert.ok(pending.deleting);assert.equal(pending.published,false);
+ assert.equal((await request('',{...draft,published:true,etag:pending.etag},cookie)).status,409,'deleting records cannot be republished');
+ assert.equal((await request('?action=delete',{id,etag:pending.etag,mediaPath:'media/do-not-delete'},cookie)).status,200);
+ assert.deepEqual(deletions.map(d=>d.path),[draft.mediaPath,draft.mediaPath,`records/${id}.json`],'only the server-owned media path and record are deleted');
+ assert.deepEqual(await (await request('?admin=1',null,cookie)).json(),[]);
+ assert.equal((await request('?action=media&id='+id)).status,404);
+ assert.equal((await request('',{...draft,etag:pending.etag},cookie)).status,409,'a stale editor cannot recreate a deleted record');
+ assert.equal((await request('?action=delete',{id,etag:pending.etag},cookie)).status,200,'retry after successful deletion is harmless');
+ assert.equal(deletions.length,3);
 });
 
 test('memory records reject foreign paths and impossible locations, and normalize dates safely',()=>{
