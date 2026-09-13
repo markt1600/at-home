@@ -7,7 +7,7 @@ export function optimizeHouse(world){
  const groups=new Map(),originals=[],records=[];world.houseRoot.updateMatrixWorld(true);const inverseRoot=world.houseRoot.matrixWorld.clone().invert();
  world.houseRoot.traverse(o=>{
   if(!o.isMesh||Array.isArray(o.material))return;
-  for(let p=o;p;p=p.parent)if(p===world.door)return;
+  for(let p=o;p;p=p.parent)if(p===world.door||p.userData.dynamic)return;
   const geometry=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();
   if(o.material.userData.textureMeters)scaleMaterialUVs(geometry,o.material.userData.textureMeters);
   geometry.applyMatrix4(inverseRoot.clone().multiply(o.matrixWorld));

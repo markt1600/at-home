@@ -1,7 +1,7 @@
 import {createHmac,randomBytes,timingSafeEqual,createHash} from 'node:crypto';
 const COOKIE='at_home_editor';
 const equal=(a,b)=>timingSafeEqual(createHash('sha256').update(a).digest(),createHash('sha256').update(b).digest());
-export function configured(env=process.env){return typeof env.MEMORY_ADMIN_PASSWORD==='string'&&env.MEMORY_ADMIN_PASSWORD.length>=16;}
+export function configured(env=process.env){return typeof env.MEMORY_ADMIN_PASSWORD==='string'&&env.MEMORY_ADMIN_PASSWORD.length>=6;}
 export function passwordMatches(value,env=process.env){return configured(env)&&typeof value==='string'&&equal(value,env.MEMORY_ADMIN_PASSWORD);}
 const sign=(text,env)=>createHmac('sha256',env.MEMORY_ADMIN_PASSWORD).update(text).digest('base64url');
 export function createSession(env=process.env,now=Date.now()){

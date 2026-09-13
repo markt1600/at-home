@@ -42,7 +42,7 @@ Use the new [agent prompt and first message](docs/ELEVENLABS.md). The previous g
 
 No browser text-to-speech fallback is used. If generated speech is unavailable, all neighbor conversations remain readable. Connecting Voice is always an explicit microphone action.
 
-For cloud memories, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 16 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The memory studio is at `/admin`. See [storage and administration](docs/MEMORIES.md).
+For cloud memories, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 6 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The memory studio is at `/admin`. See [storage and administration](docs/MEMORIES.md).
 
 ## Memories and source material
 

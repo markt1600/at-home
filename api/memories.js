@@ -16,7 +16,7 @@ export function createMemoryHandler({storage={get,put,list,head},env=process.env
    if(req.method==='GET'&&action==='session')return res.status(200).json({authenticated:admin,configured:configured(env),storage:!!(env.BLOB_READ_WRITE_TOKEN||env.BLOB_STORE_ID)});
    if(req.method!=='GET'&&!sameOrigin(req))return res.status(403).json({error:'Origin not allowed'});
    if(req.method==='POST'&&action==='login'){
-    if(!configured(env))return res.status(503).json({error:'Set MEMORY_ADMIN_PASSWORD (at least 16 characters) in this Vercel project, then redeploy.'});
+    if(!configured(env))return res.status(503).json({error:'Set MEMORY_ADMIN_PASSWORD (at least 6 characters) in this Vercel project, then redeploy.'});
     const ip=String(req.headers['x-forwarded-for']||req.socket?.remoteAddress||'unknown').split(',')[0],t=now();
     if(attempts.size>2000)for(const [key,r] of attempts)if(t-r.since>900000)attempts.delete(key);
     const r=attempts.get(ip)||{since:t,count:0};if(t-r.since>900000){r.since=t;r.count=0;}r.count++;attempts.set(ip,r);

@@ -8,6 +8,7 @@ import {buildHallwayGallery} from './house-gallery.js';
 import {buildMasterBathroom,buildPowderBathroom} from './house-bathrooms.js';
 import {buildHomeFurnishings} from './home-furnishings.js';
 import {buildDiningDetails} from './dining-details.js';
+import {buildClawMachine} from './claw-machine.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -96,9 +97,9 @@ export function buildHouse(world){
  // Photo-confirmed full-height shoe enclosure: opaque backing, inward-facing oak doors.
  C(953,704,1.52,2.495,.45,'oak',-Math.PI*3/4,.45);
  C(972,670,.77,2.495,.45,'oak',-Math.PI/2,.45);
- C(950,651,.49,.65,.42,'oak',0,.45);B(950,646,.35,1.14,.035,1.77,'white');plant(...P(950,651),1.11,.35);
+ C(950,651,.49,.65,.42,'oak',0,.45);plant(...P(950,651),1.11,.35);
  B(951,646,.81,.38,.04,2.67,'black');for(let i=0;i<8;i++)B(951,647,.82,.021,.055,2.52+i*.043,'oak');
- T('records',749,644,1.31,'Read the entry notebook');T('radio',910,741,1.78,'House intercom');B(910,741,.24,.16,.035,1.78,'black',-Math.PI/4);
+ T('records',749,644,1.31,'Read the entry notebook');T('radio',913.66,744.34,1.78,'House intercom');B(913.66,744.34,.24,.16,.035,1.78,'black',-Math.PI/4);
  const [dx,dz]=P(...FRONT_DOOR.center);world.targets.push({id:'door',pos:new THREE.Vector3(dx,1.9,dz),name:'Front door'},{id:'post',pos:new THREE.Vector3(dx,1.9,dz),name:'Begin the night at the front door',explorationOnly:true});
  // 1,210 x 690 mm office desk, 570 mm cabinets and the blue chair from the video.
  C(967,554,1.355,2.48,.57,'sage',-Math.PI/2,.75);B(869,566,.69,.04,1.21,1.5,'oak');block(...P(869,566),.69,1.21);B(861,566,.07,.47,.7,1.78,'black');B(862,566,.009,.39,.61,1.79,new THREE.MeshBasicMaterial({color:0x273a33}));
@@ -107,6 +108,10 @@ export function buildHouse(world){
  // The east sofa occupies the seating ledge, with its back meeting x=611,
  // the wine-cellar walkway. x=562 is the ledge's front edge, not its back.
  S(591,591,118/scale,-Math.PI/2,'orange',.315);S(406,550,2.75,0);buildLivingAudioShelf(world,root,materials);B(436,620,4.8,.012,3.55,.014,0xc0b69e);
+ // Continuous L-shaped return from the east sofa to the north stair jamb.
+ // Its end meets the existing sofa front; the two seat volumes do not overlap.
+ S(542.4,551.9,56.8/scale,0,'orange',.315);
+ B(542.4,551.9,56.8/scale,.45,1.03,.225,'marble');
  // The east landing is already a solid volume. The north plinth stops 5 mm
  // below the upholstery, so their side faces never occupy the same plane.
  B(406,549,2.77,.135,1.04,.0675,'marble');
@@ -145,8 +150,8 @@ export function buildHouse(world){
  for(const x of [-.9,0,.9]){chair(dtx+x,dtz-.94,0,.45);chair(dtx+x,dtz+.94,Math.PI,.45);for(let j=0;j<3;j++)cyl(.33-j*.055,.3-j*.055,.1,dtx+x,2.73-j*.1,dtz,0xad7b38);light(dtx+x,2.35,dtz,0xffbd75,6);}
  buildDiningDetails(world,root,materials);
  // Outdoor balcony planting and the covered barbecue beyond the dining sliders.
- plant(...P(239,654),0,.75);
- const [btx,btz]=P(272,666);cyl(.28,.28,.035,btx,.58,btz,'steel');cyl(.045,.065,.56,btx,.28,btz,'black');block(btx,btz,.58,.58);
+ plant(...P(239,590),0,.75);
+ const [btx,btz]=P(276,576);cyl(.28,.28,.035,btx,.58,btz,'steel');cyl(.045,.065,.56,btx,.28,btz,'black');block(btx,btz,.58,.58);
  const [bbx,bbz]=P(266,780);soft(.71,1.12,1.1,bbx,1.02,bbz,'black');block(bbx,bbz,.74,1.13);plant(...P(281,859),.45,.65);
  // Kitchen dimensions and finishes from sheets 50-56: 900 mm worktops, 600 mm depth.
  C(536,773,2.364,.855,.6,'oak',Math.PI/2,.45);B(536,773,.65,.045,2.414,1.3275,'marble');
@@ -195,12 +200,7 @@ export function buildHouse(world){
  const [cofx,cofz]=P(388,294);box(1.25,.03,.72,cofx,1.14,cofz,'glass');soft(.6,.2,.42,cofx,1.01,cofz,'walnut');block(cofx,cofz,1.25,.72,0,1.155);
  const [lcx,lcz]=P(448,322);soft(.74,.18,.68,lcx,1.22,lcz,'black');soft(.74,.8,.13,lcx,1.63,lcz-.3,'black').rotation.x=-.25;soft(.64,.18,.46,lcx,1.12,lcz+.87,'black');block(lcx,lcz,.83,1.7);
  const [ttx,ttz]=P(388,250);cyl(.034,.034,1.15,ttx,1.3,ttz,'steel');cyl(.11,.1,.78,ttx,2.05,ttz,'cream').rotation.x=.9;for(let i=0;i<3;i++){const leg=cyl(.014,.014,1.1,ttx+Math.cos(i*2.1)*.25,1.17,ttz+Math.sin(i*2.1)*.25,'black');leg.rotation.z=Math.cos(i*2.1)*.5;}block(ttx,ttz,.72,.72);plant(...P(359,213),.75,1.2);
- // The photographed arcade unit is on the lounge side of the return wall,
- // leaving the framed drawing and the cabinet-side passage unobstructed.
- const [px,pz]=P(483,446),arcadeGlow=new THREE.MeshStandardMaterial({color:0xadd8ff,emissive:0x4394de,emissiveIntensity:.9});
- box(.74,.28,.65,px,.89,pz,'white');
- for(let j=0;j<2;j++){const base=1.03+j*.82;box(.74,.2,.65,px,base+.1,pz,'white');box(.68,.58,.58,px,base+.49,pz,'glass');for(const dx of [-.35,.35])for(const dz of [-.3,.3])box(.025,.61,.025,px+dx,base+.49,pz+dz,arcadeGlow);box(.74,.045,.65,px,base+.8,pz,'white');for(let i=0;i<5;i++)sphere(.065,px+Math.sin(i*2.4)*.2,base+.29,pz+Math.cos(i*2.4)*.15,i%2?'cream':'blue',root,1,1.1,.8);box(.13,.08,.025,px,base+.1,pz+.34,'black');}
- block(px,pz,.76,.68);
+ buildClawMachine(world,root,materials);
  addHouseDetails(world,root,materials);
  buildPowderBathroom(world,root,materials);
  // Downlights follow rooms and their ceiling heights; moonlight enters the bays.

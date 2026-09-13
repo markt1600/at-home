@@ -23,7 +23,7 @@ On Vercel, sign in using the project's editor password. Add a JPG, PNG, WebP, MP
 
 ## Deployment configuration
 
-Connect a **private** Blob store to the At Home Vercel project and enable its read-write token. Vercel supplies `BLOB_READ_WRITE_TOKEN`. Set a separate `MEMORY_ADMIN_PASSWORD` with at least 16 characters for each environment where editing is required, then redeploy. Neither value is public or uses a `VITE_` prefix. Password changes invalidate existing editor sessions.
+Connect a **private** Blob store to the At Home Vercel project and enable its read-write token. Vercel supplies `BLOB_READ_WRITE_TOKEN`. Set a separate `MEMORY_ADMIN_PASSWORD` with at least 6 characters for each environment where editing is required, then redeploy. Neither value is public or uses a `VITE_` prefix. Password changes invalidate existing editor sessions.
 
 `api/memory-upload.js` authorizes uploads with constrained paths, content types and file sizes. `api/memories.js` manages metadata and proxies private media, including video range requests. Editor sessions last eight hours in HttpOnly, SameSite=Strict cookies, secure on Vercel. Updates use Blob ETags to reject conflicting edits. Login retry throttling is per function instance, not a shared global rate limiter.
 

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createServer} from 'node:http';
 import {createMemoryHandler} from '../api/memories.js';
-import {createSession,authenticated} from '../server/memory-auth.js';
+import {createSession,authenticated,configured,passwordMatches} from '../server/memory-auth.js';
 import {validateRecord,validMediaPath} from '../server/memory-record.js';
 import {cleanMemoryMetadata} from '../src/memory-metadata.js';
 import {planPoint} from '../src/house-layout.js';
@@ -11,6 +11,10 @@ const env={MEMORY_ADMIN_PASSWORD:'test-only-password-with-32-letters',BLOB_READ_
 const id='381b4dbd-5e89-4cd7-9a61-5d0c339b0cf2';
 const [x,z]=planPoint(507,620);
 const draft={id,title:'A quiet afternoon',description:'A test moment',date:'',position:[x,0,z],mediaPath:`media/${id}/video.mp4`,published:false};
+
+test('the editor accepts the owner-selected six-character password without accepting missing credentials',()=>{
+ const short={MEMORY_ADMIN_PASSWORD:'abc123'};assert.ok(configured(short));assert.ok(passwordMatches('abc123',short));assert.ok(!passwordMatches('wrong!',short));assert.ok(!configured({}));
+});
 
 test('editor sessions reject tampering, expiration and changed passwords',()=>{
  const now=1700000000000,token=createSession(env,now),req={headers:{cookie:'at_home_editor='+token}};

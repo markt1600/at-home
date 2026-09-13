@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint} from './house-layout.js';
+import {buildOliveTree} from './olive-tree.js';
+import {buildBalconyWallDetails} from './balcony-wall-details.js';
 
 export const FEEDER_PLAN=[278,679];
 export function buildHomeFurnishings(world,root,m){
@@ -10,33 +12,29 @@ export function buildHomeFurnishings(world,root,m){
  const sphere=(g,r,x,y,z,mat,sx=1,sy=1,sz=1)=>world.sphere(r,x,y,z,mat,g,sx,sy,sz);
  const rod=(g,a,b,r,mat)=>{const p=new THREE.Vector3(...a),q=new THREE.Vector3(...b),d=q.clone().sub(p),mesh=world.cyl(r,r,d.length(),...p.add(q).multiplyScalar(.5).toArray(),mat,g,10);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());return mesh;};
  const block=(g,w,d,top)=>world.colliders.push({x:g.position.x,z:g.position.z,w,d,angle:g.rotation.y,top:g.position.y+top,landable:true});
- // The photographed cream bubble sofa sits in front of the balcony, facing east.
+ // Its back faces the dining shelf; the seats face the north orange sofa.
  const fabric=world.mat(0xe4decb,.97);m.boucle=fabric;fabric.userData.textureMeters=.09;
- const couch=group('White tufted living sofa',391,628,0,Math.PI/2);
+ const couch=group('White tufted living sofa',417,646,0,Math.PI);
  for(let i=0;i<9;i++){const x=(i-4)*.285;soft(couch,.32,.38,1.02,x,.27,0,fabric,.13);soft(couch,.32,.24,.81,x,.49,.08,fabric,.11);soft(couch,.32,.58,.30,x,.72,-.4,fabric,.13);}
  soft(couch,.3,.44,1.04,-1.24,.51,0,fabric,.14);soft(couch,.3,.44,1.04,1.24,.51,0,fabric,.14);
  soft(couch,.58,.56,.18,-.62,.85,-.12,m.blue).rotation.z=-.12;
  soft(couch,.57,.6,.18,.79,.89,-.10,m.cream).rotation.z=.11;
  const bolster=world.cyl(.12,.12,1.38,-.1,.67,.16,m.orange,couch,24);bolster.rotation.z=Math.PI/2;
  block(couch,2.78,1.09,.61);
- const ottoman=group('Tufted white ottoman',408,590);
+ const ottoman=group('Tufted white ottoman',355,618);
  for(let i=0;i<3;i++)for(let j=0;j<3;j++)soft(ottoman,.34,.46,.34,(i-1)*.30,.24,(j-1)*.30,fabric,.12);block(ottoman,1.0,1.0,.48);
- const table=group('Brown coffee table and wooden Monopoly',457,631);
- const top=soft(table,1.55,.18,1.13,0,.34,0,m.walnut,.09);top.rotation.y=.10;
- soft(table,1.23,.28,.82,0,.15,0,m.walnut,.12);block(table,1.64,1.23,.44);
+ const table=group('Oval brown coffee table and wooden Monopoly',421,596);
+ // Revolved, rounded profile scaled to an ellipse: no rectangular corners.
+ const profile=[[0,0],[.60,0],[.88,.035],[1,.105],[.99,.155],[.90,.185],[0,.185]].map(p=>new THREE.Vector2(...p));
+ const top=new THREE.Mesh(new THREE.LatheGeometry(profile,64),m.walnut);top.scale.set(.84,1,.59);top.position.y=.25;top.castShadow=top.receiveShadow=true;table.add(top);
+ const base=world.cyl(.52,.46,.26,0,.13,0,m.walnut,table,48);base.scale.z=.72;block(table,1.68,1.18,.435);
  const boardMat=world.mat(0x604133,.48);m.monopolyBoard=boardMat;
  soft(table,.74,.095,.74,0,.482,0,m.walnut,.025);
  box(table,.69,.008,.69,0,.533,0,boardMat);
  for(const sx of [-1,1]){box(table,.022,.018,.72,sx*.36,.545,0,m.oak);box(table,.70,.018,.022,0,.545,sx*.36,m.oak);}
  const board=new THREE.Mesh(new THREE.PlaneGeometry(.685,.685),boardMat);board.rotation.x=-Math.PI/2;board.position.y=.544;table.add(board);
- // Y-shaped olive tree, with forked old bark and fine silver-green leaves.
- const tree=group('Y-shaped balcony olive tree',260,610),bark=world.mat(0x777564,.92),leaf=world.mat(0x687b58,.8),silver=world.mat(0x8c9977,.85);
- m.oliveBark=bark;
- world.cyl(.40,.32,.57,0,.285,0,world.mat(0x535952,.72),tree,40);world.cyl(.365,.365,.012,0,.58,0,world.mat(0x353329),tree,40);
- rod(tree,[0,.55,0],[.02,1.32,.01],.115,bark);rod(tree,[.02,1.15,0],[-.37,1.94,-.1],.072,bark);rod(tree,[.01,1.20,0],[.39,2.02,.10],.066,bark);
- sphere(tree,.145,0,.66,0,bark,1.05,1.55,.97);sphere(tree,.10,.012,1.22,0,bark,1.10,1.30,.9);
- for(let i=0;i<24;i++){const a=i*2.4,side=i%2?1:-1,from=[side*.29,1.68+(i%3)*.1,side*.075],end=[side*.35+Math.cos(a)*.48,1.72+(i%5)*.16,Math.sin(a)*.47];rod(tree,from,end,.008,bark);for(let j=0;j<9;j++){const t=j/9,aa=a+j*2.4;const l=sphere(tree,.034,end[0]*t+from[0]*(1-t)+Math.cos(aa)*.075,end[1]*t+from[1]*(1-t),end[2]*t+from[2]*(1-t)+Math.sin(aa)*.075,j%2?leaf:silver,.47,.17,1.8);l.rotation.y=aa;}}
- world.colliders.push({x:tree.position.x,z:tree.position.z,w:.8,d:.8});
+ buildOliveTree(world,root,m);
+ buildBalconyWallDetails(world,root,m);
  const feeder=group('Hanging balcony bird feeder',...FEEDER_PLAN);
  const feederRed=world.mat(0x814238,.5);
  rod(feeder,[0,2.89,0],[0,2.66,0],.005,m.black);
@@ -70,9 +68,11 @@ export function buildHomeFurnishings(world,root,m){
  world.colliders.push({x:sculpture.position.x,z:sculpture.position.z,w:.67,d:.47});
  // Clean artwork surfaces use only the extracted paintings, never private rooms.
  const picture=(key,px,pz,y,w,h,a=0)=>{const g=group(key,px,pz,y,a);box(g,w+.14,h+.14,.035,0,0,0,m.oak);box(g,w+.10,h+.10,.009,0,0,.024,m.cream);const mat=world.mat(key==='artBay'?0x6c91a4:key==='artTickets'?0x397969:0xe1d5bc,.92);m[key]=mat;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);mesh.position.z=.031;g.add(mesh);};
- picture('artBay',910,741,2.1,.56,.37,-Math.PI/4);
- picture('artTickets',882,635.5,2.18,.62,.69);
- picture('artCats',949,637.5,2.08,.53,.49);
+ // Keep each full frame within its wall run, 104 mm off the wall centreline.
+ // The narrow diagonal return is only 623 mm wide, including plaster.
+ picture('artBay',913.66,744.34,2.12,.44,.30,-Math.PI/4);
+ picture('artTickets',882,636.02,2.18,.62,.69);
+ picture('artCats',961,646.02,1.99,.53,.49);
  const disc=group('Round white wall relief',851,635.5,2.18);const rim=new THREE.Mesh(new THREE.CircleGeometry(.25,48),m.white);disc.add(rim);sphere(disc,.095,0,0,.01,m.blue,1,1,.5);
 }
 
