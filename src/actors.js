@@ -62,7 +62,8 @@ export function createActor(id,height,f,motionFraming={}){
   const frameHeight=mat.map===film.texture&&calibration?calibration.bodyHeight:f.bodyHeight,scale=f.bodyHeight/frameHeight;
   if(fromAbove){
    // These are real overhead films, laid along the pet's travel direction.
-   const length=height*(id==='sunny'?2.3:id==='miso'?2.0:2.1),occupied=calibration?.height?calibration.bodyHeight/calibration.height:.9;
+   // Match the apparent size of the upright views when the camera tips down.
+   const length=height*(id==='sunny'?2.3:id==='miso'?2.0:2.1)*.8,occupied=calibration?.height?calibration.bodyHeight/calibration.height:.9;
    const size=length/(height*f.height/f.bodyHeight*occupied);body.scale.set(size,size,1);body.position.set(0,height*.36,0);
    body.rotation.set(-Math.PI/2,(g.userData.heading||0)-g.rotation.y,0,'YXZ');
   }else{
