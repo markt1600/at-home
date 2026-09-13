@@ -58,9 +58,10 @@ export const EXTERIOR_OPENINGS=[
  opening('meditation-window',[560,135],.5,1.6,1.45,'window'),
  opening('bath-window',[909,135],.5,1.6,1.45,'window'),
  opening('powder-window',[299,441.5],.44,1.65,1.45,'window'),
- opening('theatre-window-north',[399,181],2.15,2.15,1.1,'window'),
- opening('theatre-window-angle',[324.5,206.5],1.55,2.15,1.1,'window'),
- opening('theatre-window-west',[299,282],2.35,2.15,1.1,'window'),
+ opening('theatre-window-north',[399,181],2.45,1.79,1.63,'window'),
+ opening('theatre-window-angle',[324.5,206.5],1.78,1.79,1.63,'window'),
+ opening('theatre-window-west',[299,282],2.49,1.79,1.63,'window'),
+ opening('theatre-window-northeast',[462,194.5],.92,1.79,1.63,'window'),
  opening('lobby-window',[1002,738],1.35,1.9,1,'window'),
  opening('lobby-exit',[1002,792],.9,2.13,.45,'closed'),
  opening('yard-exit',[826,883],.9,2.13,.45,'closed'),
@@ -124,7 +125,7 @@ export function buildArchitecture(world,root,materials){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
-   const frame=a.kind==='sliding'?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
+   const frame=a.kind==='sliding'||a.id.startsWith('theatre-window')?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
    for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed','lift'].includes(a.kind)){

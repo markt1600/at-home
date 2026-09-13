@@ -1,16 +1,20 @@
 import './admin.css';
 import {upload} from '@vercel/blob/client';
-import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,removeLocalMemory} from './memories.js';
+import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,saveLocalSoundtrack,removeLocalMemory} from './memories.js';
 import {cleanMemoryMetadata,formatMemoryDate} from './memory-metadata.js';
 import {memoryMedia,releaseMemoryUrls,validateMemoryFiles} from './memory-media.js';
 import {mountMemoryFloorPlan} from './memory-placement.js';
 import {mountMusicLibrary} from './music-admin.js';
+import {AUDIO_ACCEPT,audioExtension,audioContentType} from './audio-formats.js';
+import {validateSoundtrack} from './memory-soundtrack.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[];
-let libraryQuery='',libraryFilter='all';
-function clearFile(){pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
+let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined;
+function soundtrackPicker(m){return `<div class="memory-soundtrack" data-audio-drop><h3>Memory soundtrack <small>Optional</small></h3><p class="fine">A song plays continuously while the photos cycle. House audio pauses until you return. For mixed albums, it replaces video audio too.</p>${m?.soundtrack?`<p>${esc(m.soundtrack.title)}</p><audio controls preload="none" src="${esc(m.soundtrack.src)}"></audio>`:''}<label>Drop a song here or choose audio<input name="soundtrack" type="file" accept="${AUDIO_ACCEPT}"></label><p class="fine">MP3, M4A/AAC, WAV, Ogg/Opus, FLAC or WebM audio · Up to 100 MB</p><p id="soundtrack-selection" role="status"></p><button type="button" data-action="remove-soundtrack">No soundtrack</button></div>`;}
+function selectSoundtrack(files){if(files.length!==1)throw Error('Choose one song for this memory.');pendingSoundtrack=validateSoundtrack(files[0]);root.querySelector('#soundtrack-selection').textContent=pendingSoundtrack.name+' — ready to save';status('Soundtrack ready. Save the memory to attach it.');}
+function clearFile(){pendingSoundtrack=undefined;pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
 async function api(path='',body){
  const r=await fetch('/api/memories'+path,{...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{}),credentials:'same-origin'});
  let data;try{data=await r.json();}catch{throw Error('Cloud storage is available on the Vercel deployment. Local editing still works here.');}
@@ -41,11 +45,12 @@ const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-s
 const spotPicker=(edit=false)=>`<label>Start from a familiar spot<select name="placement">${edit?'<option value="keep">Keep current location</option>':''}${locations()}<option value="custom" hidden>Custom spot on floor plan</option></select></label><div id="floor-plan"></div>`;
 function editorContent(m){
  if(m?.deleting)return `<div class="empty"><h2>${esc(m.title)}</h2><p>This memory is hidden while deletion finishes. Retry to remove the remaining stored files.</p><button type="button" class="danger" data-action="delete">Delete memory</button></div>`;
- if(selected==='new')return `<h2>A new memory</h2><form id="new-memory">${dropzone()}<label>Title<input name="title" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date"></label><label>Description<textarea name="description" rows="3" maxlength="1600"></textarea></label>${spotPicker()}<p class="fine">MP4 gives the widest video playback support.</p><button class="primary">${session.authenticated?'Upload as private draft':'Save on this device'}</button><progress id="progress" max="100" value="0" hidden></progress></form>`;
+ if(selected==='new')return `<h2>A new memory</h2><form id="new-memory">${dropzone()}<label>Title<input name="title" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date"></label><label>Description<textarea name="description" rows="3" maxlength="1600"></textarea></label>${soundtrackPicker()}${spotPicker()}<p class="fine">MP4 gives the widest video playback support.</p><button class="primary">${session.authenticated?'Upload as private draft':'Save on this device'}</button><progress id="progress" max="100" value="0" hidden></progress></form>`;
  if(!m)return `<div class="empty" data-dropzone><span>✧</span><h2>Make a moment your own.</h2><p>Select a memory to edit its story, or drop a photo or video here to start.</p><button type="button" data-action="new">Choose a photo or video</button></div>`;
- return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${memoryMedia(m)[0].type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><div class="album-strip">${memoryMedia(m).map((a,i)=>`<div>${a.type==='video'?'<span>▷</span>':`<img src="${esc(a.src)}" alt="Photo ${i+1}" loading="lazy">`}<small>${i+1}</small></div>`).join('')}</div><div class="append-photos" data-dropzone><strong>Add photos to this memory</strong><p class="fine">Drop more photos here, or select them below. They will be added to the slideshow when you save.</p><label>Choose additional photos<input name="append-photos" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><div id="file-selection" role="status"></div></div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
+ return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${memoryMedia(m)[0].type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><div class="album-strip">${memoryMedia(m).map((a,i)=>`<div>${a.type==='video'?'<span>▷</span>':`<img src="${esc(a.src)}" alt="Photo ${i+1}" loading="lazy">`}<small>${i+1}</small></div>`).join('')}</div><div class="append-photos" data-dropzone><strong>Add photos to this memory</strong><p class="fine">Drop more photos here, or select them below. They will be added to the slideshow when you save.</p><label>Choose additional photos<input name="append-photos" type="file" multiple accept="image/jpeg,image/png,image/webp"></label><div id="file-selection" role="status"></div></div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${soundtrackPicker(m)}${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
 }
 function render(){
+ root.querySelectorAll('audio,video').forEach(media=>media.pause());
  const m=items.find(m=>m.id===selected);floorPlan=null;
  root.innerHTML=`<header><a href="/">At Home.</a><span>Memory studio</span>${session.authenticated?'<button data-action="logout">Sign out</button>':''}</header><main><section class="intro"><p class="eyebrow">Keep the moments that matter</p><h1>A house full of memories.</h1><p>Drop in a photo or video, tell its story, and pin the place on your floor plan.</p></section><p role="status" id="status">${esc(message)}</p>
  ${!session.authenticated?`<section class="connection"><div><h2>Cloud memories</h2><p>${session.configured?'Sign in to upload and edit memories across devices.':session.storage?'Your private store is connected. Set MEMORY_ADMIN_PASSWORD in the At Home Vercel project to enable the editor.':'Local editing is available now. Open this editor on the Vercel deployment for cloud storage.'}</p></div><form id="login"><label>Editor password<input type="password" name="password" autocomplete="current-password" required></label><button>Sign in</button></form></section>`:'<p class="connection-note">Private storage connected · New uploads start as drafts. Published memories are visible to anyone who can open the game.</p>'}
@@ -63,14 +68,14 @@ function selectFiles(input){
  const m=items.find(m=>m.id===selected),append=!!m;
  const files=validateMemoryFiles(input,{photosOnly:append,existing:append?memoryMedia(m).length:0});
  if(!append&&selected!=='new'){clearFile();selected='new';render();}
- clearFile();pendingFiles=files;filePreviews=files.map(file=>URL.createObjectURL(file));
+ for(const url of filePreviews)URL.revokeObjectURL(url);pendingFiles=files;filePreviews=files.map(file=>URL.createObjectURL(file));
  document.querySelector('#file-selection').innerHTML=`<div class="album-strip">${files.map((file,i)=>`<div>${file.type.startsWith('video/')?'<span>▷</span>':`<img src="${esc(filePreviews[i])}" alt="Selected photo ${i+1}">`}<small>${esc(file.name)}</small></div>`).join('')}</div><p>${files.length} ${append?'additional ':''}item${files.length===1?'':'s'} ready to save.</p>`;
  const title=document.querySelector('#new-memory input[name="title"]');if(title&&!title.value)title.value=files[0].name.replace(/\.[^.]+$/,'').slice(0,100);
  status(append?'Photos ready. Save changes to add them to this memory.':'Files ready. Add their story and choose a spot on the floor plan.');
 }
-root.addEventListener('dragover',e=>{const zone=e.target.closest('[data-dropzone]');if(!zone)return;e.preventDefault();if(!busy){e.dataTransfer.dropEffect='copy';zone.classList.add('drag-over');}});
-root.addEventListener('dragleave',e=>{const zone=e.target.closest('[data-dropzone]');if(zone&&!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');});
-root.addEventListener('drop',e=>{const zone=e.target.closest('[data-dropzone]');if(!zone)return;e.preventDefault();zone.classList.remove('drag-over');if(busy)return;try{selectFiles(e.dataTransfer.files);}catch(error){status(error.message);}});
+root.addEventListener('dragover',e=>{const zone=e.target.closest('[data-dropzone],[data-audio-drop]');if(!zone)return;e.preventDefault();if(!busy){e.dataTransfer.dropEffect='copy';zone.classList.add('drag-over');}});
+root.addEventListener('dragleave',e=>{const zone=e.target.closest('[data-dropzone],[data-audio-drop]');if(zone&&!zone.contains(e.relatedTarget))zone.classList.remove('drag-over');});
+root.addEventListener('drop',e=>{const zone=e.target.closest('[data-dropzone],[data-audio-drop]');if(!zone)return;e.preventDefault();zone.classList.remove('drag-over');if(busy)return;try{if(zone.hasAttribute('data-audio-drop'))selectSoundtrack(e.dataTransfer.files);else selectFiles(e.dataTransfer.files);}catch(error){status(error.message);}});
 // Prevent accidental navigation away from an unsaved form when a file misses the zone.
 window.addEventListener('dragover',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault();});
 window.addEventListener('drop',e=>{if([...e.dataTransfer.types].includes('Files'))e.preventDefault();});
@@ -79,7 +84,8 @@ root.addEventListener('change',e=>{
  if(e.target.closest('#music-studio'))return;
  if(busy)return;try{
   if(e.target.name==='library-filter'){libraryFilter=e.target.value;renderLibrary();}
-  if(e.target.matches('input[type="file"]')&&e.target.files.length)selectFiles(e.target.files);
+  if(e.target.name==='soundtrack'&&e.target.files.length)selectSoundtrack(e.target.files);
+  else if(e.target.matches('input[type="file"]')&&e.target.files.length)selectFiles(e.target.files);
   if(e.target.matches('select[name="placement"]')){const id=e.target.value,m=items.find(m=>m.id===selected);if(id==='keep'&&m)floorPlan.setPosition(m.position);else if(id!=='custom')floorPlan.setPosition(placedMemory(MEMORY_PLACEMENTS.find(p=>p.id===id)).position);}
  }catch(error){status(error.message);}
 });
@@ -93,13 +99,20 @@ async function uploadPhotos(files,id,existingCount=0){
  }
  return paths;
 }
-async function cloudUpload(files,meta,position){
+async function uploadSoundtrack(file,id){
+ if(file===undefined)return {};if(file===null)return {soundtrackPath:null};validateSoundtrack(file);
+ const path=`soundtracks/${id}/${crypto.randomUUID()}.${audioExtension(file.name)}`;status('Uploading memory soundtrack…');
+ await upload(path,file,{access:'private',handleUploadUrl:'/api/memory-upload',multipart:true,contentType:audioContentType(file.name)});
+ return {soundtrackPath:path,soundtrackTitle:file.name.replace(/\.[^.]+$/,'').slice(0,100)};
+}
+async function cloudUpload(files,meta,position,soundtrack=pendingSoundtrack){
  const id=crypto.randomUUID(),addMediaPaths=await uploadPhotos(files,id);
- const saved=await api('',{id,...meta,position,addMediaPaths,published:false});selected=saved.id;status('Saved to the cloud as a private draft.');
+ const audio=await uploadSoundtrack(soundtrack,id);const saved=await api('',{id,...meta,position,addMediaPaths,...audio,published:false});selected=saved.id;status('Saved to the cloud as a private draft.');
 }
 root.addEventListener('click',async e=>{
  if(e.target.closest('#music-studio'))return;
  const b=e.target.closest('button');if(!b||busy)return;try{
+  if(b.dataset.action==='remove-soundtrack'){pendingSoundtrack=null;root.querySelector('[name=soundtrack]').value='';root.querySelector('.memory-soundtrack audio')?.pause();root.querySelector('#soundtrack-selection').textContent='No soundtrack — save to apply';return;}
   if(b.dataset.action==='refresh'){clearFile();lock(true);message='';await refresh();return;}
   if(b.dataset.action==='delete'){
    const m=items.find(m=>m.id===selected);if(!m||!await confirmDelete(m))return;lock(true);
@@ -110,7 +123,7 @@ root.addEventListener('click',async e=>{
   if(b.dataset.id){clearFile();selected=b.dataset.id;message='';render();return;}
   if(b.dataset.action==='new'){clearFile();selected='new';message='';render();return;}
   if(b.dataset.action==='logout'){clearFile();lock(true);await api('?action=logout',{});selected=null;await refresh();}
-  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const files=[];for(const a of memoryMedia(m)){if(a.file)files.push(a.file);else{const r=await fetch(a.src);if(!r.ok)throw Error('Could not read an original file');files.push(await r.blob());}}files.push(...pendingFiles);await cloudUpload(files,meta,position);clearFile();await refresh();}
+  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const files=[];for(const a of memoryMedia(m)){if(a.file)files.push(a.file);else{const r=await fetch(a.src);if(!r.ok)throw Error('Could not read an original file');files.push(await r.blob());}}files.push(...pendingFiles);await cloudUpload(files,meta,position,pendingSoundtrack===undefined?m.soundtrackFile:pendingSoundtrack);clearFile();await refresh();}
  }catch(error){status(error.message);}finally{lock(false);}
 });
 root.addEventListener('submit',async e=>{
@@ -122,9 +135,9 @@ root.addEventListener('submit',async e=>{
   if(form.id==='new-memory'){
    const files=pendingFiles;if(!files.length)throw Error('Choose or drop photos or a video first.');
    if(session.authenticated)await cloudUpload(files,meta,position);
-   else{const added=await addLocalMemory(files,{position,description:meta.description},meta.title);await saveLocalMetadata(added.id,{...meta,position});releaseMemoryUrls(added);selected=added.id;status('Saved on this device.');}
-  }else if(m.cloud){const addMediaPaths=pendingFiles.length?await uploadPhotos(pendingFiles,m.id,memoryMedia(m).length):[];await api('',{id:m.id,etag:m.etag,...meta,position,addMediaPaths,published:fields.has('published')});status('Changes saved to the cloud.');}
-  else{if(pendingFiles.length)await appendLocalPhotos({...m,position},pendingFiles);await saveLocalMetadata(m.id,{...meta,position});status('Changes saved on this device.');}
+   else{const added=await addLocalMemory(files,{position,description:meta.description},meta.title);await saveLocalMetadata(added.id,{...meta,position});if(pendingSoundtrack!==undefined)await saveLocalSoundtrack(added.id,pendingSoundtrack);releaseMemoryUrls(added);selected=added.id;status('Saved on this device.');}
+  }else if(m.cloud){const addMediaPaths=pendingFiles.length?await uploadPhotos(pendingFiles,m.id,memoryMedia(m).length):[];const audio=await uploadSoundtrack(pendingSoundtrack,m.id);await api('',{id:m.id,etag:m.etag,...meta,position,addMediaPaths,...audio,published:fields.has('published')});status('Changes saved to the cloud.');}
+  else{if(pendingFiles.length)await appendLocalPhotos({...m,position},pendingFiles);await saveLocalMetadata(m.id,{...meta,position});if(pendingSoundtrack!==undefined)await saveLocalSoundtrack(m.id,pendingSoundtrack);status('Changes saved on this device.');}
   clearFile();await refresh();
  }catch(error){status(error.message);}finally{lock(false);}
 });

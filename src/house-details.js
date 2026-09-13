@@ -65,7 +65,7 @@ export function addHouseDetails(world,root,m){
   for(let i=0;i<p.count;i++)p.setZ(i,.044*Math.sin(p.getX(i)/width*Math.PI*12));geo.computeVertexNormals();const curtain=new THREE.Mesh(geo,m.cream);curtain.position.y=height/2;curtain.castShadow=curtain.receiveShadow=true;g.add(curtain);box(width+.08,.04,.16,0,height+.015,0,'plaster',g);
  }
  // Three-blade ceiling fans visible in the living area and bedroom photographs.
- for(const [px,pz,y] of [[440,610,2.73],[983,352,3.21],[390,300,3.34]]){
+ for(const [px,pz,y] of [[440,610,2.73],[983,352,3.21]]){
   const g=at(px,pz,y);cyl(.065,.17,0,.06,0,'white',g);cyl(.13,.085,0,-.05,0,'white',g);
   for(let i=0;i<3;i++){const shape=new THREE.Shape();shape.moveTo(.07,-.03);shape.bezierCurveTo(.26,-.13,.6,-.21,.71,-.07);shape.bezierCurveTo(.73,.02,.36,.06,.07,.04);const geo=new THREE.ExtrudeGeometry(shape,{depth:.018,bevelEnabled:false});geo.rotateX(-Math.PI/2);const blade=new THREE.Mesh(geo,m.steel);blade.rotation.y=i*Math.PI*2/3;blade.position.y=-.08;blade.castShadow=true;g.add(blade);}
  }

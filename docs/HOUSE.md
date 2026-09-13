@@ -19,7 +19,7 @@ This is an authored game reconstruction, not a survey, CAD conversion or photogr
 - `src/navigation.js`: polygon boundaries and rotated wall collisions.
 - `src/actors.js`: friendly photographic characters with matching animation framing and ground anchoring.
 
-Neighbors visit the front door and can be invited inside for tea. Pets remain visible in their care corners. Mirrors and window glass show ordinary reflections. Whole photographic figures face the player and use ground contact shadows.
+Pets roam reachable floor space using the same furniture and stair constraints as the player, with species-specific speeds and rests. Their care interactions follow their current positions. Mirrors and window glass show ordinary reflections. Whole photographic figures face the player and use ground contact shadows.
 
 The original drawings, walkthrough, extracted pages, address, private pictures and personal documents are not included in the repository. Game characters are fictional adults.
 
@@ -42,3 +42,7 @@ The main bathroom vanity follows C-23 on sheets 67–68: a 1,900 × 600 × 900 m
 The kitchen-side hallway includes the tall ink drawing in a carved dark frame, the gold-framed bench and saw-blade print, the smaller white-framed mechanical landscape, and the ochre surround around the narrow window. The artworks are recreated from the supplied photographs as a compact texture atlas; moulded frames are separate meshes. Original photographs remain private.
 
 The main wet bathroom follows the tub, east-wall toilet and SS02 shower partition in sheets 75–76; its basin and mirror remain outside in the separate vanity area. The powder room follows the west-end shower and south-wall toilet/basin layout, with the current photographs supplying the curved yellow vanity, metallic bowl, illuminated mirror and colorful marbled shower lining. Shower doors are held open inward so players can enter.
+
+The September window-lounge photographs refine the layout in `src/window-lounge.js`: the grey sofa and black chair/ottoman stand side by side facing the east-wall projection screen, the telescope faces out through the bay, and teal cabinetry follows the windows and display wall. The red popcorn machine, small toys, glass table, curtains, projector and circular ceiling ring are modeled separately. The lounge, balcony and main bedroom look into one shared exterior scene, including the white curved-balcony complex and blue glazed towers. Distances and unseen sides are estimated from the photographs.
+
+The latest main-bedroom photographs refine `src/bedroom-storage.js`: open walnut shelves beside the sliding bedside mirror, a second full-height mirror to the left of that cupboard, and the metal divider in front of the bed. Handbags and orange storage boxes sit on its upper shelf, with small figures above and the central opening kept clear. These are lightweight modeled approximations of the photographed objects. The furniture map is regenerated from the revised collision footprints.

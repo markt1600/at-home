@@ -67,8 +67,7 @@ export const BALCONY_DOORS=[
  {id:'dining-balcony-doors',a:[317,739],b:[317,883],center:[317,811],width:3.565,height:2.969,base:.45,kind:'sliding'}
 ];
 export const DOOR_YAW=-Math.PI*3/4;
-export const VISITOR_POSITION=[...planPoint(912,806)].toSpliced(1,0,.45);
-export const MIRROR_POSITION=[...planPoint(570,393),1.79];
+export const MIRROR_POSITION=[...planPoint(583,393),1.93];
 export const MIRROR_YAW=Math.PI;
 export const GUEST_MIRROR_POSITION=[...planPoint(880,419),1.93];
 // C-23, sheets 67–68: stone vanity and a mirror in front of the window.

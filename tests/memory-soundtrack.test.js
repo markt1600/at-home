@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {createMemoryHandler} from '../api/memories.js';
+import {createSession} from '../server/memory-auth.js';
+import {validateRecord,publicRecord,validSoundtrackPath} from '../server/memory-record.js';
+import {AUDIO_FORMATS,audioContentType} from '../src/audio-formats.js';
+import {validateSoundtrack} from '../src/memory-soundtrack.js';
+import {planPoint} from '../src/house-layout.js';
+const id='381b4dbd-5e89-4cd7-9a61-5d0c339b0cf2',asset='c0779408-a4dc-4c40-92a7-6c9bc04af079',path=`soundtracks/${id}/${asset}.wav`,[x,z]=planPoint(507,620),draft={id,title:'Photos with a song',position:[x,0,z],mediaPath:`media/${id}/image.jpg`,soundtrackPath:path,soundtrackTitle:'A song',published:false};
+test('soundtracks support standard audio formats, keep old memories compatible, and reject foreign files',()=>{
+ for(const ext of Object.keys(AUDIO_FORMATS))assert.ok(validSoundtrackPath(`soundtracks/${id}/${asset}.${ext}`));
+ const old=validateRecord({...draft,soundtrackPath:undefined}),attached=validateRecord(draft,old);assert.equal(publicRecord(attached).soundtrack.title,'A song');assert.ok(!('soundtrackPath' in publicRecord(attached)));assert.equal(publicRecord(old).soundtrack,null);
+ assert.equal(validateRecord({...draft,soundtrackPath:undefined},attached).soundtrackPath,path);assert.equal(validateRecord({...draft,soundtrackPath:null},attached).soundtrackPath,null);
+ assert.throws(()=>validateRecord({...draft,soundtrackPath:`soundtracks/${asset}/${id}.mp3`}));assert.throws(()=>validateRecord({...draft,soundtrackPath:'https://example.com/track.mp3'}));assert.throws(()=>validateRecord({...draft,soundtrackPath:`soundtracks/${id}/${asset}.html`}));
+ assert.throws(()=>validateSoundtrack({name:'track.mp3',size:101*1024*1024}));assert.throws(()=>validateSoundtrack({name:'track.exe',size:4}));
+});
+test('soundtrack bytes follow the memory privacy, range, conflict, replacement and deletion rules',async t=>{
+ const env={MEMORY_ADMIN_PASSWORD:'abc123',BLOB_READ_WRITE_TOKEN:'test'},records=new Map(),deleted=[],fetched=[];let version=0,badType=false;
+ const storage={get:async(p,o)=>{if(p.startsWith('records/')){const v=records.get(p);return v?{stream:new Response(v.body).body,blob:{etag:v.etag}}:null;}fetched.push(p);const range=o.headers?.Range;return {stream:new Response('abc').body,blob:{contentType:audioContentType(p)||'image/jpeg'},headers:new Headers(range?{'content-range':'bytes 0-2/100','content-length':'3'}:{'content-length':'3'})};},head:async p=>({size:100,contentType:badType?'text/html':audioContentType(p)||'image/jpeg'}),list:async()=>({blobs:[...records.keys()].map(pathname=>({pathname})),hasMore:false}),put:async(p,body,o)=>{const prior=records.get(p);if(prior&&prior.etag!==o.ifMatch)throw Error('precondition failed');const etag=String(++version);records.set(p,{body,etag});return {etag};},del:async(p,o)=>{deleted.push(p);if(records.has(p)){assert.equal(records.get(p).etag,o.ifMatch);records.delete(p);}}};
+ const handler=createMemoryHandler({storage,env}),server=createServer(async(req,res)=>{const b=[];for await(const c of req)b.push(c);if(b.length)req.body=Buffer.concat(b).toString();res.status=n=>{res.statusCode=n;return res;};res.json=x=>res.end(JSON.stringify(x));await handler(req,res);});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{server.closeAllConnections();server.close(r);}));const origin=`http://127.0.0.1:${server.address().port}`,cookie='at_home_editor='+createSession(env);
+ const call=(q='',body,admin=false,headers={})=>fetch(origin+'/api/memories'+q,{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json',Origin:origin}:{}),...(admin?{Cookie:cookie}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});
+ badType=true;assert.equal((await call('',draft,true)).status,400);badType=false;
+ const saved=await (await call('',draft,true)).json(),query=saved.soundtrack.src.replace('/api/memories','');assert.equal((await call(query)).status,404);assert.equal(fetched.length,0);
+ assert.equal((await call(query,null,true)).status,200);const visible=await (await call('',{...draft,etag:saved.etag,published:true},true)).json();
+ const audio=await call(query,null,false,{Range:'bytes=0-2'});assert.equal(audio.status,206);assert.equal(audio.headers.get('content-type'),'audio/wav');assert.equal(await audio.text(),'abc');
+ const changedPath=path.replace('.wav','.flac');assert.equal((await call('',{...draft,etag:saved.etag,soundtrackPath:changedPath},true)).status,409);assert.deepEqual(deleted,[]);
+ const changed=await (await call('',{...draft,etag:visible.etag,soundtrackPath:changedPath},true)).json();assert.deepEqual(deleted,[path]);assert.equal((await call(query,null,true)).status,404);
+ assert.equal((await call('?action=delete',{id,etag:changed.etag},true)).status,200);assert.deepEqual(deleted,[path,draft.mediaPath,changedPath,`records/${id}.json`]);
+});

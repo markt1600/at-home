@@ -10,7 +10,11 @@ export class Neighborhood {
   for(const [key,color] of Object.entries(materials))this.materials[key]=new THREE.MeshStandardMaterial({color,roughness:key==='glass'?.28:.85,metalness:key==='glass'?.12:0});
   this.boxGeometry=new THREE.BoxGeometry(1,1,1);this.crownGeometry=new THREE.IcosahedronGeometry(1,1);this.matrix=new THREE.Matrix4();
   const tower=(x,z,yaw,white=false)=>{const g=new THREE.Group();g.position.set(x,-52,z);g.rotation.y=yaw;this.root.add(g);white?this.whiteTower(g):this.glassTower(g);};
-  tower(-67,-6,Math.PI/2);tower(-89,45,Math.PI*.58);tower(-52,-47,Math.PI*.36,true);
+  tower(-67,-6,Math.PI/2);tower(-89,45,Math.PI*.58);
+  // One shared white residential complex is visible around the blue towers
+  // from the balcony, then through the cinema bay and bedroom north window.
+  const curved=new THREE.Group();curved.name='Shared curved white residential complex';curved.position.set(-41,-52,-61);curved.rotation.y=.10;this.root.add(curved);
+  this.whiteTower(curved);const rearWing=new THREE.Group();rearWing.position.set(-15,0,-16);rearWing.scale.set(.72,.84,.85);curved.add(rearWing);this.whiteTower(rearWing);
   const ground=new THREE.Group();ground.position.y=-52;this.root.add(ground);this.part(ground,'green',[170,.3,190],[-85,-.4,0]);
   for(let i=0;i<170;i++){const a=i*2.399,r=16+(i%13)*3.2;this.part(ground,'green',[2.8+i%3,3,3.6],[-57+Math.cos(a)*r,2+ i%3,Math.sin(a)*r],'crown',.78+(i%5)*.075);}
   for(let i=0;i<18;i++){const h=18+i%7*3,g=new THREE.Group();g.position.set(-132+(i%3)*5,0,-85+i*10);ground.add(g);this.part(g,'cream',[6,h,7],[0,h/2,0]);for(let f=1;f<h/3;f++)this.part(g,'dark',[6.02,.9,7.02],[0,f*3,0]);}
@@ -24,7 +28,6 @@ export class Neighborhood {
   // North-facing bedroom photographs: a close curved white tower on the left,
   // low-rise roofs and trees below, and a more distant residential skyline.
   const g=new THREE.Group();g.name='Main bedroom neighborhood';g.position.y=-52;this.root.add(g);
-  const close=new THREE.Group();close.position.set(-38,0,-61);close.rotation.y=.10;g.add(close);this.whiteTower(close);
   this.part(g,'green',[185,.4,155],[17,-.7,-105]);
   for(let i=0;i<34;i++){
    const x=-5+(i%8)*10.5+(Math.floor(i/8)%2)*3,z=-57-Math.floor(i/8)*17,h=i%3===0?14:5+i%3*2;

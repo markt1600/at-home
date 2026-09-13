@@ -39,4 +39,4 @@ The later kitchen photo corrects the extra bathroom opening: the only east kitch
 
 A wider surface audit found overlapping bedroom/office partitions, bath/wardrobe partitions, ceiling edge strips and frame corners. Wall runs now stop at shared boundaries, frame rails meet without overlapping corners, and static opaque box faces are clipped to retain only one surface at each coplanar join. This retains texture coordinates and collision geometry rather than hiding complete meshes. The moving front door stays separate. Regression checks cover partial joins at different angles, nearby distinct surfaces, door headers, external walls, viewpoints and walking routes.
 
-At Home retains these geometry corrections. Its separate simulation adds friendly guests, pet care, memories and a daylight cycle; the earlier encounter and damage systems are not used.
+At Home retains these geometry corrections. Its separate simulation adds pet care, memories and a daylight cycle; the earlier encounter and damage systems are not used.

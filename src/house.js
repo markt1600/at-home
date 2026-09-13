@@ -11,6 +11,8 @@ import {buildHomeFurnishings} from './home-furnishings.js';
 import {buildDiningDetails} from './dining-details.js';
 import {buildClawMachine} from './claw-machine.js';
 import {buildLivingSeating} from './living-seating.js';
+import {buildWindowLounge} from './window-lounge.js';
+import {buildBedroomStorage} from './bedroom-storage.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -176,9 +178,7 @@ export function buildHouse(world){
  // Main bedroom: headboard to the west, a genuinely open divider and sofa facing east.
  const [bx,bz]=P(579,331);soft(2.08,.23,2.13,bx,.98,bz,'walnut');soft(2,.23,2,bx,1.19,bz,'blue');soft(.48,.14,1.55,bx-.65,1.38,bz,'cream');block(bx,bz,2.12,2.17,0,1.42);
  buildBedroomDetails(world,root,materials);
- const [shex,shez]=P(652,337);for(let j=0;j<6;j++)box(.38,.012,4.01,shex,.78+j*.51,shez,'black');for(const z of [-2,-1,0,1,2])for(const x of [-.17,.17])cyl(.011,.011,2.66,shex+x,2.08,shez+z,'black');block(shex,shez,.38,4.01);
- C(652,392,.38,.82,1,'walnut',0,.75);S(680,330,2.3,Math.PI/2,'cream',.75);
- C(570,403,1.84,2.66,.48,'walnut',Math.PI,.75);B(619,402,.4,2.66,.48,2.08,'plaster');
+ buildBedroomStorage(world,root,materials);S(680,330,2.3,Math.PI/2,'cream',.75);
  const [mx,mz,my]=MIRROR_POSITION;painting(mx,my,mz,.87,2.08,0x7a8480,MIRROR_YAW);T('board',570,390,2.23,'Look behind the bedroom mirror');
  C(778,335,2.35,.45,.42,'walnut',-Math.PI/2,.75);paint(780,331,2.24,1.89,1.06,0x101917,-Math.PI/2);T('staff',685,405,1.5,'Read the note beside the bed');
  C(797,346,3.3,2.5,.58,'walnut',Math.PI/2,.75);C(896,346,3.3,2.5,.58,'walnut',-Math.PI/2,.75);C(846,403,2.35,2.5,.6,'walnut',Math.PI,.75);
@@ -190,12 +190,7 @@ export function buildHouse(world){
  // Supplied bedroom photos supersede the proposed furniture arrangement.
  buildSecondBedroom(world,root,materials);
  buildGuestBathroom(world,root,materials);
- // Window lounge/home theatre bay, framed glazing, cream seating and telescope.
- S(347,293,2.4,Math.PI/2,0x827d77,.75);C(498,296,3.78,2.6,.45,'black',-Math.PI/2,.75);B(487,296,.025,1.58,2.82,2.04,'black');
- C(369,190,2.65,.8,.38,'teal',0,.75);C(307,287,2.4,.8,.36,'teal',Math.PI/2,.75);
- const [cofx,cofz]=P(388,294);box(1.25,.03,.72,cofx,1.14,cofz,'glass');soft(.6,.2,.42,cofx,1.01,cofz,'walnut');block(cofx,cofz,1.25,.72,0,1.155);
- const [lcx,lcz]=P(448,322);soft(.74,.18,.68,lcx,1.22,lcz,'black');soft(.74,.8,.13,lcx,1.63,lcz-.3,'black').rotation.x=-.25;soft(.64,.18,.46,lcx,1.12,lcz+.87,'black');block(lcx,lcz,.83,1.7);
- const [ttx,ttz]=P(388,250);cyl(.034,.034,1.15,ttx,1.3,ttz,'steel');cyl(.11,.1,.78,ttx,2.05,ttz,'cream').rotation.x=.9;for(let i=0;i<3;i++){const leg=cyl(.014,.014,1.1,ttx+Math.cos(i*2.1)*.25,1.17,ttz+Math.sin(i*2.1)*.25,'black');leg.rotation.z=Math.cos(i*2.1)*.5;}block(ttx,ttz,.72,.72);plant(...P(359,213),.75,1.2);
+ buildWindowLounge(world,root,materials);
  buildClawMachine(world,root,materials);
  addHouseDetails(world,root,materials);
  buildPowderBathroom(world,root,materials);

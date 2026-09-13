@@ -1,15 +1,21 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {newLife,restoreLife,advanceLife,invite,careForPet,restUntil,contextForVoice,clockLabel} from '../src/life.js';
+import {newLife,restoreLife,advanceLife,careForPet,restUntil,contextForVoice,clockLabel} from '../src/life.js';
 import {solarState} from '../src/daylight.js';
 import {nearMemories,placedMemory,MEMORY_PLACEMENTS} from '../src/memories.js';
 import {createHouseModel} from '../scripts/house-model.mjs';
 import {inWalkableArea} from '../src/navigation.js';
 import {planPoint} from '../src/house-layout.js';
 import {PETS} from '../src/life.js';
-test('neighbors arrive once at the scheduled hour and remain visible in saved state after invitation',()=>{const s=newLife('Mark');s.hours=8.99;assert.deepEqual(advanceLife(s,1),[{type:'arrival',id:'ken'}]);assert.equal(invite(s),'ken');assert.equal(s.pending,null);assert.equal(restoreLife(JSON.stringify(s)).guests[0].id,'ken');advanceLife(s,1);assert.equal(s.pending,null);s.hours=s.guests[0].until-.01;assert.deepEqual(advanceLife(s,1),[{type:'left',id:'ken'}]);assert.equal(s.guests.length,0);});
+test('old visitor saves continue without arrivals while preserving the day, pet care, journal and memory filter',()=>{
+ const old=newLife('Mark');old.hours=8.99;old.pets.sunny.affection=92;old.memoryFilter={from:'2025-01-01',to:'2025-12-31',includeUndated:true};old.journal=[{hours:7.5,text:'You made tea.'}];
+ Object.assign(old,{pending:'nia',guests:[{id:'ken',until:36}],visits:['0:ken']});
+ const s=restoreLife(JSON.stringify(old));assert.equal(s.hours,8.99);assert.equal(s.name,'Mark');assert.deepEqual(s.pets,old.pets);assert.deepEqual(s.memoryFilter,old.memoryFilter);assert.deepEqual(s.journal,old.journal);
+ for(let i=0;i<1000;i++)advanceLife(s,5);
+ assert.ok(s.hours>72);assert.ok(s.pets.sunny.food<old.pets.sunny.food);for(const key of ['pending','guests','visits'])assert.ok(!(key in s));
+});
 test('pet care restores a chosen need, supports the tortoise, and has no offline decay',()=>{const s=newLife();s.pets.pebble.food=22;assert.match(careForPet(s,'pebble','food'),/leafy greens/);assert.equal(s.pets.pebble.food,100);assert.equal(s.pets.miso.food,80);assert.deepEqual(restoreLife(JSON.stringify(s)).pets,s.pets);s.pace=0;advanceLife(s,5);assert.equal(s.pets.pebble.food,100);assert.equal(careForPet(s,'pebble','invalid'),null);});
-test('resting clears completed visits and sunrise and sunset cross into the correct day',()=>{const s=newLife();s.hours=22;s.pending='nia';s.guests=[{id:'ken',until:24}];restUntil(s,6);assert.equal(s.hours,30);assert.equal(clockLabel(s.hours),'06:00');assert.equal(s.pending,null);assert.deepEqual(s.guests,[]);assert.ok(solarState(12).daylight>solarState(0).daylight);assert.ok(Math.abs(solarState(6).direction[1])<1e-8);assert.ok(Math.abs(solarState(18).direction[1])<1e-8);});
-test('voice context describes only current visitors and pet needs',()=>{const s=newLife('Test');s.pending='nia';const c=JSON.parse(contextForVoice(s,'kitchen'));assert.equal(c.neighbor_at_door,'Nia');assert.deepEqual(c.visiting_neighbors,[]);assert.equal(c.room,'kitchen');assert.equal(c.pets.length,3);assert.equal(c.pets[2].kind,'Tortoise');});
+test('resting and sunrise and sunset cross into the correct day',()=>{const s=newLife();s.hours=22;restUntil(s,6);assert.equal(s.hours,30);assert.equal(clockLabel(s.hours),'06:00');assert.ok(solarState(12).daylight>solarState(0).daylight);assert.ok(Math.abs(solarState(6).direction[1])<1e-8);assert.ok(Math.abs(solarState(18).direction[1])<1e-8);});
+test('voice context explicitly disables visits and still describes the room and pet needs',()=>{const s=newLife('Test');Object.assign(s,{pending:'nia',guests:[{id:'ken',until:24}]});const c=JSON.parse(contextForVoice(s,'kitchen'));assert.equal(c.visitor_feature,false);assert.ok(!('neighbor_at_door' in c));assert.ok(!('visiting_neighbors' in c));assert.match(c.rules,/Visitors are disabled/);assert.equal(c.room,'kitchen');assert.equal(c.pets.length,3);assert.equal(c.pets[1].name,'Leo');assert.equal(c.pets[2].kind,'Tortoise');});
 test('memory triggers need both proximity and matching floor height',()=>{const m=placedMemory(MEMORY_PLACEMENTS[0]);assert.equal(nearMemories([m],...m.position).length,1);assert.equal(nearMemories([m],m.position[0],m.position[1]+.75,m.position[2]).length,0);assert.equal(nearMemories([m],m.position[0]+5,m.position[1],m.position[2]).length,0);});
 test('memory triggers and pet viewpoints occupy clear walkable floor',()=>{const w=createHouseModel();for(const m of MEMORY_PLACEMENTS){const [x,z]=planPoint(...m.plan);assert.ok(inWalkableArea(x,z,true,w.colliders),'memory '+m.id);}for(const p of [[417,696],[502,681],[346,812]])assert.ok(inWalkableArea(...planPoint(...p),true,w.colliders),'pet view '+p);});
 test('pet care corners are clear of the living furniture and dining cabinets',()=>{const w=createHouseModel();for(const pet of PETS)assert.ok(inWalkableArea(...planPoint(...pet.plan),true,w.colliders),'pet corner '+pet.id);});

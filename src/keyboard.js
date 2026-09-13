@@ -1,6 +1,6 @@
 export const PANEL_SHORTCUTS = {
   KeyM: 'memories', KeyP: 'pets', KeyR: 'rituals', KeyJ: 'journal',
-  KeyN: 'neighbors', KeyV: 'voice', KeyO: 'rooms', KeyH: 'help',
+  KeyV: 'voice', KeyO: 'rooms', KeyH: 'help',
 };
 
 export const isTyping = element => element instanceof Element &&
@@ -9,7 +9,7 @@ export const isTyping = element => element instanceof Element &&
 // Number the primary choices, leaving secondary navigation and deletion on Tab.
 export function prepareDialog(dialog, type) {
   const content = dialog.querySelector('#panel-content');
-  const choices = [...content.querySelectorAll('.stack > button, [data-care], [data-topic], [data-room], [data-memory], [data-rest]')].slice(0, 9);
+  const choices = [...content.querySelectorAll('.stack > button, [data-care], [data-room], [data-memory], [data-rest]')].slice(0, 9);
   choices.forEach((button, index) => {
     button.dataset.keyChoice = index + 1;
     button.setAttribute('aria-keyshortcuts', String(index + 1));

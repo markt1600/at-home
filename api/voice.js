@@ -24,8 +24,7 @@ export function createVoiceHandler({env=process.env,fetcher=fetch,now=Date.now}=
     let job=pending.get(key);
     if(!job){
      job=(async()=>{
-      let voice=line.speaker==='female'?(env.ELEVENLABS_FEMALE_VOICE_ID||'EXAVITQu4vr4xnSDxMaL'):(env.ELEVENLABS_MALE_VOICE_ID||'JBFqnCBsd6RMkjVDRZzb');
-      if(line.speaker==='companion')voice=env.ELEVENLABS_VOICE_ID||voice;
+      const voice=env.ELEVENLABS_VOICE_ID||env.ELEVENLABS_MALE_VOICE_ID||'JBFqnCBsd6RMkjVDRZzb';
       const response=await fetcher(`https://api.elevenlabs.io/v1/text-to-speech/${encodeURIComponent(voice)}?output_format=mp3_44100_128`,{method:'POST',headers:{'xi-api-key':env.ELEVENLABS_API_KEY,'Content-Type':'application/json'},body:JSON.stringify({text:line.text,model_id:model,voice_settings:{stability:.55,similarity_boost:.75}}),signal:AbortSignal.timeout(22000)});
       if(!response.ok)throw new Error('Voice provider unavailable');
       const bytes=Buffer.from(await response.arrayBuffer());if(!bytes.length||bytes.length>2000000)throw new Error('Invalid audio');

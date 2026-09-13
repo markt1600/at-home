@@ -1,6 +1,7 @@
 import {memoryMedia,releaseMemoryUrls,validateMemoryFiles} from './memory-media.js';
 import {accessibleMemorySpot} from './memory-access.js';
 import {PLAN_SCALE} from './house-layout.js';
+import {validateSoundtrack} from './memory-soundtrack.js';
 import {planPoint,floorHeight} from './house-layout.js';
 // These are approximate viewing positions, not photogrammetry measurements.
 export const MEMORY_PLACEMENTS=[
@@ -17,11 +18,12 @@ export async function loadMemories({cloud=true}={}){let shared=[];try{const r=aw
  let local=[];try{local=await transact('readonly',store=>store.getAll());}catch{}
  let overrides=[];try{overrides=await transact('readonly',s=>s.getAll(),'metadata');}catch{}
  let remote=[];if(cloud)try{const r=await fetch('/api/memories');if(r.ok){const data=await r.json();if(Array.isArray(data))remote=data;}}catch{}
- return [...shared.filter(m=>!local.some(l=>l.id===m.id)).map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(hydrateLocalMemory)].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).filter(m=>!m.deleted).concat(remote).map(m=>{try{return {...m,position:safePosition(m.position)};}catch{return m;}});
+ return [...shared.filter(m=>!local.some(l=>l.id===m.id)).map(m=>placedMemory({...MEMORY_PLACEMENTS.find(p=>p.id===m.id),...m})),...local.map(hydrateLocalMemory)].map(m=>({...m,...overrides.find(o=>o.id===m.id)})).filter(m=>!m.deleted).map(m=>m.soundtrackFile?{...m,soundtrack:{title:m.soundtrackFile.name.replace(/\.[^.]+$/,''),src:URL.createObjectURL(m.soundtrackFile)}}:m).concat(remote).map(m=>{try{return {...m,position:safePosition(m.position)};}catch{return m;}});
 }
 function safePosition(position){const spot=accessibleMemorySpot(position[0]*PLAN_SCALE+881,position[2]*PLAN_SCALE+789);if(!spot)throw Error('Choose an accessible location away from furniture.');return spot.position;}
 function hydrateLocalMemory(m){const media=(m.files||[{id:'original',file:m.file,type:m.type}]).map(a=>({...a,src:a.file?URL.createObjectURL(a.file):a.src}));return {...m,local:true,media,src:media[0].src};}
-export async function saveLocalMetadata(id,metadata){await transact('readwrite',s=>s.put({id,...metadata,...(metadata.position?{position:safePosition(metadata.position)}:{})}),'metadata');}
+export async function saveLocalMetadata(id,metadata){const prior=await transact('readonly',s=>s.get(id),'metadata');await transact('readwrite',s=>s.put({...prior,id,...metadata,...(metadata.position?{position:safePosition(metadata.position)}:{})}),'metadata');}
+export async function saveLocalSoundtrack(id,file){if(file)validateSoundtrack(file);await saveLocalMetadata(id,{soundtrackFile:file,soundtrack:null});}
 export async function addLocalMemory(fileOrFiles,placement,title){
  const files=validateMemoryFiles(Array.isArray(fileOrFiles)?fileOrFiles:[fileOrFiles]);
  const record={id:crypto.randomUUID(),title:title||files[0].name.replace(/\.[^.]+$/,''),type:files.some(f=>f.type.startsWith('video/'))?'video':'image',position:safePosition(placement.position),description:placement.description||'A moment saved here.',files:files.map(file=>({id:crypto.randomUUID(),type:file.type.startsWith('video/')?'video':'image',file}))};

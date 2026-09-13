@@ -9,13 +9,14 @@ export function reflectionSurfaces(){
  const pane=(id,label,p,y,width,height,yaw=0,glass=false,offset=.045)=>({id,label,position:[...planPoint(...p)].toSpliced(1,0,y),width,height,yaw,glass,offset});
  return [
   {id:'bedroom-mirror',label:'bedroom mirror',position:[MIRROR_POSITION[0],MIRROR_POSITION[2],MIRROR_POSITION[1]],width:.87,height:2.08,yaw:MIRROR_YAW,offset:.045},
+  pane('bedroom-side-mirror','mirror beside bedside cupboard',[619,398],2.015,.45,2.36,Math.PI,false,.041),
   {id:'guest-mirror',label:'second bedroom mirror',position:[GUEST_MIRROR_POSITION[0],GUEST_MIRROR_POSITION[2],GUEST_MIRROR_POSITION[1]],width:.8,height:2.1,yaw:0,offset:.048},
   pane('vanity-mirror','main bathroom vanity mirror',MASTER_VANITY.mirror,MASTER_VANITY.mirrorY,MASTER_VANITY.mirrorWidth,MASTER_VANITY.mirrorHeight,0,false,.027),
   pane('guest-bath-mirror','second bathroom mirror',GUEST_BATH_MIRROR.plan,GUEST_BATH_MIRROR.y,GUEST_BATH_MIRROR.width,GUEST_BATH_MIRROR.height,GUEST_BATH_MIRROR.yaw,false,.027),
   pane('powder-mirror','powder room mirror',POWDER_MIRROR.plan,POWDER_MIRROR.y,POWDER_MIRROR.width,POWDER_MIRROR.height,POWDER_MIRROR.yaw,false,.027),
   ...BALCONY_DOORS.flatMap(d=>[-1,1].map(side=>pane(`${d.id}-${side}`,d.base?'dining balcony glass':'living balcony glass',[d.center[0],d.center[1]+side*d.width*.375*PLAN_SCALE],d.base+1.19,d.width/4-.11,2.28,Math.PI/2,true,.051))),
-  pane('theatre-north','window lounge glass',[399,181],2.175,2.04,2.04,0,true,.026),
-  pane('theatre-west','window lounge glass',[299,282],2.175,2.24,2.04,Math.PI/2,true,.026),
+  pane('theatre-north','window lounge glass',[399,181],2.525,2.34,1.68,0,true,.026),
+  pane('theatre-west','window lounge glass',[299,282],2.525,2.38,1.68,Math.PI/2,true,.026),
   pane('bedroom-window','bedroom window',[690,208],2.3,4.39,1.59,0,true,.026),
  ];
 }

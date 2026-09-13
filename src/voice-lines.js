@@ -1,4 +1,3 @@
-import {NEIGHBORS} from './life.js';
 export const cleanName=value=>[...String(value??'').normalize('NFKC').replace(/[^\p{L}\p{M}\p{N} '\u2019-]/gu,'').replace(/\s+/g,' ').trim()].slice(0,28).join('')||'friend';
 export const HOME_LINES=[
  name=>`Welcome home, ${name}. There is no hurry. Make yourself comfortable.`,
@@ -9,10 +8,5 @@ export const HOME_LINES=[
 export function resolveVoiceRequest(body){
  if(!body||typeof body!=='object')return null;
  if(body.kind==='home'&&Number.isInteger(body.cue)&&body.cue>=0&&body.cue<HOME_LINES.length)return {text:HOME_LINES[body.cue](cleanName(body.name)),speaker:'companion'};
- if(body.kind==='neighbor'){
-  const n=NEIGHBORS.find(n=>n.id===body.id);if(!n)return null;
-  const text=body.line==='greeting'?n.greeting:Number.isInteger(body.line)?n.topics[body.line]?.[1]:null;
-  if(text)return {text,speaker:n.id==='ken'?'male':'female'};
- }
  return null;
 }

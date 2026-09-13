@@ -2,7 +2,7 @@
 
 The house retains the authored floor plan, current furniture corrections, prepared hallway artwork, marble, plaster, cabinetry and fabric textures. Original drawings and room photographs are not distributed.
 
-New fictional neighbors Ken, Nia and June and pets Miso, Leo and Pebble were generated for this game. Their prepared WebP stills are in `public/art/friends`, with crop/framing metadata to keep the matching local MiniMax clips grounded. See [animation details](ANIMATION.md).
+Pets Miso, Leo and Pebble were generated for this game. Their prepared WebP stills are in `public/art/friends`, with crop/framing metadata to keep the matching local MiniMax clips grounded. See [animation details](ANIMATION.md).
 
 House atlases: `house-surfaces-v2.png`, `hallway-prints.webp`, `powder-marble.webp`. Exterior tower shapes now follow the balcony reference photographs, including blue glazed wings and curved white balconies. Distances and unseen elevations are estimates; there are no address labels. All visible occupants are fictional.
 

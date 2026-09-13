@@ -19,7 +19,8 @@ export function createActor(id,height,f){
  const contact=new THREE.Mesh(new THREE.CircleGeometry(height*.33,32),new THREE.MeshBasicMaterial({color:0x354439,transparent:true,opacity:.14,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.48;contact.position.y=.006;g.add(contact);
  const video=document.createElement('video');video.loop=true;video.muted=true;video.playsInline=true;video.preload='none';let texture=null,loaded=false,pending=false,failed=false,hasFrame=false;
  video.addEventListener('error',()=>{failed=true;mat.map=poster;mat.needsUpdate=true;});
- g.userData.update=(dt,enabled,near)=>{const play=dt>0&&enabled&&near&&!document.hidden&&!failed;
+ let gait=0;const bodyY=body.position.y;
+ g.userData.update=(dt,enabled,near)=>{gait+=dt;body.position.y=bodyY+(g.userData.walking&&enabled&&id!=='pebble'?Math.abs(Math.sin(gait*9))*.008:0);const play=dt>0&&enabled&&near&&!document.hidden&&!failed;
   if(play&&!loaded){loaded=true;video.src=`/art/motion/${asset}.mp4`;video.load();video.requestVideoFrameCallback?.(()=>hasFrame=true);}
   if(play&&video.paused&&!pending){pending=true;video.play().catch(()=>{failed=true;}).finally(()=>pending=false);}else if(!play)video.pause();
   if(enabled&&!failed&&(hasFrame||!video.requestVideoFrameCallback&&video.currentTime>0)&&video.readyState>=2){texture??=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;if(mat.map!==texture){mat.map=texture;mat.needsUpdate=true;}}

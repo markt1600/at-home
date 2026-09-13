@@ -2,7 +2,8 @@ import {get,put,list,head,del} from '@vercel/blob';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {configured,passwordMatches,createSession,authenticated,setSession,sameOrigin,parseBody} from '../server/memory-auth.js';
-import {UUID,validateRecord,publicRecord,recordMediaPaths,MAX_SIZE,CONTENT_TYPES} from '../server/memory-record.js';
+import {UUID,validateRecord,publicRecord,recordAssetPaths,MAX_SIZE,CONTENT_TYPES,validSoundtrackPath,MAX_SOUNDTRACK_SIZE} from '../server/memory-record.js';
+import {audioContentType} from '../src/audio-formats.js';
 
 export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
@@ -30,7 +31,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
     const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
-    const paths=recordMediaPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
+    const paths=recordAssetPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
     if(!path)return res.status(404).end();
     const media=await storage.get(path,{...options(),useCache:false,...(range?{headers:{Range:range}}:{})});
     if(!media?.stream)return res.status(404).end();
@@ -59,7 +60,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
      let etag=prior.etag;
      if(!prior.record.deleting){const claimed=await storage.put(`records/${input.id}.json`,JSON.stringify({...prior.record,published:false,deleting:true}),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});etag=claimed.etag;}
      try{
-      for(const path of recordMediaPaths(prior.record))await storage.del(path,options());
+      for(const path of recordAssetPaths(prior.record))await storage.del(path,options());
       await storage.del(`records/${input.id}.json`,{...options(),ifMatch:etag});
      }catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry Delete memory.'});}
      return res.status(200).json({ok:true});
@@ -68,8 +69,10 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     if(prior?.record.deleting)return res.status(409).json({error:'This memory is being deleted. Refresh the library to finish deleting it.'});
     if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
-    for(const path of recordMediaPaths(record).filter(p=>!recordMediaPaths(prior?.record).includes(p))){const blob=await storage.head(path,options());if(!blob||blob.size>MAX_SIZE||!CONTENT_TYPES.includes(blob.contentType))return res.status(400).json({error:'Upload supported photos or videos first'});}
+    for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path);if(!blob||!blob.size||blob.size>(audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:'Upload a supported media file first'});}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});
+    // Only retire the previous soundtrack after the replacement has committed.
+    if(prior?.record.soundtrackPath&&prior.record.soundtrackPath!==record.soundtrackPath)await storage.del(prior.record.soundtrackPath,options()).catch(()=>{});
     return res.status(200).json({...publicRecord(record),etag:saved.etag});
    }
    res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed'});
