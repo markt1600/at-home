@@ -17,6 +17,7 @@ import {createActor} from './actors.js';
 import {createMemoryMarker} from './memory-marker.js';
 import {PETS} from './life.js';
 import {PetRoaming} from './pet-roaming.js';
+import {AssetReadiness} from './asset-readiness.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
@@ -39,11 +40,25 @@ export class House{
   if(p.id==='sunny')this.sphere(.07,-.55,.07,.18,this.mat(0xc88557,.95),g);this.petCorners.set(p.id,{g,contents,care:0});}}
  showCare(id,action){const corner=this.petCorners.get(id);if(corner){corner.care=2.8;corner.action=action;}const actor=this.actors.get(id);if(actor)actor.userData.careUntil=this.elapsed+6;}
  setMemories(memories){if(this.memoryMarkers){this.scene.remove(this.memoryMarkers);this.memoryMarkers.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});}this.memoryMarkers=new THREE.Group();this.scene.add(this.memoryMarkers);for(const memory of memories)this.memoryMarkers.add(createMemoryMarker(memory));}
- loadArtwork(){const loader=new THREE.TextureLoader(),a=Math.min(8,this.renderer.capabilities.getMaxAnisotropy());loader.load('/art/bedroom-marble.webp',t=>applyDetailTexture(t,this.houseMaterials.bedroomMarble,a));loader.load('/art/sage-flowers.webp',t=>applyDetailTexture(t,this.houseMaterials.sageDrawing,a));loader.load('/art/balcony-collage.webp',t=>applyBalconyWallArt(t,this.houseMaterials,a));loader.load('/art/dining-prints.webp',t=>applyDiningArt(t,this.houseMaterials,a));loader.load('/art/entry-details-atlas.webp',t=>applyHomeDetails(t,this.houseMaterials,a));loader.load('/art/house-surfaces-v2.png',t=>applyHouseTextures(t,this.houseMaterials,a));loader.load('/art/hallway-prints.webp',t=>applyHallwayArt(t,this.houseMaterials,a));loader.load('/art/powder-marble.webp',t=>applyBathroomTextures(t,this.houseMaterials,a));fetch('/art/friends/framing.json').then(r=>{if(!r.ok)throw Error();return r.json();}).then(f=>{this.framing=f;this.syncPets(this.life);}).catch(()=>this.onAssetError?.());}
+ loadArtwork(){
+  if(this.artwork)return this.artwork.run();
+  const a=Math.min(8,this.renderer.capabilities.getMaxAnisotropy()),materials=this.houseMaterials;
+  const textures=[['bedroom-marble.webp',t=>applyDetailTexture(t,materials.bedroomMarble,a)],['sage-flowers.webp',t=>applyDetailTexture(t,materials.sageDrawing,a)],['balcony-collage.webp',t=>applyBalconyWallArt(t,materials,a)],['dining-prints.webp',t=>applyDiningArt(t,materials,a)],['entry-details-atlas.webp',t=>applyHomeDetails(t,materials,a)],['house-surfaces-v2.png',t=>applyHouseTextures(t,materials,a)],['hallway-prints.webp',t=>applyHallwayArt(t,materials,a)],['powder-marble.webp',t=>applyBathroomTextures(t,materials,a)]];
+  const tasks=textures.map(([id,apply])=>({id,load:attempt=>new Promise((resolve,reject)=>{
+   let settled=false;const timeout=setTimeout(()=>{settled=true;reject(new Error('Image transfer timed out'));},20000);
+   new THREE.TextureLoader().load(`/art/${id}${attempt?'?retry='+Date.now():''}`,t=>{
+    if(settled){t.dispose();return;}settled=true;clearTimeout(timeout);
+    try{apply(t);resolve();}catch(error){reject(error);}
+   },undefined,error=>{if(!settled){settled=true;clearTimeout(timeout);reject(error);}});
+  })}));
+  tasks.push({id:'pets',load:async()=>{const r=await fetch('/art/friends/framing.json',{cache:'no-cache',signal:AbortSignal.timeout(20000)});if(!r.ok)throw new Error('Pet information unavailable');this.framing=await r.json();this.syncPets(this.life);}});
+  this.artwork=new AssetReadiness(tasks,{onChange:status=>this.onArtworkStatus?.(status)});return this.artwork.run();
+ }
  syncPets(s){this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
   const ids=new Set(specs.map(p=>p.id));for(const [id,g] of this.actors)if(!ids.has(id)){this.scene.remove(g);g.userData.dispose();this.actors.delete(id);}
   for(const spec of specs){if(!this.framing[spec.id])continue;let g=this.actors.get(spec.id);if(!g){g=createActor(spec.id,spec.height,this.framing[spec.id]);this.actors.set(spec.id,g);this.scene.add(g);const p=this.petRoaming.register(spec.id,spec.plan);g.position.set(p.x,p.y,p.z);}}
  }
+ greetPlayer(){this.petRoaming.greet(this.camera.position,this.yaw);}
  focus(id){const p=HOUSE_VIEWS[id]||HOUSE_VIEWS.living;this.camera.position.set(...p.slice(0,3));this.yaw=p[3];this.pitch=p[4];this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.room=id;this.keys={};this.eyeHeight=1.67;this.feet={x:this.camera.position.x,y:floorHeight(this.camera.position.x,this.camera.position.z),z:this.camera.position.z,vy:0,grounded:true};this.jumpQueued=false;}
  lookAtPet(id){const p=PETS.find(p=>p.id===id),position=this.petRoaming.pets.get(id),view=this.petRoaming.viewpoint(id);if(!p||!position||!view)return;this.eyeHeight=id==='sunny'?1:.65;this.camera.position.set(view.x,view.y+this.eyeHeight,view.z);this.feet={x:view.x,y:view.y,z:view.z,vy:0,grounded:true};this.keys={};this.camera.lookAt(position.x,position.y+p.height/2,position.z);const e=new THREE.Euler().setFromQuaternion(this.camera.quaternion,'YXZ');this.yaw=e.y;this.pitch=e.x;position.wait=Math.max(position.wait,6);}
  lock(){if(this.mode!=='play'||this.paused||matchMedia('(pointer:coarse)').matches)return;this.canvas.requestPointerLock()?.catch(()=>{});}

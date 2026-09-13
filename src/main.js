@@ -30,6 +30,15 @@ refreshMemories();
 window.addEventListener('focus',()=>{if(panel!=='memory')refreshMemories();});
 sound.onVoiceUnavailable=()=>{const el=$('#audio-note');if(el)el.textContent='Spoken audio is unavailable. All conversations remain available as text.';};
 world.onAssetError=()=>toast('Some character artwork could not load. Please refresh to try again.');
+world.onArtworkStatus=updateArtworkStatus;
+function updateArtworkStatus(){
+ const status=world.artwork.status,button=$('#continue-game')||$('#welcome-form button[type="submit"]');if(!button)return;
+ button.disabled=!status.ready;
+ let note=$('#house-loading');if(!note){note=document.createElement('p');note.id='house-loading';note.className='fine';note.setAttribute('role','status');button.after(note);}
+ note.replaceChildren();if(status.ready){note.textContent='The house is ready.';return;}
+ note.textContent=status.loading?`Opening the house and its artwork… ${status.loaded} / ${status.total}`:'Some artwork could not load. Check your connection and try again. ';
+ if(!status.loading){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry loading';retry.onclick=()=>world.loadArtwork();note.append(retry);}
+}
 const roomNames={living:'Living room',living_landing:'Living room',living_south:'Living room',hall:'Entrance',passage:'Hallway',dining:'Dining room',balcony:'Living balcony',dining_bay:'Dining balcony',kitchen:'Kitchen',bedroom:'Main bedroom',guest:'Second bedroom',study:'Home office',wine:'Wine cellar',theatre:'Window lounge',bath:'Main bathroom',powder:'Guest bathroom',vanity:'Vanity',wardrobe:'Wardrobe',meditation:'Meditation alcove',utility:'Utility yard'};
 function updateLookHint(id){const el=$('#look-hint');if(el)el.textContent=id==='turntable'?`E · ${recordPlayer.enabled?'Stop the record':'Play the record'}`:id?`E · ${PETS.find(p=>p.id===id)?.name}`:'';}
 async function toggleRecord(){try{await recordPlayer.toggle();}catch{toast('Music could not start. Try the turntable again.');}}
@@ -38,15 +47,17 @@ function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('
 function renderMenu(fresh=!hasSavedGame){
  if(!fresh&&hasSavedGame){
   app.innerHTML=`<main class="welcome"><div class="welcome-copy"><p class="eyebrow">A place to take your time</p><h1>At Home<span>.</span></h1><p class="intro">Welcome back, ${escape(state.name)}.</p><p class="quiet">Your little household is waiting for you.</p></div><section class="welcome-card"><p class="eyebrow">Make yourself comfortable</p><h2>Pick up your day.</h2><p class="panel-intro">Day ${dayNumber(state.hours)} · ${clockLabel(state.hours)}</p><div class="stack"><button class="primary" id="continue-game">Continue game <span>↗</span></button><button id="new-game">Start a new game</button></div><p class="fine">A new game starts a fresh day, journal and pet routine. Your saved memories and music stay in the house.</p></section></main>`;
-  $('#continue-game').onclick=enter;$('#new-game').onclick=()=>renderMenu(true);return;
+  $('#continue-game').onclick=()=>enter();$('#new-game').onclick=()=>renderMenu(true);updateArtworkStatus();return;
  }
  app.innerHTML=`<main class="welcome"><div class="welcome-copy"><p class="eyebrow">A place to take your time</p><h1>At Home<span>.</span></h1><p class="intro">Watch the light change. Make a cup of tea.<br>Look after a few little friends.</p><p class="quiet">No score. No rush. Just a day that belongs to you.</p></div><form id="welcome-form" class="welcome-card"><p class="eyebrow">Make yourself comfortable</p><h2>Enter your name<br>or nickname</h2><label class="sr-only" for="name">Name or nickname</label><input id="name" name="name" maxlength="28" autocomplete="given-name" placeholder="What shall we call you?" value="${state.name==='Friend'?'':escape(state.name)}"><label class="check"><input id="personalized" type="checkbox" ${state.personalized?'checked':''}><span>Include my name in spoken greetings</span></label><p class="fine">Optional. Your nickname is used to generate these greetings. Your microphone stays off until you connect Voice.</p><button class="primary" type="submit">${state.journal.length?'Welcome back':'Come on in'} <span>↗</span></button><p class="fine">Your day is saved on this device. Pets rest while you are away.</p></form><div class="menu-footer">An unhurried life, one small moment at a time.</div></main>`;
  if(hasSavedGame){const back=document.createElement('button');back.type='button';back.className='dream-return';back.textContent='Back to saved game';back.onclick=()=>renderMenu(false);$('#welcome-form').append(back);}
  $('#welcome-form button[type="submit"]').innerHTML=`${hasSavedGame?'Start a new game':'Come on in'} <span>↗</span>`;
- $('#welcome-form').addEventListener('submit',async e=>{e.preventDefault();const personalized=$('#personalized').checked;recordPlayer.stop();state=newLife($('#name').value);state.personalized=personalized;world.focus('living');world.hours=state.hours;syncMemories();await enter();});
+ $('#welcome-form').addEventListener('submit',async e=>{e.preventDefault();if(!world.artwork.ready)return;const personalized=$('#personalized').checked;recordPlayer.stop();state=newLife($('#name').value);state.personalized=personalized;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);});updateArtworkStatus();
 }
-async function enter(){
+async function enter(fresh=false){
+ if(!world.artwork.ready)return;
  playing=true;world.mode='play';world.paused=false;world.hours=state.hours;world.syncPets(state);save();renderHUD();world.resumeWandering();
+ if(fresh)world.greetPlayer();
  try{await sound.start();sound.setVolume(.65);recordPlayer.setVolume(.65);}catch{toast('Sound could not start. You can try the Sound button.');}
  if(state.personalized){lastSpoken=timer;speech.play({kind:'home',cue:0,name:state.name});}
  toast('Welcome home. WASD to wander · Mouse to look · E to interact · Space to jump · H for keys');
