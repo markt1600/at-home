@@ -4,6 +4,8 @@ import {pipeline} from 'node:stream/promises';
 import {configured,passwordMatches,createSession,authenticated,setSession,sameOrigin,parseBody} from '../server/memory-auth.js';
 import {UUID,validateRecord,publicRecord,recordAssetPaths,MAX_SIZE,CONTENT_TYPES,validSoundtrackPath,MAX_SOUNDTRACK_SIZE} from '../server/memory-record.js';
 import {audioContentType} from '../src/audio-formats.js';
+import {resolveStoredSizes} from '../server/memory-storage.js';
+import {validFileSize} from '../src/memory-storage.js';
 
 export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
@@ -46,10 +48,11 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     const all=url.searchParams.get('admin')==='1';if(all&&!admin)return res.status(401).json({error:'Sign in to edit memories'});
     const records=[];let cursor;
     do{const page=await storage.list({...options(),prefix:'records/',limit:100,cursor});
-     for(let i=0;i<page.blobs.length;i+=8){const group=await Promise.all(page.blobs.slice(i,i+8).map(async b=>{const id=b.pathname.slice(8,-5);if(!UUID.test(id))return null;return read(id);}));for(const entry of group)if(entry&&(all||(entry.record.published&&!entry.record.deleting)))records.push({...publicRecord(entry.record),...(all?{etag:entry.etag}:{})});}
+     for(let i=0;i<page.blobs.length;i+=8){const group=await Promise.all(page.blobs.slice(i,i+8).map(async b=>{const id=b.pathname.slice(8,-5);if(!UUID.test(id))return null;return read(id);}));for(const entry of group)if(entry&&(all||(entry.record.published&&!entry.record.deleting)))records.push({...entry.record,...(all?{etag:entry.etag}:{})});}
      cursor=page.hasMore?page.cursor:undefined;
     }while(cursor);
-    return res.status(200).json(records.sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)));
+    const sized=all?await resolveStoredSizes(records,storage,options()):records;
+    return res.status(200).json(sized.map(publicRecord).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)));
    }
    if(req.method==='POST'){
     if(!admin)return res.status(401).json({error:'Sign in to edit memories'});
@@ -71,7 +74,8 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     if(prior?.record.deleting)return res.status(409).json({error:'This memory is being deleted. Refresh the library to finish deleting it.'});
     if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
-    for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path);if(!blob||!blob.size||blob.size>(audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:'Upload a supported media file first'});}
+    record.assetSizes=Object.fromEntries(recordAssetPaths(record).filter(path=>validFileSize(prior?.record.assetSizes?.[path])).map(path=>[path,prior.record.assetSizes[path]]));
+    for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path);if(!blob||!blob.size||blob.size>(audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:'Upload a supported media file first'});record.assetSizes[path]=blob.size;}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});
     // Only retire the previous soundtrack after the replacement has committed.
     if(prior?.record.soundtrackPath&&prior.record.soundtrackPath!==record.soundtrackPath)await storage.del(prior.record.soundtrackPath,options()).catch(()=>{});

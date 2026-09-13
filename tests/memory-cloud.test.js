@@ -46,7 +46,7 @@ test('private memory API protects drafts, detects conflicts, serves ranges and s
  assert.equal((await request('?action=login',{password:'wrong'})).status,401);
  const login=await request('?action=login',{password:env.MEMORY_ADMIN_PASSWORD});assert.equal(login.status,200);
  const setCookie=login.headers.get('set-cookie');assert.match(setCookie,/HttpOnly/);assert.match(setCookie,/Secure/);assert.match(setCookie,/SameSite=Strict/);const cookie=setCookie.split(';')[0];
- const save=await request('',draft,cookie);assert.equal(save.status,200);const saved=await save.json();assert.equal(saved.published,false);assert.ok(!saved.mediaPath);
+ const save=await request('',{...draft,assetSizes:{[draft.mediaPath]:9999999}},cookie);assert.equal(save.status,200);const saved=await save.json();assert.equal(saved.published,false);assert.ok(!saved.mediaPath);assert.equal(saved.media[0].size,10,'size comes from storage, never the client');assert.ok(!saved.assetSizes);
  assert.deepEqual(await (await request()).json(),[]);
  assert.equal((await request('?admin=1')).status,401);
  assert.equal((await request('?action=media&id='+id)).status,404);assert.equal(mediaCalls.length,0,'unauthenticated drafts never fetch their media');
@@ -54,7 +54,7 @@ test('private memory API protects drafts, detects conflicts, serves ranges and s
  assert.equal((await request('?action=media&id='+id,null,cookie)).status,200);
  assert.equal((await request('',{...draft,published:true,etag:'old'},cookie)).status,409);
  const photo=`media/${id}/c0779408-a4dc-4c40-92a7-6c9bc04af079.jpg`;
- const appended=await request('',{...draft,etag:saved.etag,addMediaPaths:[photo]},cookie);assert.equal(appended.status,200);const album=await appended.json();assert.equal(album.media.length,2);
+ const appended=await request('',{...draft,etag:saved.etag,addMediaPaths:[photo]},cookie);assert.equal(appended.status,200);const album=await appended.json();assert.equal(album.media.length,2);assert.deepEqual(album.media.map(a=>a.size),[10,10]);
  const callsBefore=mediaCalls.length;assert.equal((await request(album.media[1].src.replace('/api/memories',''))).status,404);assert.equal(mediaCalls.length,callsBefore,'appended draft photos remain private');
  assert.equal((await request('?action=media&id='+id+'&asset=unlisted.jpg',null,cookie)).status,404);assert.equal(mediaCalls.length,callsBefore,'unlisted files under the same memory cannot be read');
  const publish=await request('',{...draft,published:true,etag:album.etag},cookie);assert.equal(publish.status,200);const published=await publish.json();

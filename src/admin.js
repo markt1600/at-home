@@ -9,6 +9,7 @@ import {mountMemoryFloorPlan} from './memory-placement.js';
 import {mountMusicLibrary} from './music-admin.js';
 import {AUDIO_ACCEPT,audioExtension,audioContentType} from './audio-formats.js';
 import {validateSoundtrack} from './memory-soundtrack.js';
+import {memoryStorageLabel} from './memory-storage.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -34,7 +35,7 @@ const memoryState=m=>m.deleting?'Deletion incomplete':m.cloud?(m.published?'Publ
 function libraryContents(){
  const query=libraryQuery.trim().toLocaleLowerCase();
  const matches=items.filter(m=>(!query||[m.title,m.description,m.date].some(s=>String(s||'').toLocaleLowerCase().includes(query)))&&(libraryFilter==='all'||libraryFilter==='published'&&m.cloud&&m.published||libraryFilter==='draft'&&m.cloud&&!m.published||libraryFilter==='device'&&!m.cloud));
- return `<p class="library-count">${matches.length} of ${items.length} saved ${items.length===1?'memory':'memories'}</p>${matches.map(m=>`<button data-id="${esc(m.id)}" class="memory-card ${m.id===selected?'selected':''}" aria-pressed="${m.id===selected}"><span class="memory-thumb" aria-hidden="true">${m.type==='image'&&!m.deleting?`<img src="${esc(m.src)}" alt="" loading="lazy">`:m.type==='video'?'▶':'✧'}</span><span class="memory-card-copy"><strong>${esc(m.title)}</strong><small>${esc(memoryState(m))}${m.date?' · '+esc(formatMemoryDate(m.date)):''}</small><span class="memory-kind">${m.type==='video'?'Video':'Photo'}${memoryMedia(m).length>1?` · ${memoryMedia(m).length} items`:''}</span></span></button>`).join('')||`<p>${items.length?'No memories match. Try another search or filter.':session.authenticated?'Your library is empty. Drop in a photo or video to start.':'Sign in to see your saved cloud memories. Device memories also appear here.'}</p>`}`;
+ return `<p class="library-count">${matches.length} of ${items.length} saved ${items.length===1?'memory':'memories'}</p>${matches.map(m=>`<button data-id="${esc(m.id)}" class="memory-card ${m.id===selected?'selected':''}" aria-pressed="${m.id===selected}"><span class="memory-thumb" aria-hidden="true">${m.type==='image'&&!m.deleting?`<img src="${esc(m.src)}" alt="" loading="lazy">`:m.type==='video'?'▶':'✧'}</span><span class="memory-card-copy"><strong>${esc(m.title)}</strong><small>${esc(memoryState(m))}${m.date?' · '+esc(formatMemoryDate(m.date)):''}</small><span class="memory-kind">${m.type==='video'?'Video':'Photo'}${memoryMedia(m).length>1?` · ${memoryMedia(m).length} items`:''}</span><small class="memory-storage" title="Combined size of stored photos, videos and any soundtrack">${esc(memoryStorageLabel(m))}${m.soundtrack?' · includes audio':''}</small></span></button>`).join('')||`<p>${items.length?'No memories match. Try another search or filter.':session.authenticated?'Your library is empty. Drop in a photo or video to start.':'Sign in to see your saved cloud memories. Device memories also appear here.'}</p>`}`;
 }
 function renderLibrary(){const el=root.querySelector('.library');if(el)el.innerHTML=libraryContents();}
 function confirmDelete(memory){return new Promise(resolve=>{

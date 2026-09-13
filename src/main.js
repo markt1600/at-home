@@ -31,6 +31,8 @@ const activeMemories=()=>filterMemories(memories,state.memoryFilter);
 const memoryVisit=createMemoryVisit();let visitMemories=[];
 const syncMemories=()=>{visitMemories=memoryVisit.select(memories,state.memoryFilter);world.setMemories(visitMemories);};
 const companion=new Intercom(status=>{voiceStatus=status;const el=$('#voice-status');if(el)el.textContent=status;},(who,text)=>{transcript.push({who,text});transcript=transcript.slice(-12);updateTranscript();});
+const bootStatus=$('#boot-status');if(bootStatus)bootStatus.textContent='Preparing the rooms…';
+await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 const world=new House($('#scene'),id=>{updateLookHint(id);},tick);
 world.onUnlock=()=>openPanel('settings');
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};

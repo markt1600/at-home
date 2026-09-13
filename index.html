@@ -1,1 +1,30 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/><meta name="theme-color" content="#faf6ed"/><meta name="description" content="At Home — a peaceful house, changing light, favorite memories and three pets to care for."/><title>At Home — A little room to breathe</title><link rel="icon" href="/favicon.svg"/></head><body><canvas id="scene" aria-label="Your home in changing daylight"></canvas><div id="app"></div><div id="toast" role="status" aria-live="polite"></div><script type="module" src="/src/main.js"></script></body></html>
+<!doctype html>
+<html lang="en" data-starting>
+<head>
+ <meta charset="UTF-8"/>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+ <meta name="theme-color" content="#faf6ed"/>
+ <meta name="description" content="At Home — a peaceful house, changing light, favorite memories and three pets to care for."/>
+ <title>At Home — A little room to breathe</title>
+ <link rel="icon" href="/favicon.svg"/>
+ <!-- This small first screen can paint before any scripts, fonts or 3D assets. -->
+ <style>
+  html{background:#eeefdf;color:#29382e;font-family:Arial,sans-serif}body{margin:0}html[data-starting] #scene{visibility:hidden}html[data-starting] #app{position:fixed;inset:0;overflow:auto}html[data-starting] #toast{display:none}
+  .boot-screen{box-sizing:border-box;min-height:100%;display:grid;grid-template-columns:1.2fr 1fr;align-items:center;gap:8vw;padding:8vh 8vw;background:linear-gradient(110deg,#f0eddf,#e2e8d4)}
+  .boot-screen *{box-sizing:border-box}.boot-eyebrow{text-transform:uppercase;letter-spacing:.18em;font-size:11px;font-weight:700;color:#64735c;margin:0 0 19px}.boot-screen h1{font:400 clamp(70px,7.5vw,130px)/1.05 Georgia,serif;letter-spacing:-.055em;margin:0 0 28px}.boot-screen h1 span{color:#859c55}.boot-intro{font-size:22px;line-height:1.65;margin:0}.boot-guide{font-size:14px;line-height:1.8;color:#68746a;margin:28px 0 0;max-width:470px}
+  .boot-card{padding:35px;background:#faf8f0;border:1px solid #ffffffb8;border-radius:20px;max-width:480px;box-shadow:0 16px 60px #3d573318}.boot-card h2{font:400 38px/1.13 Georgia,serif;letter-spacing:-.045em;margin:0 0 22px}.boot-card p:not(.boot-eyebrow){font-size:14px;line-height:1.7;color:#68746a}.boot-card progress{display:block;width:100%;height:9px;accent-color:#637f4a}.boot-card progress[hidden]{display:none}.boot-card button{padding:13px 20px;border:0;border-radius:9px;background:#345b45;color:#faf8f0;cursor:pointer;font:inherit}.boot-card button:focus-visible{outline:3px solid #759445;outline-offset:4px}
+  @media(max-width:700px){.boot-screen{grid-template-columns:1fr;gap:32px;align-content:center;padding:40px 7vw}.boot-screen h1{font-size:76px}.boot-intro{font-size:19px}.boot-card{max-width:none;padding:26px}.boot-card h2{font-size:30px}}
+ </style>
+</head>
+<body>
+ <canvas id="scene" aria-label="Your home in changing daylight"></canvas>
+ <div id="app">
+  <main class="boot-screen">
+   <div><p class="boot-eyebrow">A place to take your time</p><h1>At Home<span>.</span></h1><p class="boot-intro">A familiar house.<br>A few little friends. A lifetime of memories.</p><p class="boot-guide">Explore the house and find its memories. Walk into a glowing circle and press E, or tap Interact, to relive a moment. Some other things respond to a little curiosity, too.</p></div>
+   <section class="boot-card" aria-labelledby="boot-title"><p class="boot-eyebrow">Make yourself comfortable</p><h2 id="boot-title">Opening your home.</h2><p id="boot-status" role="status">Loading the house…</p><progress id="boot-progress" aria-label="Loading the house"></progress><p>Your welcome screen will be ready in a moment.</p><button id="boot-retry" hidden>Try again</button><noscript><p>Enable JavaScript to explore the house.</p></noscript></section>
+  </main>
+ </div>
+ <div id="toast" role="status" aria-live="polite"></div>
+ <script type="module" src="/src/startup.js"></script>
+</body>
+</html>

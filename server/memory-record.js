@@ -4,6 +4,7 @@ import {HOUSE_ROOMS,pointInPolygon,PLAN_SCALE} from '../src/house-layout.js';
 import {accessibleMemorySpot} from '../src/memory-access.js';
 import {MAX_MEMORY_ITEMS} from '../src/memory-media.js';
 import {audioContentType,AUDIO_FORMATS} from '../src/audio-formats.js';
+import {validFileSize} from '../src/memory-storage.js';
 export {MAX_SOUNDTRACK_SIZE} from '../src/memory-soundtrack.js';
 export const SOUNDTRACK_CONTENT_TYPES=[...new Set(Object.values(AUDIO_FORMATS))];
 export const UUID=/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
@@ -32,4 +33,4 @@ export function validateRecord(input,existing){
  const soundtrackTitle=soundtrackPath?String(input.soundtrackTitle??existing?.soundtrackTitle??'Memory soundtrack').trim().slice(0,100):'';
  return {id:input.id,...metadata,position:spot.position,mediaPath:mediaPaths[0],mediaPaths,soundtrackPath,soundtrackTitle,type:mediaPaths.some(p=>mediaType(p)==='video')?'video':'image',published:input.published===true,updatedAt:new Date().toISOString(),createdAt:existing?.createdAt||new Date().toISOString()};
 }
-export function publicRecord(r){const {mediaPath,mediaPaths,soundtrackPath,soundtrackTitle,...safe}=r;const url=path=>`/api/memories?action=media&id=${encodeURIComponent(r.id)}&asset=${encodeURIComponent(path.split('/').at(-1))}`;const media=recordMediaPaths(r).map(path=>({id:path.split('/').at(-1),type:mediaType(path),src:url(path)}));return {...safe,media,soundtrack:soundtrackPath?{src:url(soundtrackPath),title:soundtrackTitle}:null,cloud:true,src:media[0]?.src};}
+export function publicRecord(r){const {mediaPath,mediaPaths,soundtrackPath,soundtrackTitle,assetSizes,...safe}=r;const size=path=>validFileSize(assetSizes?.[path])?assetSizes[path]:null;const url=path=>`/api/memories?action=media&id=${encodeURIComponent(r.id)}&asset=${encodeURIComponent(path.split('/').at(-1))}`;const media=recordMediaPaths(r).map(path=>({id:path.split('/').at(-1),type:mediaType(path),src:url(path),size:size(path)}));return {...safe,media,soundtrack:soundtrackPath?{src:url(soundtrackPath),title:soundtrackTitle,size:size(soundtrackPath)}:null,cloud:true,src:media[0]?.src};}
