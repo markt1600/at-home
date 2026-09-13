@@ -25,7 +25,7 @@ export function buildSecondBedroom(world,root,m){
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i);p.setZ(i,.024*Math.sin(x*24+y*9)+.015*Math.sin(y*30)+.055*Math.exp(-((x+.22)**2)*20));}
  duvet.computeVertexNormals();duvet.rotateX(-Math.PI/2);const quilt=new THREE.Mesh(duvet,m.blue);quilt.position.set(.39,.70,0);quilt.castShadow=quilt.receiveShadow=true;bed.add(quilt);
  soft(.13,.39,2.06,1.01,.39,0,'blue',bed);soft(.48,.12,.71,.32,.77,-.3,0xb9947c,bed).rotation.y=.3;
- block(954,339,2.12,2.18);
+ block(954,339,2.12,2.18);world.colliders.at(-1).top=1.49;world.colliders.at(-1).landable=true;
  const bedside=at(929,398);box(.55,.52,.46,0,.29,0,'walnut',bedside);box(.56,.03,.47,0,.565,0,'walnut',bedside);cyl(.035,.13,.14,.65,0,'teal',bedside);block(929,398,.57,.48);
  // Recessed wardrobe fronts between the entry and en-suite, not a desk here.
  const closet=at(947,469,.75,Math.PI);box(1.87,2.42,.60,0,1.21,0,'walnut',closet);

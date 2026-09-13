@@ -27,5 +27,7 @@ export function applyHouseTextures(atlas,materials,anisotropy){
  for(const [key,map,bump,tint] of [['plaster',plaster,.0006,0xffffff],['sage',paint,.0004,0xffffff],['marble',stone,.0007,0xffffff],['oak',wood,.001,0xffffff],['oakFloor',floor,.001,0xc6a786],['walnut',wood,.001,0x685243],['breccia',breccia,.0003,0xffffff],['vanityStone',breccia,.0003,0xb29b80],['orange',fabric,.0008],['cream',fabric,.0008],['blue',fabric,.0008]]){
   const m=materials[key];if(tint)m.color.set(tint);m.map=map;m.bumpMap=map;m.bumpScale=bump;m.needsUpdate=true;
  }
+ if(materials.boucle){materials.boucle.map=fabric;materials.boucle.bumpMap=fabric;materials.boucle.bumpScale=.0018;materials.boucle.needsUpdate=true;}
+ if(materials.diningTimber){materials.diningTimber.map=wood;materials.diningTimber.bumpMap=wood;materials.diningTimber.bumpScale=.001;materials.diningTimber.needsUpdate=true;}
  atlas.dispose();
 }

@@ -6,15 +6,16 @@ This is a separate game derived from the authored house reconstruction in `markt
 
 ## Your day
 
-- Walk freely through the furnished house and both balconies. Small steps are climbed automatically.
+- Walk freely through the furnished house and both balconies. Small steps are climbed automatically; Space jumps onto sofas, beds and tables.
 - An active day takes about 20 minutes; choose slower, faster, or hold the current time. Rest until sunrise or skip to sunset.
 - Ken visits around 09:00, Nia at 13:00, June at 17:00. Chat at the door or invite them inside; guests remain visible for a while.
 - Fill pet food bowls, refresh water and spend time together. Needs pause in menus and while away. Pets cannot become ill or die.
 - Make tea, put on an original gentle melody, tend plants, read, or watch the sky. Small moments are saved in a journal.
 - Six locally generated MiniMax clips add friendly waves, nods, blinks, tail movements and tortoise movement. Nearby characters animate and appear in ordinary mirror/window reflections.
-- Memory markers offer a photo/video popup when approached. Playback pauses the day and quiets the game audio. Add your own files at your current position or one of the preset spots; these stay in your browser's IndexedDB.
+- Sunbirds circle the olive tree and drink at the hanging feeder throughout the day. Fictional neighbors walk, wave, stretch and have coffee on balconies across the street.
+- Memory markers open soft-edged photos and videos over a blurred view of the house. Playback pauses the day and quiets game audio. Date and description stay readable below the memory.
 
-Desktop: WASD/arrows to move, mouse to look, E to interact, Esc to release the mouse. Room buttons provide accessible quick navigation. Touch: drag the room to look and use the arrow controls to move.
+Desktop: enter the house to start walking with a center cursor. WASD/arrows move, mouse looks, Space jumps, E interacts and Esc closes popups or releases the mouse. M opens memories, P pets, R rituals, J journal, N neighbors, V voice, O room navigation and H the key guide. Number keys select popup options. During memories, Space pauses video and Esc returns. Click the room to resume mouse look after releasing it. Touch: drag to look and use the arrow controls to move.
 
 ## Run locally
 
@@ -41,11 +42,13 @@ Use the new [agent prompt and first message](docs/ELEVENLABS.md). The previous g
 
 No browser text-to-speech fallback is used. If generated speech is unavailable, all neighbor conversations remain readable. Connecting Voice is always an explicit microphone action.
 
+For cloud memories, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 16 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The memory studio is at `/admin`. See [storage and administration](docs/MEMORIES.md).
+
 ## Memories and source material
 
-Personal test memories remain local by default. The public memory catalog starts empty; browser-added files are never uploaded. Clearing site data removes browser memories, so retain original files. See [memory placements and publication](docs/MEMORIES.md).
+Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. Keep original files as a backup. See [memory placements and publication](docs/MEMORIES.md).
 
-The public code includes authored geometry and dimensions, generated characters, and prepared artwork. It excludes the address, original architectural PDFs, house walkthrough and source photographs. The view outside the balconies is an imagined garden neighborhood, not a reconstruction of the real surroundings.
+The public code includes authored geometry and dimensions, generated characters, and prepared artwork. It excludes the address, original architectural PDFs, house walkthrough and source photographs. Exterior tower shapes follow the supplied balcony photos; distances and unseen elevations are estimates. All balcony occupants are fictional.
 
 ## Validation
 

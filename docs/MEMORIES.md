@@ -1,26 +1,36 @@
 # Memories in the house
 
-Approach a muted gold floor marker to reveal a “Relive this moment” prompt. Press E or click it. Memories can also be opened from the Memories panel; “Go to this spot” takes you to their viewing position. The day pauses during playback, and game audio is muted so the original recording can be heard. Images remain open until dismissed.
+Approach a gold floor marker and press E to relive a moment, or press M to open the memory list. Photos and videos float over a blurred house with softly faded edges. Videos start playing automatically after the player chooses a memory; Space pauses them and Esc returns. Playback pauses the day and quiets game audio. The date and description appear beneath the media. Unknown dates stay blank.
 
-## Current local test placements
+## Current test placements
 
-| Memory | Trigger | Evidence / confidence |
+| Memory | Trigger | Visual evidence |
 | --- | --- | --- |
-| An afternoon in the living room | Clear floor beside the orange sofas and coffee table, plan point (493,620) | Sofas, coffee table and stair landing confirm the room. Camera position is approximate. |
-| Laughter at the dining table | Far side of the table looking toward the living room, (493,846) | Table, pendant lights and orange sofas confirm the direction. |
-| A playful moment in the hallway | Raised walkway alongside the wine cellar, (632,583) | Green cabinets and cellar glazing confirm the passage. The camera moves; this is the main viewing area. |
-| A birthday around the table | Living-room end of the dining table, moved to the clear side of the chairs, (493,759) | Pendant lights and dining-wall artwork confirm the room. |
+| An afternoon in the living room | Clear floor east of the brown coffee table, plan point (507,620) | Orange sofas, coffee table and stair landing identify the room. |
+| Laughter at the dining table | Far side of the table, (493,846) | Table, pendants and living room identify the direction. |
+| A playful moment in the hallway | Raised walkway alongside the wine cellar, (632,583) | Cabinets and cellar glazing identify the passage. The camera moves, so this is the main viewing area. |
+| A birthday around the table | Living-room end of the dining table, clear of chairs, (493,759) | Pendant lights and dining-wall artwork identify the room. |
 
-These points use the existing plan coordinate system in `src/house-layout.js`. They do not encode an address or GPS location. Trigger radius is approximately 1.25 m and floor elevation must match. Walkable clearance is covered by tests. These are visual estimates, not recovered camera calibration.
+Positions are visual estimates in the plan coordinate system, not recovered camera calibration. They contain no address or GPS location. Triggers require proximity (about 1.25 m) and matching floor elevation. Tests check walking clearance.
 
-## Add a private memory
+## Memory studio
 
-Memories → Add a memory from this device accepts JPG, PNG, WebP, MP4, MOV or WebM. Choose the current standing position or a preset spot. Files are saved in this browser's IndexedDB and never uploaded by the game. Browser codec support may vary, especially for MOV. Local memories are specific to the browser and site origin and are not a backup; keep the originals.
+Open `/admin` or use Memory studio in the game's help/settings. Select a memory to edit its title, date, description and location. The local editor works without a cloud connection and saves metadata in IndexedDB. Local files and edits belong to that browser and site origin; keep the originals.
 
-## Shared memories
+On Vercel, sign in using the project's editor password. Add a JPG, PNG, WebP, MP4, WebM or MOV up to 250 MB. MP4 is the most broadly supported video format; MOV support depends on its codec. Uploads go directly to private Blob storage using a short-lived, authenticated upload token. New uploads are private drafts. Existing local memories can be copied as private drafts.
 
-`public/memories/catalog.json` is the explicit public allowlist and starts empty. Entries can use a preset `id` plus `type`, `src` and optional `poster`, or specify `title`, `description`, `plan`, `room` and `view`. Only assets referenced by the public catalog are allowed into a production build. Publishing also requires explicitly allowing the chosen files through `.gitignore` and `.vercelignore`.
+**Show this memory in the game** explicitly publishes a memory: anyone able to open the game can then play it. Clearing that checkbox removes public access. A private draft is visible only in the authenticated editor, not in the public catalog or media endpoint. Personal media is never sent to the voice agent.
 
-During local development, `public/memories/local-catalog.json` can supply the four test memories. The local catalog and personal media are ignored by Git. They are excluded from production builds. The server defaults to localhost only.
+## Deployment configuration
 
-No media is sent to the conversational agent. It receives ordinary game context, not personal memory files or identities.
+Connect a **private** Blob store to the At Home Vercel project and enable its read-write token. Vercel supplies `BLOB_READ_WRITE_TOKEN`. Set a separate `MEMORY_ADMIN_PASSWORD` with at least 16 characters for each environment where editing is required, then redeploy. Neither value is public or uses a `VITE_` prefix. Password changes invalidate existing editor sessions.
+
+`api/memory-upload.js` authorizes uploads with constrained paths, content types and file sizes. `api/memories.js` manages metadata and proxies private media, including video range requests. Editor sessions last eight hours in HttpOnly, SameSite=Strict cookies, secure on Vercel. Updates use Blob ETags to reject conflicting edits. Login retry throttling is per function instance, not a shared global rate limiter.
+
+Media is stored at `media/{uuid}/image.ext` or `media/{uuid}/video.ext`; metadata is stored at `records/{uuid}.json`. No separate KV service is required for this small catalog. The API reads metadata from Blob without cache and checks publication state for every media request. Published URLs are application URLs, never raw private-store paths.
+
+The plain Vite server does not run Vercel API functions. Local editing remains available there. Test the cloud editor on the Vercel deployment.
+
+## Source privacy
+
+`public/memories/catalog.json` is an explicit static public allowlist and starts empty. Development may load `local-catalog.json`; original test media and this local catalog are ignored by Git and Vercel, and pruned from production builds. Do not commit private media or the source house drawings. Only deliberately published cloud records appear to game visitors.

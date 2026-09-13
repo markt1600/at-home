@@ -71,7 +71,7 @@ export const GUEST_MIRROR_POSITION=[...planPoint(880,419),1.93];
 export const MASTER_VANITY={center:[826,222.65],width:1.9,depth:.6,height:.9,floor:.75,basinWidth:1.5,basinDepth:.25,mirror:[826,212],mirrorY:2.375,mirrorWidth:1.165,mirrorHeight:1.05};
 const view=(x,z,tx,tz,pitch=-.035)=>{const [a,b]=planPoint(x,z),[c,d]=planPoint(tx,tz);return[a,1.67+floorHeight(a,b),b,Math.atan2(a-c,b-d),pitch];};
 export const HOUSE_VIEWS={
- door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,506,545,453),shoe_cabinet:view(887,674,946,699,-.08),
+ door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,506,545,453),shoe_cabinet:view(900,709,946,699,-.08),
  living:view(630,676,445,578,-.26),dining:view(493,846,406,806,-.08),kitchen:view(537,841,642,794,-.13),
  utility:view(677,873,738,923,-.12),study:view(928,601,864,566,-.08),media:view(928,601,864,566,-.08),
  bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
