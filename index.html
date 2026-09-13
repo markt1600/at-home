@@ -26,9 +26,10 @@
  <!-- This small first screen can paint before any scripts, fonts or 3D assets. -->
  <style>
   html{background:#eeefdf;color:#29382e;font-family:Arial,sans-serif}body{margin:0}html[data-starting] #scene{visibility:hidden}html[data-starting] #app{position:fixed;inset:0;overflow:auto}html[data-starting] #toast{display:none}
-  .boot-screen{box-sizing:border-box;min-height:100%;display:grid;justify-items:center;align-content:center;gap:28px;padding:32px 20px;background:linear-gradient(110deg,#f0eddf,#e2e8d4)}
+  .boot-screen{box-sizing:border-box;min-height:100%;display:grid;justify-items:center;align-content:center;gap:28px;padding:32px 20px;background:linear-gradient(90deg,#eeeede80,#eeeede08),url('/social/living-room-v1.jpg') center/cover;background-color:#e2e8d4}
   .boot-screen *{box-sizing:border-box}.boot-screen h1{font:400 clamp(64px,8vw,100px)/1.05 Georgia,serif;letter-spacing:-.055em;margin:0}.boot-screen h1 span{color:#859c55}
   .boot-card{padding:28px;background:#faf8f0;border:1px solid #ffffffb8;border-radius:20px;width:min(420px,100%);box-shadow:0 16px 60px #3d573318}.boot-card p{font-size:12px;line-height:1.65;color:#68746a;margin:15px 0}.boot-card progress{display:block;width:100%;height:9px;accent-color:#637f4a}.boot-card progress[hidden]{display:none}.boot-card button{width:100%;padding:14px 18px;border:0;border-radius:10px;background:#345b45;color:#faf8f0;cursor:pointer;font:600 14px Arial,sans-serif}.boot-card button:disabled{cursor:wait}.boot-card button:focus-visible{outline:3px solid #759445;outline-offset:4px}
+  .boot-card #boot-status{font-size:18px;line-height:1.5;margin:0 0 18px;color:#405240}
  </style>
 </head>
 <body>
@@ -36,7 +37,7 @@
  <div id="app">
   <main class="boot-screen">
    <h1>At Home<span>.</span></h1>
-   <section class="boot-card" aria-label="Loading your game"><button disabled>Start game</button><p id="boot-status" role="status">Loading the house…</p><progress id="boot-progress" aria-label="Loading the house"></progress><button id="boot-retry" hidden>Try again</button><noscript><p>Enable JavaScript to explore the house.</p></noscript></section>
+   <section class="boot-card" aria-label="Loading your game"><p id="boot-status" role="status">Please wait…</p><progress id="boot-progress" aria-label="Loading the house"></progress><button id="boot-retry" hidden>Try again</button><noscript><p>Enable JavaScript to explore the house.</p></noscript></section>
   </main>
  </div>
  <div id="toast" role="status" aria-live="polite"></div>

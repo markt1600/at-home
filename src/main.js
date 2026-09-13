@@ -31,7 +31,7 @@ const activeMemories=()=>filterMemories(memories,state.memoryFilter);
 const memoryVisit=createMemoryVisit();let visitMemories=[];
 const syncMemories=()=>{visitMemories=memoryVisit.select(memories,state.memoryFilter);world.setMemories(visitMemories);};
 const companion=new Intercom(status=>{voiceStatus=status;const el=$('#voice-status');if(el)el.textContent=status;},(who,text)=>{transcript.push({who,text});transcript=transcript.slice(-12);updateTranscript();});
-const bootStatus=$('#boot-status');if(bootStatus)bootStatus.textContent='Preparing the rooms…';
+const bootStatus=$('#boot-status');if(bootStatus)bootStatus.textContent='Please wait…';
 await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 const world=new House($('#scene'),id=>{updateLookHint(id);},tick);
 world.onUnlock=()=>openPanel('settings');
@@ -51,10 +51,14 @@ world.onTelescopePeriod=night=>{const el=$('#telescope-period');if(el)el.textCon
 function leaveTelescope(){world.telescope.leave();world.resumeWandering();}
 function updateArtworkStatus(){
  const status=world.artwork.status,card=$('.welcome-menu .welcome-card');if(!card)return;
+ card.closest('.welcome-menu').classList.toggle('house-ready',status.ready);
+ card.querySelector('.stack').hidden=!status.ready;
+ card.setAttribute('aria-busy',String(status.loading));
  card.querySelectorAll('#continue-game,#new-game').forEach(button=>button.disabled=!status.ready);
- let note=$('#house-loading');if(!note){note=document.createElement('p');note.id='house-loading';note.className='fine';note.setAttribute('role','status');card.append(note);}
- note.replaceChildren();const label=document.createElement('span');label.textContent=status.ready?'The house is ready.':status.loading?`Opening the house and its artwork… ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
- const progress=document.createElement('progress');progress.max=status.total;progress.value=status.loaded;progress.setAttribute('aria-label','House textures loaded');note.append(progress);if(status.ready)return;
+ let note=$('#house-loading');if(!note){note=document.createElement('div');note.id='house-loading';note.className='fine';note.setAttribute('role','status');card.append(note);}
+ note.hidden=status.ready;note.replaceChildren();if(status.ready)return;
+ const label=document.createElement('span');label.textContent=status.loading?`Please wait… Loading the house — ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
+ const progress=document.createElement('progress');progress.max=status.total;progress.value=status.loaded;progress.setAttribute('aria-label','House textures loaded');note.append(progress);
  if(!status.loading){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry loading';retry.onclick=()=>world.loadArtwork();note.append(retry);}
 }
 const roomNames={living:'Living room',living_landing:'Living room',living_south:'Living room',hall:'Entrance',passage:'Hallway',dining:'Dining room',balcony:'Living balcony',dining_bay:'Dining balcony',kitchen:'Kitchen',bedroom:'Main bedroom',guest:'Second bedroom',study:'Home office',wine:'Wine cellar',theatre:'Window lounge',bath:'Main bathroom',powder:'Guest bathroom',vanity:'Vanity',wardrobe:'Wardrobe',meditation:'Meditation alcove',utility:'Utility yard'};
@@ -63,7 +67,7 @@ async function toggleRecord(){try{await recordPlayer.toggle();}catch{toast('Musi
 function save(){if(!playing&&!hasSavedGame)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));hasSavedGame=true;}catch{}}
 function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),6500);}
 function renderMenu(){
- app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack">${hasSavedGame?'<button class="primary" id="continue-game">Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game">${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
+ app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack" hidden>${hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game" disabled>${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
  if(hasSavedGame)$('#continue-game').onclick=()=>enter();
  $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;recordPlayer.stop();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
  updateArtworkStatus();
