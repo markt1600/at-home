@@ -15,7 +15,9 @@ Positions are visual estimates in the plan coordinate system, not recovered came
 
 ## Memory studio
 
-Open `/admin` or use Memory studio in the game's help/settings. Select a memory to edit its title, date, description and location. The local editor works without a cloud connection and saves metadata in IndexedDB. Local files and edits belong to that browser and site origin; keep the originals.
+Open [the memory studio](https://athome.marktan.ai/admin) or use Memory studio in the game's help/settings. Select a memory to edit its title, date, description and location. The local editor works without a cloud connection and saves metadata in IndexedDB. Local files and edits belong to that browser and site origin; keep the originals.
+
+Choose **Add a memory**, then drop one photo or video into the upload area (or use **Choose file**). A preview appears before saving. Click the floor plan or drag its pin to choose where the memory is triggered. The shaded ring shows the approximately 1.25 m trigger radius. **View a room** zooms the plan; **Focus on pin** zooms to the selected location. With the plan focused, arrow keys move the pin 20 cm; Shift moves it 1 m. Existing memories can be repositioned in the same way. Walls and inaccessible rooms are excluded; choose a clear standing area, avoiding furniture. Floor heights follow the actual game, including stairs.
 
 On Vercel, sign in using the project's editor password. Add a JPG, PNG, WebP, MP4, WebM or MOV up to 250 MB. MP4 is the most broadly supported video format; MOV support depends on its codec. Uploads go directly to private Blob storage using a short-lived, authenticated upload token. New uploads are private drafts. Existing local memories can be copied as private drafts.
 

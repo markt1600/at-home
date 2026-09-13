@@ -2,6 +2,8 @@
 
 A relaxing first-person home-life game. Watch morning turn into evening, welcome neighbors for tea, care for Miso the cat, Sunny the dog and Pebble the tortoise, and revisit memories in the places where they happened.
 
+[Play At Home](https://athome.marktan.ai) · [Memory studio](https://athome.marktan.ai/admin)
+
 This is a separate game derived from the authored house reconstruction in `markt1600/human`. It has its own saved state, friendly cast, visual style, voice prompts and gameplay. There is no combat, hidden threat, score or losing state.
 
 ## Your day

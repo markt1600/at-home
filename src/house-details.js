@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint,PLAN_SCALE,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-layout.js';
 import {INTERIOR_WALLS} from './house-architecture.js';
+import {buildLivingSpeakers} from './living-speakers.js';
 
 function helpers(world,root,m){
  const box=(w,h,d,x,y,z,key='white',parent=root)=>world.box(w,h,d,x,y,z,typeof key==='string'?m[key]:world.mat(key),parent);
@@ -78,8 +79,7 @@ export function addHouseDetails(world,root,m){
  entranceSwitch.name='Entrance wall switch';entranceSwitch.position.addScaledVector(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),.087);
  box(.084,.084,.014,0,0,0,'white',entranceSwitch);for(const x of [-.018,.018])box(.018,.045,.017,x,0,.004,'cream',entranceSwitch);
  const [sx,sz]=planPoint(535,801);const tap=new THREE.Mesh(new THREE.TorusGeometry(.085,.018,8,16,Math.PI),m.steel);tap.position.set(sx+.085,1.70,sz);root.add(tap);cyl(.018,.07,sx+.17,1.665,sz,'steel');
- // The walkthrough's black-and-white floor speakers beside the living glazing.
- for(const pz of [568,680]){const g=at(332,pz,0,Math.PI/2);soft(.3,1.02,.32,0,.53,0,'white',g);soft(.22,.77,.075,0,.59,.164,'black',g);}
+ buildLivingSpeakers(world,root,m);
 }
 
 export function buildMasterVanity(world,root,m){
