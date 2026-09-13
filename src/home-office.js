@@ -55,17 +55,22 @@ export function buildHomeOffice(world,root,m){
  for(const path of [[[-.15,.60,.065],[-.12,.67,.09],[.17,.63,.09],[.20,.51,.09]],[[-.09,.42,.11],[.05,.49,.12],[.20,.46,.11],[.20,.32,.10]],[[-.09,.29,.11],[.03,.19,.12],[.19,.22,.11],[.20,.33,.10]]]){
   const mesh=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(...p))),24,.009,8,false),coolant);pc.add(mesh);
  }box(pc,.31,.12,.24,-.07,.14,-.01,'black');box(pc,.48,.63,.02,.73,.33,-.015,'black').rotation.z=-.08;
- const shelves=at('Office equipment shelving and watch winders',935,582,.75,-Math.PI/2);
- box(shelves,1.12,2.45,.035,0,1.225,-.24,'sage');for(const x of [-.55,.55])box(shelves,.032,2.45,.52,x,1.225,0,'sage');
- for(const y of [.035,.79,1.33,1.84,2.18,2.45])box(shelves,1.10,.034,.52,0,y,0,'sage');
- for(let row=0;row<3;row++)for(const x of [-.275,.275])box(shelves,.526,.239,.037,x,.145+row*.25,.248,'sage');
- const printer=new THREE.Group();printer.name='Printer';printer.position.set(.19,.81,0);shelves.add(printer);soft(printer,.46,.31,.40,0,.16,0,'white');box(printer,.45,.076,.4,0,.35,0,'black');box(printer,.4,.057,.31,-.018,.413,-.03,'white');box(printer,.25,.031,.09,-.04,.3,.22,'black');box(printer,.11,.059,.013,.14,.385,.21,'black');for(let i=0;i<4;i++)box(printer,.23,.005,.19,-.03,.449+i*.005,-.035,'cream');
- soft(shelves,.29,.07,.27,-.36,.847,.08,'white');box(shelves,.19,.23,.31,-.38,.952,-.075,'steel');
+ // C-04, sheets 24–25: 1355 × 570 × 2480 mm in the east-wall recess.
+ const shelves=at('Recessed office equipment shelving and watch winders',969.8,560,.75,-Math.PI/2);
+ shelves.userData.dimensions={width:1.355,depth:.57,height:2.48};
+ box(shelves,1.355,2.48,.02,0,1.24,-.275,'sage');for(const x of [-.6675,.6675])box(shelves,.02,2.48,.57,x,1.24,0,'sage');
+ for(const y of [.025,.635,1.185,1.578,1.971,2.364,2.465])box(shelves,1.315,.03,.57,0,y,0,'sage');
+ for(let row=0;row<3;row++)for(const x of [-.329,.329])box(shelves,.65,.19,.03,x,.12+row*.20,.279,'sage');
+ const printer=new THREE.Group();printer.name='Printer';printer.position.set(.27,.65,0);shelves.add(printer);soft(printer,.46,.31,.40,0,.16,0,'white');box(printer,.45,.076,.4,0,.35,0,'black');box(printer,.4,.057,.31,-.018,.413,-.03,'white');box(printer,.25,.031,.09,-.04,.3,.22,'black');box(printer,.11,.059,.013,.14,.385,.21,'black');for(let i=0;i<4;i++)box(printer,.23,.005,.19,-.03,.449+i*.005,-.035,'cream');
+ soft(shelves,.29,.07,.27,-.36,.687,.08,'white');box(shelves,.19,.23,.31,-.38,.792,-.075,'steel');
  for(const x of [-.275,.275]){
-  const winders=new THREE.Group();winders.name='Eight-watch winder';winders.position.set(x,1.365,0);shelves.add(winders);box(winders,.52,.31,.28,0,.155,0,'black');
+  const winders=new THREE.Group();winders.name='Eight-watch winder';winders.position.set(x,1.20,0);shelves.add(winders);box(winders,.52,.31,.28,0,.155,0,'black');
   for(let row=0;row<2;row++)for(let col=0;col<4;col++){const xx=-.19+col*.128,yy=.077+row*.15;disk(winders,.053,xx,yy,.147,'steel');disk(winders,.045,xx,yy,.157,'black');disk(winders,.023,xx,yy,.166,'cream');box(winders,.006,.030,.004,xx,yy+.009,.175,'black');}
  }
- for(let i=0;i<3;i++)box(shelves,.26,.21,.33,-.34+i*.33,1.97,0,i%2?'glass':'cream');box(shelves,.59,.16,.34,.19,2.275,0,'black');block(shelves,1.14,.55);
+ for(let i=0;i<3;i++)box(shelves,.26,.21,.33,-.34+i*.33,1.705,0,i%2?'glass':'cream');box(shelves,.59,.16,.34,.19,2.07,0,'black');block(shelves,1.355,.57);
+ // Plaster jambs frame the inset instead of leaving a freestanding cabinet.
+ for(const x of [-.72,.72])box(shelves,.065,2.48,.81,x,1.24,.12,'plaster');
+ box(shelves,1.44,.07,.81,0,2.515,.12,'plaster');
  const chair=at('Blue office gaming chair',903,590,.75,Math.PI/2);
  cyl(chair,.033,.055,.41,0,.24,0,'steel');for(let i=0;i<5;i++){const a=i*Math.PI*2/5;rod(chair,[0,.12,0],[Math.cos(a)*.35,.065,Math.sin(a)*.35],.019,'black');cyl(chair,.039,.039,.043,Math.cos(a)*.35,.043,Math.sin(a)*.35,'black');}
  soft(chair,.58,.12,.57,0,.46,0,'blue');soft(chair,.58,.88,.13,0,.94,-.23,'blue').rotation.x=-.10;soft(chair,.34,.17,.16,0,1.20,-.13,'black');

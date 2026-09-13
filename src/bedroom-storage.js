@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint} from './house-layout.js';
+import {displayHandbag} from './display-handbags.js';
 export function buildBedroomStorage(world,root,m){
  const at=(name,x,z,y=.75,yaw=0)=>{const p=planPoint(x,z),g=new THREE.Group();g.name=name;g.position.set(p[0],y,p[1]);g.rotation.y=yaw;root.add(g);return g;};
  const box=(g,w,h,d,x,y,z,key)=>world.box(w,h,d,x,y,z,m[key],g);
@@ -25,7 +26,10 @@ export function buildBedroomStorage(world,root,m){
  for(let i=0;i<=8;i++){const x=-2+i*.5;for(const z of [-.175,.175])world.cyl(.009,.009,2.66,x,1.33,z,m.black,divider,8);}
  // Keep the central opening clear; bags occupy the upper shelf.
  for(let i=0;i<8;i++){const x=-1.77+i*.50,key=['black','cream','walnut','black','cream','black','oak','sage'][i],raise=[2,4,6].includes(i)?.09:0;
-  if(raise){box(divider,.43,.082,.30,x,1.67,0,'orange');box(divider,.45,.013,.315,x,1.717,0,'orange');}bag(divider,x,1.63+raise,0,.37,key,(i%3-1)*.12);
+  if(raise){box(divider,.43,.082,.30,x,1.67,0,'orange');box(divider,.45,.013,.315,x,1.717,0,'orange');}
+  if(i===5){displayHandbag(world,divider,{x,y:1.63+raise,z:-.06,width:.36,color:0x77675a,style:'birkin',scarf:true});displayHandbag(world,divider,{x:x-.04,y:1.63+raise,z:.12,width:.23,color:0x202326,style:'kelly'});}
+  else if(i===6)displayHandbag(world,divider,{x,y:1.63+raise,z:0,width:.38,color:0xba934c,style:'kelly',scarf:true,angle:-.10});
+  else bag(divider,x,1.63+raise,0,.37,key,(i%3-1)*.12);
  }
  for(let i=0;i<6;i++){const x=-1.6+i*.61,key=['oak','teal','white','steel','cream','white'][i],y=2.30;ball(divider,.055,x,y+.105,0,key,.9,1.3,.65);ball(divider,.06,x,y+.208,0,key);for(const s of [-1,1]){ball(divider,.025,x+s*.049,y+.25,0,key);ball(divider,.022,x+s*.071,y+.12,0,key,.8,1.5,.8);ball(divider,.026,x+s*.028,y+.023,.008,key,.7,1,.9);}for(const s of [-1,1])ball(divider,.008,x+s*.021,y+.212,.054,'black');}
  for(let i=0;i<4;i++)box(divider,.40,.10,.28,-1.5+i*.43,.827,0,i%2?'black':'orange');

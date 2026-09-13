@@ -7,6 +7,6 @@ export function installTouchStick(element,world){
  const hidden=()=>{if(document.hidden)reset();};
  element.addEventListener('pointerdown',down);element.addEventListener('pointermove',move);
  for(const event of ['pointerup','pointercancel','lostpointercapture'])element.addEventListener(event,up);
- window.addEventListener('blur',reset);document.addEventListener('visibilitychange',hidden);
- return ()=>{reset();element.removeEventListener('pointerdown',down);element.removeEventListener('pointermove',move);for(const event of ['pointerup','pointercancel','lostpointercapture'])element.removeEventListener(event,up);window.removeEventListener('blur',reset);document.removeEventListener('visibilitychange',hidden);};
+ for(const event of ['blur','resize','orientationchange','pageshow'])window.addEventListener(event,reset);window.visualViewport?.addEventListener('resize',reset);document.addEventListener('visibilitychange',hidden);
+ return ()=>{reset();element.removeEventListener('pointerdown',down);element.removeEventListener('pointermove',move);for(const event of ['pointerup','pointercancel','lostpointercapture'])element.removeEventListener(event,up);for(const event of ['blur','resize','orientationchange','pageshow'])window.removeEventListener(event,reset);window.visualViewport?.removeEventListener('resize',reset);document.removeEventListener('visibilitychange',hidden);};
 }

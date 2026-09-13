@@ -20,8 +20,10 @@ export class PetRoaming{
   }
  }
  route(p){
-  const start=this.nearest(p.x,p.z),parents=new Map([[start.key,null]]),queue=[start];
-  for(let i=0;i<queue.length;i++)for(const key of queue[i].links)if(!parents.has(key)){parents.set(key,queue[i].key);queue.push(this.nodes.get(key));}
+  const others=[...this.pets.values()].filter(o=>o!==p);
+  const clear=n=>others.every(o=>Math.abs(n.y-o.y)>.4||Math.hypot(n.x-o.x,n.z-o.z)>=Math.min(.53,Math.hypot(p.x-o.x,p.z-o.z)-.005))&&(!this.player||Math.abs(n.y-(this.player.y-1.67))>.5||Math.hypot(n.x-this.player.x,n.z-this.player.z)>=Math.min(.78,Math.hypot(p.x-this.player.x,p.z-this.player.z)-.005));
+  const start=[...this.nodes.values()].filter(n=>Math.hypot(n.x-p.x,n.z-p.z)<.45&&clear(n)).sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z)).find(n=>{const m=moveAlongFloor(p.x,p.z,n.x-p.x,n.z-p.z,this.obstacles);return Math.hypot(m.x-n.x,m.z-n.z)<.001;});if(!start){p.wait=.5;return;}const parents=new Map([[start.key,null]]),queue=[start];
+  for(let i=0;i<queue.length;i++)for(const key of queue[i].links)if(!parents.has(key)&&clear(this.nodes.get(key))){parents.set(key,queue[i].key);queue.push(this.nodes.get(key));}
   const home=this.nodes.get(p.home),max=p.id==='pebble'?3.2:12,choices=queue.filter(n=>Math.hypot(n.x-p.x,n.z-p.z)>1&&Math.hypot(n.x-p.x,n.z-p.z)<max);
   let dest;
   if(p.greeting){
@@ -33,17 +35,18 @@ export class PetRoaming{
   const path=[];for(let key=dest.key;key!==start.key;key=parents.get(key))path.unshift(this.nodes.get(key));if(Math.hypot(start.x-p.x,start.z-p.z)>.002)path.unshift(start);p.path=path;
  }
  update(dt,{enabled=true,player=null,hours=12,canWalk=()=>true}={}){
-  if(!enabled||dt<=0)return;dt=Math.min(dt,.1);
+  if(!enabled||dt<=0)return;dt=Math.min(dt,.1);this.player=player;
   for(const p of this.pets.values()){
    p.moving=false;p.vx=p.vz=0;
    if(p.greeting){p.greeting.remaining-=dt;if(p.greeting.remaining<=0)p.greeting=null;else if(player&&Math.hypot(player.x-p.greeting.player.x,player.z-p.greeting.player.z)>.7){p.greeting.player={x:player.x,z:player.z};p.path=[];this.route(p);}}
-   if(player&&Math.hypot(p.x-player.x,p.z-player.z)<.72){if(p.greeting){p.greeting=null;p.path=[];p.wait=10;}continue;}
+   if(player&&p.greeting&&Math.hypot(p.x-player.x,p.z-player.z)<.72){p.greeting=null;p.path=[];p.wait=10;}
    if(p.wait>0){p.wait-=dt;continue;}p.activity='idle';if(!canWalk(p.id))continue;if(!p.path.length)this.route(p);const next=p.path[0];if(!next)continue;
    const d=Math.hypot(next.x-p.x,next.z-p.z);if(d<.002){p.path.shift();continue;}const step=Math.min(d,p.speed*(p.greeting?1.3:1)*dt),x=p.x+(next.x-p.x)/d*step,z=p.z+(next.z-p.z)/d*step;
-   if([...this.pets.values()].some(other=>other!==p&&Math.hypot(x-other.x,z-other.z)<.42)){
-    p.blocked=(p.blocked||0)+dt;if(p.blocked>2){p.path=[];p.wait=1+this.random()*2;p.blocked=0;}continue;
+   const approachingPlayer=player&&Math.hypot(x-player.x,z-player.z)<.72&&Math.hypot(x-player.x,z-player.z)<Math.hypot(p.x-player.x,p.z-player.z)-.0001;
+   if(approachingPlayer||[...this.pets.values()].some(other=>other!==p&&Math.abs(p.y-other.y)<.4&&Math.hypot(x-other.x,z-other.z)<.46&&Math.hypot(x-other.x,z-other.z)<Math.hypot(p.x-other.x,p.z-other.z)-.0001)){
+    p.blocked=(p.blocked||0)+dt;if(p.blocked>.65){p.path=[];this.route(p);p.wait=.2+this.random()*.6;p.blocked=0;}continue;
    }
-   const moved=moveAlongFloor(p.x,p.z,x-p.x,z-p.z,this.obstacles);p.vx=(moved.x-p.x)/dt;p.vz=(moved.z-p.z)/dt;p.distance+=moved.distance;p.x=moved.x;p.z=moved.z;p.y=floorHeight(p.x,p.z);p.moving=moved.distance>0;p.activity=p.moving?'walk':'idle';p.blocked=0;
+   const moved=moveAlongFloor(p.x,p.z,x-p.x,z-p.z,this.obstacles);if(moved.distance<.00001){p.path=[];p.wait=.3;continue;}p.vx=(moved.x-p.x)/dt;p.vz=(moved.z-p.z)/dt;p.distance+=moved.distance;p.x=moved.x;p.z=moved.z;p.y=floorHeight(p.x,p.z);p.moving=moved.distance>0;p.activity=p.moving?'walk':'idle';p.blocked=0;
    if(Math.hypot(next.x-p.x,next.z-p.z)<.002){p.path.shift();if(!p.path.length){const night=hours%24<6||hours%24>21,sleep=!p.greeting&&(night||this.random()<.35);p.wait=(p.greeting?15:sleep?25:4)+this.random()*(sleep?25:10);p.activity=sleep?'sleep':'idle';p.greeting=null;}}
   }
  }

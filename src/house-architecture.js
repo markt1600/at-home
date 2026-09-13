@@ -51,6 +51,8 @@ export const INTERIOR_WALLS=[
 ];
 
 export const EXTERIOR_OPENINGS=[
+ opening('office-window-one',[947,600],.34,1.66,1.54,'window'),
+ opening('office-window-two',[947,622],.34,1.66,1.54,'window'),
  opening('master-windows',[690,208],4.5,1.7,1.45,'window'),
  opening('vanity-window',[826,208],1.9,1.5,1.77,'window'),
  opening('second-bath-window',[1037,563],.4,1.7,1.45,'window'),
@@ -101,6 +103,7 @@ export function wallApertures(wall,openings=wall.openings||[]){
 export function buildArchitecture(world,root,materials){
  const top=4.1,bottom=-.12;
  materials.glassblock=new THREE.MeshStandardMaterial({color:0xaebdb6,roughness:.35,metalness:.1,transparent:true,opacity:.7});
+ materials.frostedOfficeGlass=new THREE.MeshStandardMaterial({color:0xacc3c9,roughness:.8,metalness:.05,emissive:0x91afbb,emissiveIntensity:.15});
  const solid=(wall,lo,hi,base,height,material='plaster',collision=false,depth=.16)=>{
   if(hi-lo<1e-6||height<1e-6)return;
   const [x,z]=planPoint(...wall.a),[xx,zz]=planPoint(...wall.b),len=Math.hypot(xx-x,zz-z),t=(lo+hi)/2/len,angle=-Math.atan2(zz-z,xx-x);
@@ -125,11 +128,11 @@ export function buildArchitecture(world,root,materials){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
-   const frame=a.kind==='sliding'||a.id.startsWith('theatre-window')?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
+   const frame=a.kind==='sliding'||(a.id.startsWith('theatre-window')||a.id.startsWith('office-window'))?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
    for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed','lift'].includes(a.kind)){
-    solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?'glass':a.kind==='lift'?'steel':'walnut',true,.045);
+    solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?(a.id.startsWith('office-window')?'frostedOfficeGlass':'glass'):a.kind==='lift'?'steel':'walnut',true,.045);
     if(a.kind==='window'){const spacing=a.id==='master-windows'?(a.hi-a.lo)/4:.6;for(let t=a.lo+spacing;t<a.hi-.01;t+=spacing)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);}
     if(a.kind==='lift')solid(wall,(a.lo+a.hi)/2-.008,(a.lo+a.hi)/2+.008,a.base,a.height,'black',false,.06);
    }

@@ -6,7 +6,9 @@ import {inWalkableArea} from '../src/navigation.js';
 const world=createHouseModel();
 test('office equipment faces the parallel dual-monitor desk and fitted guest closets have no rear passage',()=>{
  const {desk,shelves}=world.homeOffice,forward=shelves.position.clone().set(Math.sin(shelves.rotation.y),0,Math.cos(shelves.rotation.y)),toward=desk.position.clone().sub(shelves.position).normalize();
- assert.ok(forward.dot(toward)>.99);assert.ok(Math.abs(Math.abs(shelves.rotation.y-desk.rotation.y)-Math.PI)<.001);
+ assert.ok(forward.dot(toward)>.95);assert.ok(Math.abs(Math.abs(shelves.rotation.y-desk.rotation.y)-Math.PI)<.001);
+ assert.deepEqual(shelves.userData.dimensions,{width:1.355,depth:.57,height:2.48});
+ assert.ok(shelves.position.x>planPoint(947,560)[0], 'shelving sits behind the window-wall face in its recess');
  for(const point of [[866,503],[901,520],[915,471],[947,471],[975,470]])assert.equal(inWalkableArea(...planPoint(...point),true,world.colliders),false,'No passage inside/behind fitted closets: '+point);
  assert.ok(inWalkableArea(...planPoint(880,445),true,world.colliders),'bedroom entry remains open');
 });

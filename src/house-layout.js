@@ -22,7 +22,7 @@ export const HOUSE_ROOMS=[
  room('service_room','Service room',[[714,786],[823,786],[856,819],[818,857],[691,857],[691,808],[714,808]],.45,2.842),
  room('store','Store room',[[691,718],[755,718],[823,786],[714,786],[714,767],[691,767]],.45,2.495),
  room('wine','Wine cellar',rect(653,482,853,632),.75,2.2),
- room('study','Home office',[[853,531],[984,531],[984,563],[947,563],[947,632],[853,632]],.75,2.48),
+ room('study','Home office',[[853,531],[984,531],[984,589],[947,589],[947,632],[853,632]],.75,2.48),
  room('east_hall','Second bedroom entrance',rect(853,415,910,531)),
  room('guest','Second bedroom',rect(910,273,1053,457)),
  room('guest_bath','Second bathroom',rect(984,457,1053,563)),

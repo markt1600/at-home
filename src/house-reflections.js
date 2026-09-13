@@ -39,12 +39,12 @@ export class HouseReflections {
    const render=pane.mesh.onBeforeRender.bind(pane.mesh);
    pane.mesh.onBeforeRender=(...args)=>{
     if(!pane.refresh)return;
-    const visibility=this.surfaces.map(p=>p.mesh.visible);
+    const visibility=this.surfaces.map(p=>p.mesh.visible),renderer=args[0],viewport=renderer.getCurrentViewport(new THREE.Vector4()),target=renderer.getRenderTarget();
     // A single reflection pass must not recursively render every other pane.
     this.surfaces.forEach(p=>p.mesh.visible=false);
-    try{render(...args);}finally{this.surfaces.forEach((p,i)=>p.mesh.visible=visibility[i]);}
+    try{render(...args);}finally{renderer.setRenderTarget(target);renderer.state.viewport(viewport);this.surfaces.forEach((p,i)=>p.mesh.visible=visibility[i]);}
    };
   }
  }
- update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);const now=performance.now();if(this.mobile&&now-this.lastRefresh<100)return;this.lastRefresh=now;this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,this.mobile?1:2).forEach(x=>x.p.refresh=true);}
+ update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);const now=performance.now();if(now-this.lastRefresh<(this.mobile?200:100))return;this.lastRefresh=now;this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,this.mobile?1:2).forEach(x=>x.p.refresh=true);}
 }

@@ -1,4 +1,5 @@
 import {cleanMemoryMetadata} from '../src/memory-metadata.js';
+import {cleanMemoryPet} from '../src/pet-memories.js';
 import {HOUSE_ROOMS,pointInPolygon,PLAN_SCALE} from '../src/house-layout.js';
 import {accessibleMemorySpot} from '../src/memory-access.js';
 import {MAX_MEMORY_ITEMS} from '../src/memory-media.js';
@@ -16,7 +17,7 @@ export const recordAssetPaths=r=>[...recordMediaPaths(r),...(r?.soundtrackPath?[
 const mediaType=path=>/\.(mp4|webm|mov)$/.test(path)?'video':'image';
 export function validateRecord(input,existing){
  if(!UUID.test(input.id||''))throw Error('Invalid memory ID');
- const metadata=cleanMemoryMetadata(input);
+ const metadata={...cleanMemoryMetadata(input),petId:cleanMemoryPet(input.petId===undefined?existing?.petId:input.petId)};
  if(!Array.isArray(input.position)||input.position.length!==3||!input.position.every(Number.isFinite))throw Error('Choose a location in the house');
  const [x,,z]=input.position;
  if(!HOUSE_ROOMS.some(r=>r.walkable!==false&&pointInPolygon(x,z,r.polygon)))throw Error('Choose a location inside the house');

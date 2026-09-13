@@ -1,4 +1,5 @@
 import './admin.css';
+import {PET_MEMORY_NAMES,cleanMemoryPet} from './pet-memories.js';
 import {upload} from '@vercel/blob/client';
 import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,saveLocalSoundtrack,removeLocalMemory} from './memories.js';
 import {cleanMemoryMetadata,formatMemoryDate} from './memory-metadata.js';
@@ -42,7 +43,7 @@ function confirmDelete(memory){return new Promise(resolve=>{
  });}
 const locations=()=>MEMORY_PLACEMENTS.map(p=>`<option value="${p.id}">${esc(p.title)} · ${esc(p.room)}</option>`).join('');
 const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-symbol" aria-hidden="true">↥</span><strong>Drop photos or a video here</strong><span>or choose a file from your device</span><label class="file-choice">Choose files<input name="file" type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime"></label><p class="fine">Up to 30 items in one memory · Photos advance every 2 seconds · Up to 250 MB each</p><div id="file-selection" role="status"></div></div>`;
-const spotPicker=(edit=false)=>`<label>Start from a familiar spot<select name="placement">${edit?'<option value="keep">Keep current location</option>':''}${locations()}<option value="custom" hidden>Custom spot on floor plan</option></select></label><div id="floor-plan"></div>`;
+const spotPicker=(edit=false)=>`<label>Open this memory from<select name="petId"><option value="">A spot in the house</option>${Object.entries(PET_MEMORY_NAMES).map(([id,name])=>`<option value="${id}">Interacting with ${name}</option>`).join('')}</select></label><p class="fine pet-memory-note" hidden>Find this memory when you interact with the pet. It does not add a floor marker.</p><div class="floor-memory-controls"><label>Start from a familiar spot<select name="placement">${edit?'<option value="keep">Keep current location</option>':''}${locations()}<option value="custom" hidden>Custom spot on floor plan</option></select></label><div id="floor-plan"></div></div>`;
 function editorContent(m){
  if(m?.deleting)return `<div class="empty"><h2>${esc(m.title)}</h2><p>This memory is hidden while deletion finishes. Retry to remove the remaining stored files.</p><button type="button" class="danger" data-action="delete">Delete memory</button></div>`;
  if(selected==='new')return `<h2>A new memory</h2><form id="new-memory">${dropzone()}<label>Title<input name="title" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date"></label><label>Description<textarea name="description" rows="3" maxlength="1600"></textarea></label>${soundtrackPicker()}${spotPicker()}<p class="fine">MP4 gives the widest video playback support.</p><button class="primary">${session.authenticated?'Upload as private draft':'Save on this device'}</button><progress id="progress" max="100" value="0" hidden></progress></form>`;
@@ -59,11 +60,13 @@ function render(){
  const musicHost=document.createElement('section');musicHost.id='music-studio';root.querySelector('main').append(musicHost);mountMusicLibrary(musicHost,{authenticated:session.authenticated});
  const musicLink=document.createElement('a');musicLink.href='#music-studio';musicLink.textContent='Turntable music';root.querySelector('header').append(musicLink);
  const host=document.querySelector('#floor-plan');
- if(host)floorPlan=mountMemoryFloorPlan(host,{position:m?.position||placedMemory(MEMORY_PLACEMENTS[0]).position,memories:items.filter(i=>i.id!==selected),disabled:()=>busy,onChange:()=>{document.querySelector('select[name="placement"]').value='custom';}});
+ if(host)floorPlan=mountMemoryFloorPlan(host,{position:m?.position||placedMemory(MEMORY_PLACEMENTS[0]).position,memories:items.filter(i=>i.id!==selected&&!i.petId),disabled:()=>busy,onChange:()=>{document.querySelector('select[name="placement"]').value='custom';}});
+ syncMemorySource(m?.petId);
 }
+function syncMemorySource(petId){const field=root.querySelector('[name=petId]');if(!field)return;field.value=petId||'';root.querySelector('.floor-memory-controls').hidden=!!petId;root.querySelector('.pet-memory-note').hidden=!petId;}
 function status(text){message=text;const el=document.querySelector('#status');if(el)el.textContent=text;}
 function lock(value){busy=value;for(const el of root.querySelectorAll('button,input,textarea,select'))el.disabled=value;}
-const metadata=form=>cleanMemoryMetadata(Object.fromEntries(new FormData(form)));
+const metadata=form=>{const data=Object.fromEntries(new FormData(form));return {...cleanMemoryMetadata(data),petId:cleanMemoryPet(data.petId)};};
 function selectFiles(input){
  const m=items.find(m=>m.id===selected),append=!!m;
  const files=validateMemoryFiles(input,{photosOnly:append,existing:append?memoryMedia(m).length:0});
@@ -83,6 +86,7 @@ root.addEventListener('input',e=>{if(!busy&&e.target.name==='library-search'){li
 root.addEventListener('change',e=>{
  if(e.target.closest('#music-studio'))return;
  if(busy)return;try{
+  if(e.target.name==='petId')syncMemorySource(e.target.value);
   if(e.target.name==='library-filter'){libraryFilter=e.target.value;renderLibrary();}
   if(e.target.name==='soundtrack'&&e.target.files.length)selectSoundtrack(e.target.files);
   else if(e.target.matches('input[type="file"]')&&e.target.files.length)selectFiles(e.target.files);
