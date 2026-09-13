@@ -12,13 +12,13 @@ export class BalconyLife{
  }
  createBird(index){
   const world=this.world,body=new THREE.Group();body.name='Sunbird '+(index+1);this.root.add(body);
-  const olive=world.mat(index%2?0x7f8052:0x626f35,.7),yellow=world.mat(0xe4c54b,.75),throat=world.mat(index%2?0xbab674:0x123e51,.25,.42),black=world.mat(0x202726,.6);
-  world.sphere(.055,0,.025,0,olive,body,.68,1.1,1.35);world.sphere(.042,0,.012,.021,yellow,body,.70,1.2,1.25);
-  const head=new THREE.Group();head.position.set(0,.078,.038);body.add(head);world.sphere(.033,0,0,0,olive,head);world.sphere(.025,0,-.017,.02,throat,head,1,.8,.75);
+  const plumage=world.mat(0x111820,.55,.12),yellow=world.mat(0xf4cf43,.75),throat=world.mat(0x131c29,.3,.3),black=world.mat(0x090d10,.6);
+  world.sphere(.055,0,.025,0,plumage,body,.68,1.1,1.35);world.sphere(.042,0,.012,.021,yellow,body,.70,1.2,1.25);
+  const head=new THREE.Group();head.position.set(0,.078,.038);body.add(head);world.sphere(.033,0,0,0,plumage,head);world.sphere(.025,0,-.017,.02,throat,head,1,.8,.75);
   for(const side of [-1,1])world.sphere(.0045,side*.026,.007,.014,black,head);
   const beak=new THREE.CatmullRomCurve3([new THREE.Vector3(0,.001,.025),new THREE.Vector3(0,-.004,.056),new THREE.Vector3(0,-.019,.074)]);head.add(new THREE.Mesh(new THREE.TubeGeometry(beak,10,.003,5,false),black));
-  const wings=[];for(const s of [-1,1]){const pivot=new THREE.Group();pivot.position.set(s*.035,.036,-.005);body.add(pivot);const wing=world.sphere(.065,s*.036,0,-.025,olive,pivot,1,.10,.57);wing.rotation.y=s*.35;wings.push(pivot);world.cyl(.002,.002,.032,s*.015,-.042,0,black,body,6);}
-  const tail=world.sphere(.07,0,.016,-.092,olive,body,.22,.07,1);tail.rotation.x=.2;return{body,head,wings};
+  const wings=[];for(const s of [-1,1]){const pivot=new THREE.Group();pivot.position.set(s*.035,.036,-.005);body.add(pivot);const wing=world.sphere(.065,s*.036,0,-.025,plumage,pivot,1,.10,.57);wing.rotation.y=s*.35;wings.push(pivot);world.cyl(.002,.002,.032,s*.015,-.042,0,black,body,6);}
+  const tail=world.sphere(.07,0,.016,-.092,plumage,body,.22,.07,1);tail.rotation.x=.2;return{body,head,wings};
  }
  update(dt,hours,motion=true){
   this.time+=dt;updateOliveBreeze(this.world,this.time,motion);const h=((hours%24)+24)%24;this.root.visible=h>6&&h<19.1;if(!this.root.visible)return;

@@ -10,9 +10,9 @@ test('video buffers before starting, waits longer after an underrun, and respect
  const v=new Video(),status=[],b=manageVideoBuffer(v,{onStatus:s=>status.push(s)});
  try{
   b.resume();assert.equal(v.plays,0);v.ends=[[0,2]];v.fire('progress');assert.equal(v.plays,0);
-  v.ends=[[0,7]];v.fire('progress');await new Promise(setImmediate);assert.equal(v.plays,1);assert.equal(status.at(-1),'');
-  v.currentTime=7;v.fire('waiting');assert.equal(v.paused,true);v.ends=[[0,15]];v.fire('progress');assert.equal(v.paused,true,'larger refill after stall');
-  v.ends=[[0,20]];v.fire('progress');await new Promise(setImmediate);assert.equal(v.paused,false);
+  v.ends=[[0,13]];v.fire('progress');await new Promise(setImmediate);assert.equal(v.plays,1);assert.equal(status.at(-1),'');
+  v.currentTime=13;v.fire('waiting');assert.equal(v.paused,true);v.ends=[[0,25]];v.fire('progress');assert.equal(v.paused,true,'larger refill after stall');
+  v.ends=[[0,39]];v.fire('progress');await new Promise(setImmediate);assert.equal(v.paused,false);
   b.pause();v.fire('progress');assert.equal(v.paused,true,'user pause wins over progress');
   b.resume();await new Promise(setImmediate);assert.equal(v.paused,false);
  }finally{b.dispose();}const calls=v.plays;v.fire('progress');assert.equal(v.plays,calls);assert.equal(v.paused,true);
@@ -21,6 +21,20 @@ test('short video starts when all of it is buffered; disjoint future ranges do n
  const v=new Video();v.duration=3;v.ends=[[0,2.99],[25,30]];assert.equal(bufferedAhead(v),2.99);const b=manageVideoBuffer(v,{slow:true});try{b.resume();assert.equal(v.plays,1);}finally{b.dispose();}
  v.currentTime=10;assert.equal(bufferedAhead(v),0);
 });
-test('a browser that suspends preloading can start with two seconds instead of waiting forever',()=>{
- const v=new Video(),b=manageVideoBuffer(v,{slow:true});try{b.resume();v.ends=[[0,3]];v.fire('progress');assert.equal(v.plays,0);v.fire('suspend');assert.equal(v.plays,1);}finally{b.dispose();}
+test('a browser preload suspension does not silently discard the slow-connection buffer target',()=>{
+ const v=new Video(),b=manageVideoBuffer(v,{slow:true});try{b.resume();v.ends=[[0,3]];v.fire('progress');assert.equal(v.plays,0);v.fire('suspend');assert.equal(v.plays,0);}finally{b.dispose();}
+});
+test('network interruptions reload at the previous time and do not override a manual pause',async()=>{
+ const v=new Video();let loads=0;v.load=()=>{loads++;v.currentTime=0;v.error=null;v.ends=[];};
+ const b=manageVideoBuffer(v,{retryDelay:5});
+ try{
+  v.ends=[[0,60]];b.resume();await new Promise(setImmediate);v.currentTime=17;v.error={code:2};v.fire('error');
+  await new Promise(r=>setTimeout(r,20));assert.equal(loads,1);v.fire('loadedmetadata');assert.equal(v.currentTime,17);
+  v.ends=[[0,60]];v.fire('progress');await new Promise(setImmediate);assert.equal(v.paused,false);
+  v.error={code:2};v.fire('error');b.pause();await new Promise(r=>setTimeout(r,25));assert.equal(loads,1);assert.equal(v.paused,true);
+ }finally{b.dispose();}
+});
+test('a play interrupted by seeking or source replacement does not become an autoplay error',async()=>{
+ const v=new Video();let blocked=0,plays=0;v.ends=[[0,60]];v.play=()=>{plays++;if(plays===1)return Promise.reject(new DOMException('Playback interrupted','AbortError'));v.paused=false;return Promise.resolve();};
+ const b=manageVideoBuffer(v,{onBlocked:()=>blocked++});try{b.resume();await new Promise(setImmediate);v.fire('progress');await new Promise(setImmediate);assert.equal(blocked,0);assert.equal(v.paused,false);}finally{b.dispose();}
 });

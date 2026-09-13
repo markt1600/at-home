@@ -76,7 +76,7 @@ const view=(x,z,tx,tz,pitch=-.035)=>{const [a,b]=planPoint(x,z),[c,d]=planPoint(
 export const HOUSE_VIEWS={
  door:view(857,751,890.5,784.5,-.02),hall:view(816,680,625,669),lobby:view(942,804,973,850,-.04),corridor:view(630,460,788,459),cabinet_hall:view(595,459,545,453),shoe_cabinet:view(900,709,946,699,-.08),
  living:view(630,676,445,578,-.26),dining:view(493,846,406,806,-.08),kitchen:view(537,841,642,794,-.13),
- utility:view(677,873,738,923,-.12),study:view(928,601,864,566,-.08),media:view(928,601,864,566,-.08),
+ utility:view(677,873,738,923,-.12),study:view(909,613,864,566,-.08),media:view(909,613,864,566,-.08),
  bedroom_window:view(695,240,695,208,-.14),bedroom:view(747,371,620,326),staff:view(711,390,685,405,-.13),wardrobe:view(847,368,810,315),bath:view(902,241,910,162,-.1),vanity:view(824,251,824,218,-.08),
  sunroom:view(418,350,346,248),theatre:view(418,350,346,248),balcony:view(286,619,218,628),dining_balcony:view(292,812,248,796),
  guest:view(979,435,980,333,-.09),guest_entry:view(866,444,916,435,-.06),guest_closet:view(983,415,947,457,-.04),guest_bath:view(1025,479,997,502,-.15),meditation:view(563,232,561,164),

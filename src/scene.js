@@ -23,17 +23,18 @@ import {petPose} from './pet-locomotion.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
-  this.camera=new THREE.PerspectiveCamera(62,1,.06,220);this.scene.add(this.camera);this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  this.camera=new THREE.PerspectiveCamera(62,1,.06,220);this.scene.add(this.camera);this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,matchMedia('(pointer:coarse)').matches?1.15:1.6));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   Object.assign(this,{materials:{},colliders:[],targets:[],keys:{},actors:new Map(),mode:'menu',paused:false,motion:true,yaw:0,pitch:0,elapsed:0,hours:7.25,room:'living',walking:false});
   buildHouse(this);this.targets=[];optimizeHouse(this);this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
   this.petRoaming=new PetRoaming(this.colliders);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   window.addEventListener('resize',()=>this.resize());window.addEventListener('blur',()=>{this.keys={};});
   document.addEventListener('keydown',e=>{if(this.mode!=='play'||this.paused||this.telescope.active||e.altKey||e.ctrlKey||e.metaKey||e.target.closest('input,textarea,select,[contenteditable="true"]'))return;if(e.code==='Space'){e.preventDefault();if(!e.repeat)this.jumpQueued=true;return;}if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();this.keys[e.code]=true;}});
   document.addEventListener('keyup',e=>delete this.keys[e.code]);document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;document.body.classList.toggle('wandering',locked||this.freeLook);if(!locked){this.keys={};if(this.mode==='play'&&!this.paused&&!document.hidden&&!this.freeLook)this.onUnlock?.();}});
-  document.addEventListener('mousemove',e=>{if((document.pointerLockElement!==canvas&&!this.freeLook)||this.paused||this.mode!=='play')return;if(this.telescope.active){this.telescope.pan(e.movementX,e.movementY);return;}this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
+  document.addEventListener('mousemove',e=>{if(matchMedia('(pointer:coarse)').matches||(document.pointerLockElement!==canvas&&!this.freeLook)||this.paused||this.mode!=='play')return;if(this.telescope.active){this.telescope.pan(e.movementX,e.movementY);return;}this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
   canvas.addEventListener('wheel',e=>{if(this.telescope.active){e.preventDefault();this.telescope.zoom(e.deltaY);}},{passive:false});
   canvas.addEventListener('click',()=>this.lock());this.animate();
-  let drag=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&!this.paused)drag=[e.clientX,e.clientY];});canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-drag[0],dy=e.clientY-drag[1];if(this.telescope.active)this.telescope.pan(dx*2,dy*2);else{this.yaw-=dx*.005;this.pitch=THREE.MathUtils.clamp(this.pitch-dy*.005,-1.3,1.05);}drag=[e.clientX,e.clientY];});canvas.addEventListener('pointerup',()=>drag=null);canvas.addEventListener('pointercancel',()=>drag=null);
+  let drag=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||this.paused||this.mode!=='play'||drag)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||this.paused)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(this.telescope.active)this.telescope.pan(dx*2,dy*2);else{this.yaw-=dx*.005;this.pitch=THREE.MathUtils.clamp(this.pitch-dy*.005,-1.3,1.05);}drag.x=e.clientX;drag.y=e.clientY;});for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null;});window.addEventListener('blur',()=>{drag=null;this.touchMove={x:0,z:0};this.keys={};});
+
  }
  mat(color,roughness=.8,metalness=0){const key=[color,roughness,metalness].join();return this.materials[key]||(this.materials[key]=new THREE.MeshStandardMaterial({color,roughness,metalness}));}
  box(w,h,d,x,y,z,mat,parent=this.scene){const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),typeof mat==='number'?this.mat(mat):mat);m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;parent.add(m);return m;}
@@ -43,6 +44,7 @@ export class House{
   if(p.id==='sunny')this.sphere(.07,-.55,.07,.18,this.mat(0xc88557,.95),g);this.petCorners.set(p.id,{g,contents,care:0});}}
  showCare(id,action){this.petRoaming.interact(id);const corner=this.petCorners.get(id);if(corner){corner.care=2.8;corner.action=action;}const actor=this.actors.get(id);if(actor)actor.userData.careUntil=this.elapsed+6;}
  setMemories(memories){if(this.memoryMarkers){this.scene.remove(this.memoryMarkers);this.memoryMarkers.traverse(m=>{if(m.isMesh){m.geometry.dispose();m.material.dispose();}});}this.memoryMarkers=new THREE.Group();this.scene.add(this.memoryMarkers);for(const memory of memories)this.memoryMarkers.add(createMemoryMarker(memory));}
+ memoryVisible(memory){const [x,y,z]=memory.position,d=new THREE.Vector3(x,y+.027,z).sub(this.camera.position),distance=d.length();if(distance<.08)return true;const ray=new THREE.Raycaster(this.camera.position,d.normalize(),.05,distance-.025);return !ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent);}
  loadArtwork(){
   if(this.artwork)return this.artwork.run();
   const a=Math.min(8,this.renderer.capabilities.getMaxAnisotropy()),materials=this.houseMaterials;
@@ -66,13 +68,14 @@ export class House{
  lookAtPet(id){const p=PETS.find(p=>p.id===id),position=this.petRoaming.pets.get(id),view=this.petRoaming.viewpoint(id);if(!p||!position||!view)return;this.eyeHeight=id==='sunny'?1:.65;this.camera.position.set(view.x,view.y+this.eyeHeight,view.z);this.feet={x:view.x,y:view.y,z:view.z,vy:0,grounded:true};this.keys={};this.camera.lookAt(position.x,position.y+p.height/2,position.z);const e=new THREE.Euler().setFromQuaternion(this.camera.quaternion,'YXZ');this.yaw=e.y;this.pitch=e.x;position.wait=Math.max(position.wait,6);}
  lock(){if(this.mode!=='play'||this.paused||matchMedia('(pointer:coarse)').matches)return;this.canvas.requestPointerLock()?.catch(()=>{});}
  resumeWandering(){this.freeLook=true;this.keys={};this.canvas.classList.add('free-wander');document.body.classList.add('wandering');this.lock();}
- unlock(){this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
+ unlock(){this.touchMove={x:0,z:0};this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
  resize(){this.camera.aspect=innerWidth/innerHeight;this.camera.updateProjectionMatrix();this.renderer.setSize(innerWidth,innerHeight);}
  animate(){requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);this.elapsed+=dt;const active=this.mode==='play'&&!this.paused&&!document.hidden;this.walking=false;
   if(active&&this.telescope.active)this.onTick(dt);
   if(active&&!this.telescope.active){const v=new THREE.Vector3((this.keys.KeyD||this.keys.ArrowRight?1:0)-(this.keys.KeyA||this.keys.ArrowLeft?1:0),0,(this.keys.KeyS||this.keys.ArrowDown?1:0)-(this.keys.KeyW||this.keys.ArrowUp?1:0));
+   v.x+=this.touchMove?.x||0;v.z+=this.touchMove?.z||0;
    if(v.length()||this.jumpQueued)this.eyeHeight=1.67;
-   v.normalize().applyAxisAngle(new THREE.Vector3(0,1,0),this.yaw);
+   v.clampLength(0,1).applyAxisAngle(new THREE.Vector3(0,1,0),this.yaw);
    if(!this.feet||Math.hypot(this.feet.x-this.camera.position.x,this.feet.z-this.camera.position.z)>.1)this.feet={x:this.camera.position.x,y:floorHeight(this.camera.position.x,this.camera.position.z),z:this.camera.position.z,vy:0,grounded:true};
    const step=moveWithJump(this.feet,v.x*dt*1.9,v.z*dt*1.9,dt,this.colliders,this.jumpQueued);this.jumpQueued=false;this.feet=step;
    this.camera.position.x=step.x;this.camera.position.z=step.z;this.walking=step.distance>.001&&step.grounded;this.walkPhase=(this.walkPhase||0)+step.distance*10;
@@ -82,7 +85,7 @@ export class House{
    this.camera.position.y=step.grounded?THREE.MathUtils.lerp(this.camera.position.y,eye,1-Math.exp(-18*dt)):eye;
    this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.onTick(dt);this.room=HOUSE_ROOMS.find(r=>pointInPolygon(this.camera.position.x,this.camera.position.z,r.polygon))?.id||this.room;
   }
-  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.sideways=p.vx*Math.cos(this.yaw)-p.vz*Math.sin(this.yaw);actor.userData.hopping=!!p.hop;}}
+  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.hopping=!!p.hop;}}
   this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);let nearest=null;const forward=this.camera.getWorldDirection(new THREE.Vector3());
   this.memoryMarkers?.children.forEach(g=>g.visible=g.position.distanceTo(this.camera.position)<6);
   const animated=this.mode==='play'&&!document.hidden&&(!this.paused||this.previewAnimation);

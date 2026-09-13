@@ -23,12 +23,13 @@ export function reflectionSurfaces(){
 
 export class HouseReflections {
  constructor(world){
-  this.world=world;
+  this.world=world;this.mobile=globalThis.matchMedia?.('(pointer:coarse)').matches||false;this.lastRefresh=-Infinity;
   this.surfaces=reflectionSurfaces().map(spec=>{
    const shader={...Reflector.ReflectorShader,uniforms:THREE.UniformsUtils.clone(Reflector.ReflectorShader.uniforms)};
    shader.uniforms.reflectionOpacity={value:spec.glass?.18:1};
    shader.fragmentShader='uniform float reflectionOpacity;\n'+shader.fragmentShader.replace('blendOverlay( base.rgb, color ), 1.0','blendOverlay( base.rgb, color ), reflectionOpacity');
-   const mesh=new Reflector(new THREE.PlaneGeometry(spec.width,spec.height),{shader,color:spec.glass?0x697c83:0x929a94,textureWidth:512,textureHeight:512,clipBias:.003,multisample:0});
+   const size=this.mobile?256:512;
+   const mesh=new Reflector(new THREE.PlaneGeometry(spec.width,spec.height),{shader,color:spec.glass?0x697c83:0x929a94,textureWidth:size,textureHeight:size,clipBias:.003,multisample:0});
    const normal=new THREE.Vector3(Math.sin(spec.yaw),0,Math.cos(spec.yaw));
    mesh.name=spec.label+' reflection';mesh.position.set(...spec.position).addScaledVector(normal,spec.offset);mesh.rotation.y=spec.yaw;
    mesh.material.transparent=!!spec.glass;mesh.material.depthWrite=!spec.glass;
@@ -45,5 +46,5 @@ export class HouseReflections {
    };
   }
  }
- update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,2).forEach(x=>x.p.refresh=true);}
+ update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);const now=performance.now();if(this.mobile&&now-this.lastRefresh<100)return;this.lastRefresh=now;this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,this.mobile?1:2).forEach(x=>x.p.refresh=true);}
 }

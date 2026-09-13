@@ -28,11 +28,18 @@ export function buildSecondBedroom(world,root,m){
  soft(.13,.39,2.06,1.01,.39,0,'blue',bed);soft(.48,.12,.71,.32,.77,-.3,0xb9947c,bed).rotation.y=.3;
  block(954,339,2.12,2.18);world.colliders.at(-1).top=1.49;world.colliders.at(-1).landable=true;
  const bedside=at(929,398);box(.55,.52,.46,0,.29,0,'walnut',bedside);box(.56,.03,.47,0,.565,0,'walnut',bedside);cyl(.035,.13,.14,.65,0,'teal',bedside);block(929,398,.57,.48);
- // Recessed wardrobe fronts between the entry and en-suite, not a desk here.
- const closet=at(947,469,.75,Math.PI);box(1.87,2.42,.60,0,1.21,0,'walnut',closet);
- for(let i=0;i<4;i++){const x=-.935+(i+.5)*1.87/4;box(.455,2.39,.022,x,1.21,.314,'walnut',closet);box(.013,.41,.025,x+.17,1,.34,'black',closet);}
- for(const x of [-1.005,1.005])box(.13,2.66,.67,x,1.33,0,'plaster',closet);box(2.14,.24,.69,0,2.54,0,'plaster',closet);block(947,469,2.12,.69);
- const entryStorage=at(881,516,.75,Math.PI);box(1.1,2.52,.6,0,1.26,0,'walnut',entryStorage);for(const x of [-.28,.28]){box(.53,2.48,.024,x,1.26,.31,'walnut',entryStorage);box(.01,.4,.025,x+.2,1,.33,'black',entryStorage);}block(881,516,1.1,.64);
+ // Continuous fitted storage: the two-door entrance recess is set back,
+ // while the four-door bedroom bank projects forward. Both fill to the wall.
+ const fittedCloset=(x0,x1,front,back,doors,name)=>{
+  const px=(x0+x1)/2,pz=(front+back)/2,w=(x1-x0)/PLAN_SCALE,d=(back-front)/PLAN_SCALE,g=at(px,pz,.75,Math.PI);g.name=name;
+  box(w,2.66,d,0,1.33,0,'plaster',g);const face=w-.15;
+  box(face,2.45,.035,0,1.245,d/2+.006,'walnut',g);
+  for(let i=0;i<doors;i++){const x=-face/2+(i+.5)*face/doors;box(face/doors-.007,2.42,.025,x,1.245,d/2+.029,'walnut',g);box(.011,.43,.024,x+(i%2?-.12:.12),1.08,d/2+.055,'black',g);}
+  block(px,pz,w,d+.04);world.colliders.at(-1).label=name;return g;
+ };
+ const entryStorage=fittedCloset(853,910,482,531,2,'Recessed second-bedroom entrance cupboard');
+ const closet=fittedCloset(910,984,457,482,4,'Fitted second-bedroom wardrobe bank');
+ world.guestClosets={entryStorage,closet};
  const [mx,mz,my]=GUEST_MIRROR_POSITION;box(.92,2.22,.055,mx,my,mz,'oak');box(.80,2.1,.061,mx,my,mz+.012,0x84928b);
  // Upright piano faces the bed. Its keyboard and pedals remain below the lid.
  const piano=at(1040,385,.75,-Math.PI/2);piano.name='Second bedroom piano';

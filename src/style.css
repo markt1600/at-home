@@ -34,3 +34,27 @@ kbd{font:11px 'DM Sans',sans-serif}.choice-key{display:inline-grid;place-items:c
 .telescope-reticle{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);font:200 22px monospace;color:#dedccb55;}
 .using-telescope .hud-top,.using-telescope .controls,.using-telescope .look-hint,.using-telescope .memory-proximity,.using-telescope .touch-walk{visibility:hidden;}
 #house-loading{display:grid;gap:8px}#house-loading progress{display:block;width:100%;height:7px;appearance:none;border:0;border-radius:8px;overflow:hidden;background:#d9dfcc;accent-color:#637f4a}#house-loading progress::-webkit-progress-bar{background:#d9dfcc}#house-loading progress::-webkit-progress-value{background:#637f4a;border-radius:8px;transition:width .35s}#house-loading progress::-moz-progress-bar{background:#637f4a;border-radius:8px}
+
+.memory-proximity{left:50%;top:calc(50% + 24px);bottom:auto;transform:translateX(-50%);width:min(310px,calc(100vw - 32px));pointer-events:none;gap:0}.memory-proximity button,.memory-aim-label{display:grid;gap:5px;width:100%;max-width:none;padding:11px 15px;border:1px solid #fff4;border-radius:12px;background:#fbf8eaf2;box-shadow:0 3px 18px #1e2a2220;text-align:center;pointer-events:auto}.memory-aim-label{pointer-events:none}.memory-proximity strong{font:500 17px Georgia,serif;line-height:1.3}.memory-proximity small{font:10px DM Sans,sans-serif;letter-spacing:.04em}.memory-proximity span{font:11px DM Sans,sans-serif;line-height:1.4;color:#53654d}
+
+/* Touch controls follow input capability, including tablets in landscape. */
+.touch-walk,.touch-actions{display:none}
+.touch-device .touch-walk{display:block;position:fixed;left:max(20px,env(safe-area-inset-left));bottom:max(24px,env(safe-area-inset-bottom));pointer-events:auto}
+.touch-stick{width:132px;height:132px;position:relative;display:grid;place-items:center;border:1px solid #fff7;border-radius:50%;background:#faf8f033;touch-action:none;user-select:none;-webkit-user-select:none}
+.touch-knob{width:46px;height:46px;border-radius:50%;background:#faf8f0ba;border:1px solid #fff8;box-shadow:0 2px 10px #24372c20;pointer-events:none}
+.touch-stick small{position:absolute;bottom:9px;font-size:10px;color:#fff;text-shadow:0 1px 3px #000;pointer-events:none}
+.touch-device .touch-actions{display:grid;gap:12px;position:fixed;right:max(20px,env(safe-area-inset-right));bottom:max(28px,env(safe-area-inset-bottom));pointer-events:auto}
+.touch-actions button{min-width:94px;min-height:48px;padding:12px 15px;background:#faf8f0d9;touch-action:manipulation;font-size:14px}
+.touch-device .hud-top{top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right))}
+.touch-device .top-actions button{min-height:44px}.touch-device .choice-key{display:none}
+.touch-device .controls{bottom:8px;padding:0 20px;font-size:9px}.touch-device .look-hint{max-width:75vw;text-align:center}
+.touch-device #toast{bottom:180px;max-width:calc(100vw - 44px)}
+.panel-open .touch-walk,.panel-open .touch-actions,.using-telescope .touch-actions{visibility:hidden}
+.telescope-zoom{position:absolute;bottom:max(90px,env(safe-area-inset-bottom));right:max(20px,env(safe-area-inset-right));display:grid;gap:12px;pointer-events:auto}
+.telescope-zoom button{min-width:52px;min-height:52px;font-size:24px;background:#12191de0;color:#fff}
+.touch-device .telescope-exit{top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));min-height:44px}
+.touch-device .telescope-caption{bottom:max(20px,env(safe-area-inset-bottom))}
+.touch-device .slideshow-controls{flex-wrap:wrap;gap:8px}.touch-device .slideshow-controls button,.touch-device .dream-return{min-height:44px}
+.touch-device input,.touch-device select{font-size:16px}.touch-device .close{min-width:44px;min-height:44px}
+@media(max-width:600px){.touch-device .brand{font-size:22px;padding:10px}.touch-device .clock{top:55px}.touch-device .top-actions{gap:4px}.touch-device .top-actions button{padding:8px 10px}.touch-device .memory-proximity{width:min(275px,calc(100vw - 40px));top:calc(50% + 18px)}.touch-device .memory-proximity strong{font-size:16px}.touch-device .dream{height:auto;min-height:100%;padding:24px 0}.touch-device .memory-media video,.touch-device .memory-media img{max-height:48dvh}.touch-device .dream-caption h2{font-size:24px}}
+@media(max-height:500px){.touch-device .welcome{overflow:auto;align-items:start;padding:22px 4vw 40px;gap:5vw}.touch-device h1{font-size:64px}.touch-device .menu-footer{display:none}.touch-device .brand small{display:none}.touch-device .clock{top:0}.touch-device .brand{font-size:22px;padding:10px}.touch-device .touch-stick{width:116px;height:116px}.touch-device .touch-actions{gap:8px;bottom:18px}.touch-device .touch-walk{bottom:18px}.touch-device .controls{display:none}.touch-device #toast{bottom:145px;font-size:12px}.touch-device .dream{height:auto;min-height:100%;padding:10px 0}.touch-device .memory-media video,.touch-device .memory-media img{max-height:50dvh}.touch-device .dream-caption{padding-top:8px}.touch-device .dream-caption h2{font-size:22px;margin-bottom:4px}.touch-device .dream-caption .eyebrow{font-size:10px;margin-bottom:5px}.touch-device .memory-proximity{top:calc(50% + 10px)}.touch-device .memory-proximity strong{font-size:15px}}

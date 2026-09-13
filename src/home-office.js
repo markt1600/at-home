@@ -3,7 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {planPoint} from './house-layout.js';
 
 // The September 13 office photos: camera storage and a left-hand desk,
-// then the simulator alcove and equipment shelving across the back wall.
+// The equipment shelving faces the left desk across the room.
 export function buildHomeOffice(world,root,m){
  const at=(name,px,pz,y=.75,yaw=0)=>{const g=new THREE.Group(),[x,z]=planPoint(px,pz);g.name=name;g.position.set(x,y,z);g.rotation.y=yaw;root.add(g);return g;};
  const box=(g,w,h,d,x,y,z,key)=>world.box(w,h,d,x,y,z,m[key]||key,g);
@@ -55,7 +55,7 @@ export function buildHomeOffice(world,root,m){
  for(const path of [[[-.15,.60,.065],[-.12,.67,.09],[.17,.63,.09],[.20,.51,.09]],[[-.09,.42,.11],[.05,.49,.12],[.20,.46,.11],[.20,.32,.10]],[[-.09,.29,.11],[.03,.19,.12],[.19,.22,.11],[.20,.33,.10]]]){
   const mesh=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(path.map(p=>new THREE.Vector3(...p))),24,.009,8,false),coolant);pc.add(mesh);
  }box(pc,.31,.12,.24,-.07,.14,-.01,'black');box(pc,.48,.63,.02,.73,.33,-.015,'black').rotation.z=-.08;
- const shelves=at('Office equipment shelving and watch winders',960,543,.75);
+ const shelves=at('Office equipment shelving and watch winders',935,582,.75,-Math.PI/2);
  box(shelves,1.12,2.45,.035,0,1.225,-.24,'sage');for(const x of [-.55,.55])box(shelves,.032,2.45,.52,x,1.225,0,'sage');
  for(const y of [.035,.79,1.33,1.84,2.18,2.45])box(shelves,1.10,.034,.52,0,y,0,'sage');
  for(let row=0;row<3;row++)for(const x of [-.275,.275])box(shelves,.526,.239,.037,x,.145+row*.25,.248,'sage');

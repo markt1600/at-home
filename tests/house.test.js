@@ -4,6 +4,12 @@ import {createHouseModel} from '../scripts/house-model.mjs';
 import {HOUSE_VIEWS,HOUSE_STAIRS,HOUSE_ROOMS,planPoint,floorHeight,pointInPolygon} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
 const world=createHouseModel();
+test('office equipment faces the parallel dual-monitor desk and fitted guest closets have no rear passage',()=>{
+ const {desk,shelves}=world.homeOffice,forward=shelves.position.clone().set(Math.sin(shelves.rotation.y),0,Math.cos(shelves.rotation.y)),toward=desk.position.clone().sub(shelves.position).normalize();
+ assert.ok(forward.dot(toward)>.99);assert.ok(Math.abs(Math.abs(shelves.rotation.y-desk.rotation.y)-Math.PI)<.001);
+ for(const point of [[866,503],[901,520],[915,471],[947,471],[975,470]])assert.equal(inWalkableArea(...planPoint(...point),true,world.colliders),false,'No passage inside/behind fitted closets: '+point);
+ assert.ok(inWalkableArea(...planPoint(880,445),true,world.colliders),'bedroom entry remains open');
+});
 test('every quick-view position is inside the house and clear of solid furniture',()=>{
  for(const [id,p] of Object.entries(HOUSE_VIEWS))assert.ok(inWalkableArea(p[0],p[2],true,world.colliders),id);
 });

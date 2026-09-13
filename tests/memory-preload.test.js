@@ -4,7 +4,7 @@ import {mountMemoryPlayer} from '../src/memory-player.js';
 test('slides remain visible until the next image is loaded and decoded; stale requests cannot replace newer choices',async t=>{
  const pending=new Map(),timers=new Map();let timerId=0;
  const stage={child:null,setAttribute(){},querySelector(){return null;},replaceChildren(el){this.child=el;}},counter={},toggle={};
- const host={querySelector:s=>s==='.memory-media'?stage:s==='.slide-counter'?counter:toggle,addEventListener(){},removeEventListener(){}};
+ const host={querySelectorAll:()=>[],querySelector:s=>s==='.memory-media'?stage:s==='.slide-counter'?counter:toggle,addEventListener(){},removeEventListener(){}};
  t.mock.method(globalThis,'setTimeout',fn=>{timers.set(++timerId,fn);return timerId;});t.mock.method(globalThis,'clearTimeout',id=>timers.delete(id));
  const previous=globalThis.document;
  globalThis.document={hidden:false,addEventListener(){},removeEventListener(){},createElement(){return {addEventListener(){},decode:()=>Promise.resolve(),set src(value){this.source=value;pending.set(value,this);}};}};
@@ -18,7 +18,7 @@ test('slides remain visible until the next image is loaded and decoded; stale re
  player.dispose();assert.equal(timers.size,0);assert.ok(errors.every(e=>e===''));
 });
 test('failed images retain the current photograph and allow navigation or retry',async t=>{
- const pending=new Map(),stage={child:null,setAttribute(){},querySelector(){return null;},replaceChildren(el){this.child=el;}},host={querySelector:s=>s==='.memory-media'?stage:null,addEventListener(){},removeEventListener(){}};
+ const pending=new Map(),stage={child:null,setAttribute(){},querySelector(){return null;},replaceChildren(el){this.child=el;}},host={querySelectorAll:()=>[],querySelector:s=>s==='.memory-media'?stage:null,addEventListener(){},removeEventListener(){}};
  const previous=globalThis.document;globalThis.document={hidden:false,addEventListener(){},removeEventListener(){},createElement(){return {addEventListener(){},set src(s){this.source=s;pending.set(s,this);}};}};t.after(()=>{globalThis.document=previous;});
  const errors=[],player=mountMemoryPlayer(host,{title:'Test',media:['a','b'].map(src=>({src,type:'image'}))},{onError:e=>errors.push(e)});await pending.get('a').onload();await Promise.resolve();player.toggle();
  const failed=player.next();pending.get('b').onerror();await failed;assert.equal(stage.child.source,'a');assert.match(errors.at(-1),/could not be loaded/);
