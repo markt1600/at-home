@@ -15,10 +15,12 @@ test('roaming pets traverse clear routes, rest, respect stairs, and can be found
  const before=JSON.stringify([...r.pets.values()]);r.update(.1,{enabled:false});assert.equal(JSON.stringify([...r.pets.values()]),before);
  assert.ok(r.pets.get('pebble').speed<r.pets.get('sunny').speed/4);
 });
-test('Leo and Miso greet a new player via accessible paths, while the tortoise keeps its own routine',()=>{
+test('Leo and Cyrus greet a new player via accessible paths, while the tortoise keeps its own routine',()=>{
  const world=createHouseModel(),r=new PetRoaming(world.colliders,()=>.5);for(const p of PETS)r.register(p.id,p.plan);
  const [x,y,z,yaw]=HOUSE_VIEWS.living,player={x,y,z},tortoise=r.pets.get('pebble');r.greet(player,yaw);assert.ok(!tortoise.greeting);
  for(const id of ['sunny','miso'])assert.ok(r.pets.get(id).greeting,id+' has a greeting route');
  const arrived=new Set();for(let i=0;i<650;i++){r.update(.1,{player});for(const id of ['sunny','miso']){const p=r.pets.get(id);assert.ok(inWalkableArea(p.x,p.z,true,world.colliders));if(Math.hypot(p.x-x,p.z-z)<1.8)arrived.add(id);}}
  assert.deepEqual([...arrived].sort(),['miso','sunny']);
+ for(const id of ['sunny','miso']){r.interact(id);const p=r.pets.get(id);assert.equal(p.greeting,null);assert.equal(p.activity,'idle');assert.equal(p.wait,15);}
+ const before=r.pets.get('pebble').distance;for(let i=0;i<20;i++)r.update(.1,{canWalk:()=>false});assert.equal(r.pets.get('pebble').distance,before,'a pet waits for its walking film');
 });

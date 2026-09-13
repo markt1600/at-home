@@ -53,7 +53,7 @@ export class Neighborhood {
   const id=key+'-'+shape;if(!this.batches.has(id))this.batches.set(id,{key,shape,items:[]});this.batches.get(id).items.push({matrix:parent.matrixWorld.clone().multiply(local),tint});
  }
  flush(){for(const {key,shape,items} of this.batches.values()){const mesh=new THREE.InstancedMesh(shape==='crown'?this.crownGeometry:shape==='slab'?this.slabGeometry:shape==='rail'?this.railGeometry:this.boxGeometry,this.materials[key],items.length);items.forEach((o,i)=>{mesh.setMatrixAt(i,o.matrix);mesh.setColorAt(i,new THREE.Color().setScalar(o.tint));});mesh.receiveShadow=false;mesh.castShadow=false;mesh.computeBoundingSphere();this.root.add(mesh);}this.batches.clear();}
- balcony(g,x,y,z,width){g.updateWorldMatrix(true,false);this.balconies.push({position:new THREE.Vector3(x,y,z).applyMatrix4(g.matrixWorld),yaw:new THREE.Euler().setFromRotationMatrix(g.matrixWorld,'YXZ').y,width});}
+ balcony(g,x,y,z,width,kind='glass'){g.updateWorldMatrix(true,false);this.balconies.push({position:new THREE.Vector3(x,y,z).applyMatrix4(g.matrixWorld),yaw:new THREE.Euler().setFromRotationMatrix(g.matrixWorld,'YXZ').y,width,kind,scale:g.getWorldScale(new THREE.Vector3())});}
  glassTower(root){
   for(const side of [-1,1]){const wing=new THREE.Group();wing.position.x=side*9.6;wing.rotation.y=side*-.13;root.add(wing);
    this.part(wing,'stone',[18.9,94,12],[0,47,-6.5]);
@@ -86,7 +86,7 @@ export class Neighborhood {
     this.part(root,'white',[1,1,1],[x,y,0],'slab');this.part(root,'white',[1,1,1],[x,y+.68,0],'rail');
     for(const dx of [-1.75,0,1.75])this.part(root,'trim',[.07,2.48,.08],[x+dx,y+1.4,-.9]);
     if((col+floor)%3===0){this.part(root,'green',[.7,.4,.4],[x+1.1,y+1.24,.05],'crown');this.part(root,'cream',[.8,.24,.4],[x+1.1,y+.92,.05]);}
-    if(floor>12&&floor<21)this.balcony(root,x,y+.25,-.25,3.3);
+    if(floor>12&&floor<21)this.balcony(root,x,y+.25,-.25,3.3,'white');
    }
   }
   for(const x of [-6.45,6.45])this.part(root,'white',[1.15,98,3],[x,49,-1.5]);

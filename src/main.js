@@ -1,3 +1,4 @@
+import {selectMemory} from './memory-selection.js';
 import './style.css';
 import {House} from './scene.js';
 import {PANEL_SHORTCUTS,isTyping,prepareDialog,navigateDialog} from './keyboard.js';
@@ -6,7 +7,7 @@ import {memoryMedia,memoryAppearance,releaseMemoryUrls} from './memory-media.js'
 import {RecordPlayer} from './record-player.js';
 import {mountMemoryPlayer} from './memory-player.js';
 import {cleanMemoryFilter,filterMemories} from './memory-filter.js';
-import {loadMemories,nearMemories,addLocalMemory,removeLocalMemory,MEMORY_PLACEMENTS,placedMemory} from './memories.js';
+import {loadMemories,addLocalMemory,removeLocalMemory,MEMORY_PLACEMENTS,placedMemory} from './memories.js';
 import {floorHeight,planPoint} from './house-layout.js';
 import {HomeSound} from './audio.js';
 import {RenderedVoice} from './rendered-voice.js';
@@ -31,16 +32,22 @@ window.addEventListener('focus',()=>{if(panel!=='memory')refreshMemories();});
 sound.onVoiceUnavailable=()=>{const el=$('#audio-note');if(el)el.textContent='Spoken audio is unavailable. All conversations remain available as text.';};
 world.onAssetError=()=>toast('Some character artwork could not load. Please refresh to try again.');
 world.onArtworkStatus=updateArtworkStatus;
+world.onTelescopeChange=active=>{
+ document.body.classList.toggle('using-telescope',active);$('#telescope-view')?.remove();
+ if(active){const view=document.createElement('section');view.id='telescope-view';view.className='telescope-view';view.setAttribute('aria-label','Telescope view');view.innerHTML='<div class="telescope-reticle" aria-hidden="true">+</div><div class="telescope-caption"><p id="telescope-period"></p><small>Mouse to pan between views · Scroll to zoom · Esc or E to step away</small></div><button class="telescope-exit">Leave telescope · Esc</button>';app.append(view);view.querySelector('button').onclick=leaveTelescope;world.onTelescopePeriod(world.telescope.night);}
+};
+world.onTelescopePeriod=night=>{const el=$('#telescope-period');if(el)el.textContent=night?'A little closer to the stars':'Little moments in the neighborhood';};
+function leaveTelescope(){world.telescope.leave();world.resumeWandering();}
 function updateArtworkStatus(){
  const status=world.artwork.status,button=$('#continue-game')||$('#welcome-form button[type="submit"]');if(!button)return;
  button.disabled=!status.ready;
  let note=$('#house-loading');if(!note){note=document.createElement('p');note.id='house-loading';note.className='fine';note.setAttribute('role','status');button.after(note);}
- note.replaceChildren();if(status.ready){note.textContent='The house is ready.';return;}
- note.textContent=status.loading?`Opening the house and its artwork… ${status.loaded} / ${status.total}`:'Some artwork could not load. Check your connection and try again. ';
+ note.replaceChildren();const label=document.createElement('span');label.textContent=status.ready?'The house is ready.':status.loading?`Opening the house and its artwork… ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
+ const progress=document.createElement('progress');progress.max=status.total;progress.value=status.loaded;progress.setAttribute('aria-label','House textures loaded');note.append(progress);if(status.ready)return;
  if(!status.loading){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry loading';retry.onclick=()=>world.loadArtwork();note.append(retry);}
 }
 const roomNames={living:'Living room',living_landing:'Living room',living_south:'Living room',hall:'Entrance',passage:'Hallway',dining:'Dining room',balcony:'Living balcony',dining_bay:'Dining balcony',kitchen:'Kitchen',bedroom:'Main bedroom',guest:'Second bedroom',study:'Home office',wine:'Wine cellar',theatre:'Window lounge',bath:'Main bathroom',powder:'Guest bathroom',vanity:'Vanity',wardrobe:'Wardrobe',meditation:'Meditation alcove',utility:'Utility yard'};
-function updateLookHint(id){const el=$('#look-hint');if(el)el.textContent=id==='turntable'?`E · ${recordPlayer.enabled?'Stop the record':'Play the record'}`:id?`E · ${PETS.find(p=>p.id===id)?.name}`:'';}
+function updateLookHint(id){const el=$('#look-hint');if(el)el.textContent=id==='telescope'?'E · Look through the telescope':id==='turntable'?`E · ${recordPlayer.enabled?'Stop the record':'Play the record'}`:id?`E · ${PETS.find(p=>p.id===id)?.name}`:'';}
 async function toggleRecord(){try{await recordPlayer.toggle();}catch{toast('Music could not start. Try the turntable again.');}}
 function save(){if(!playing&&!hasSavedGame)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));hasSavedGame=true;}catch{}}
 function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),6500);}
@@ -71,7 +78,7 @@ function renderHUD(){app.innerHTML=`<header class="hud-top"><div class="brand">A
 function updateHUD(){if(!playing)return;$('#clock').textContent=`Day ${dayNumber(state.hours)} · ${clockLabel(state.hours)}`;$('#phase').textContent=dayPhase(state.hours);$('#place').textContent=roomNames[world.room]||'At home';
 }
 function openPanel(type){
- if(!playing)return;if(panel==='memory')releaseMemory();world.paused=true;world.unlock();world.previewAnimation=type==='pets';panel=type;
+ if(!playing)return;if(world.telescope.active)world.telescope.leave();if(panel==='memory')releaseMemory();world.paused=true;world.unlock();world.previewAnimation=type==='pets';panel=type;
  const dialog=$('#panel');dialog.classList.toggle('wide',type==='rooms');dialog.classList.toggle('memory-panel',type==='memory');$('#panel-content').innerHTML=panelHTML(type);if(!dialog.open)dialog.showModal();
  if(type==='voice')updateTranscript();prepareDialog(dialog,type);
  if(type==='memory'){
@@ -121,6 +128,7 @@ app.addEventListener('click',async e=>{
 });
 document.addEventListener('keydown',e=>{
  if(!playing||e.repeat||e.altKey||e.ctrlKey||e.metaKey||isTyping(e.target))return;
+ if(world.telescope.active){e.preventDefault();if(['Escape','KeyE'].includes(e.code))leaveTelescope();else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code))world.telescope.pan(e.code==='ArrowLeft'?-65:e.code==='ArrowRight'?65:0,e.code==='ArrowUp'?-65:e.code==='ArrowDown'?65:0);return;}
  if(panel){
   if(e.code==='Escape'){e.preventDefault();closePanel(false);return;}
   if(panel==='memory'&&['Space','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(e.code==='Space')memoryPlayer?.toggle();else if(e.code==='ArrowLeft')memoryPlayer?.previous();else memoryPlayer?.next();return;}
@@ -129,12 +137,18 @@ document.addEventListener('keydown',e=>{
  if(e.code==='Escape'){e.preventDefault();openPanel('settings');return;}
  const shortcut=PANEL_SHORTCUTS[e.code];if(shortcut){e.preventDefault();if(shortcut==='pets')world.lookAtPet(selectedPet);openPanel(shortcut);return;}
  if(e.code!=='KeyE')return;e.preventDefault();
- if(world.lookTarget){const id=world.lookTarget;if(id==='turntable'){toggleRecord();return;}if(PETS.some(p=>p.id===id)){selectedPet=id;world.lookAtPet(id);openPanel('pets');}return;}
- const m=nearMemories(activeMemories(),world.camera.position.x,floorHeight(world.camera.position.x,world.camera.position.z),world.camera.position.z)[0];if(m){selectedMemory=m.id;openPanel('memory');}
+ const selection=currentMemorySelection();if(selection.aimed){selectedMemory=selection.memory.id;openPanel('memory');return;}
+ if(world.lookTarget){const id=world.lookTarget;if(id==='telescope'){world.telescope.enter(state.hours);return;}if(id==='turntable'){toggleRecord();return;}if(PETS.some(p=>p.id===id)){selectedPet=id;world.lookAtPet(id);openPanel('pets');}return;}
+ const m=selection.memory;if(m){selectedMemory=m.id;openPanel('memory');}
 });
 document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else if(panel!=='memory')recordPlayer.resume();});
 window.addEventListener('pagehide',save);
-function tick(dt){if(!playing)return;timer+=dt;const nearby=nearMemories(activeMemories(),world.camera.position.x,floorHeight(world.camera.position.x,world.camera.position.z),world.camera.position.z);const memoryPrompt=$('#memory-proximity');if(memoryPrompt&&memoryPrompt.dataset.ids!==nearby.map(m=>m.id).join()){memoryPrompt.dataset.ids=nearby.map(m=>m.id).join();memoryPrompt.innerHTML=nearby.map(m=>`<button data-memory="${escape(m.id)}"><small style="color:${memoryAppearance(m).css}">${memoryAppearance(m).symbol} ${memoryAppearance(m).label.toUpperCase()} HERE</small>${escape(m.title)}<span>Relive this moment · E ↗</span></button>`).join('');}advanceLife(state,dt);world.hours=state.hours;sound.update(dt,state.hours,world.room.includes('balcony'));
+function currentMemorySelection(){const p=world.camera.position;return selectMemory(activeMemories(),p,world.camera.getWorldDirection(p.clone()),floorHeight(p.x,p.z));}
+function tick(dt){if(!playing)return;timer+=dt;const selection=currentMemorySelection(),m=selection.memory,prompt=$('#memory-proximity'),key=m?m.id+':'+selection.aimed+':'+m.title:'';
+ if(prompt&&prompt.dataset.ids!==key){prompt.dataset.ids=key;prompt.innerHTML=m?`<button data-memory="${escape(m.id)}"><small style="color:${memoryAppearance(m).css}">${memoryAppearance(m).symbol} ${memoryAppearance(m).label.toUpperCase()}</small>${escape(m.title)}<span>${selection.aimed?'Selected':'Closest memory'} · Relive this moment · E ↗</span></button>`:'';}
+ const hint=$('#look-hint');if(hint)hint.hidden=selection.aimed;
+ world.memoryMarkers?.children.forEach(g=>{const selected=g.userData.memoryId===m?.id;g.children.forEach(mesh=>mesh.material.opacity=selected?1:.6);});
+ advanceLife(state,dt);world.hours=state.hours;sound.update(dt,state.hours,world.room.includes('balcony'));
  if(timer-savedAt>5){savedAt=timer;save();}if(timer-lastContext>10){lastContext=timer;companion.update(contextForVoice(state,world.room));}updateHUD();
  if(state.personalized&&!companion.session&&!speech.speaking&&timer-lastSpoken>180){lastSpoken=timer;speech.play({kind:'home',cue:1+Math.floor(Math.random()*3),name:state.name},{isCurrent:()=>playing&&!panel});}
 }

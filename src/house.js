@@ -13,6 +13,7 @@ import {buildClawMachine} from './claw-machine.js';
 import {buildLivingSeating} from './living-seating.js';
 import {buildWindowLounge} from './window-lounge.js';
 import {buildBedroomStorage} from './bedroom-storage.js';
+import {buildLobbyDetails} from './lobby-details.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -93,7 +94,8 @@ export function buildHouse(world){
  const fixedStart=-half+1.15;box(half-fixedStart,2.2,.035,(half+fixedStart)/2,1.1,0,'glass',doorFrame);box(.035,2.2,.055,fixedStart,1.1,0,'steel',doorFrame);
  B(949,871,.13,.23,.04,1.8,'black',Math.PI/4);
  // The full-height lobby mirror follows its diagonal wall; the lift is opposite GD01.
- paint(901.5,848,1.72,2.7,2.52,0x87928e,-Math.PI/4);
+ paint(901.5,848,1.72,2.7,2.52,0x87928e,Math.PI-Math.atan2(58,91));
+ buildLobbyDetails(world,root,materials);
  B(843,748,.6,.008,3.07,.454,0x35463b,-Math.PI/4);B(939,802,2.05,.009,1.45,.455,0x775139,-Math.PI/4);
  const [ix,iz]=P(941,799);cyl(.59,.59,.008,ix,.46,iz,0x846348,root,48);
   const red=paint(811,636,1.96,1.12,1.46,0x991b23);const ring=new THREE.Mesh(new THREE.TorusGeometry(.41,.055,10,60),mat('black'));ring.scale.y=1.2;ring.position.z=.05;red.add(ring);
@@ -105,9 +107,7 @@ export function buildHouse(world){
  B(951,646,.81,.38,.04,2.67,'black');for(let i=0;i<8;i++)B(951,647,.82,.021,.055,2.52+i*.043,'oak');
  T('records',749,644,1.31,'Read the entry notebook');T('radio',913.66,744.34,1.78,'House intercom');B(913.66,744.34,.24,.16,.035,1.78,'black',-Math.PI/4);
  const [dx,dz]=P(...FRONT_DOOR.center);world.targets.push({id:'door',pos:new THREE.Vector3(dx,1.9,dz),name:'Front door'},{id:'post',pos:new THREE.Vector3(dx,1.9,dz),name:'Begin the night at the front door',explorationOnly:true});
- // 1,210 x 690 mm office desk, 570 mm cabinets and the blue chair from the video.
- C(967,554,1.355,2.48,.57,'sage',-Math.PI/2,.75);B(869,566,.69,.04,1.21,1.5,'oak');block(...P(869,566),.69,1.21);B(861,566,.07,.47,.7,1.78,'black');B(862,566,.009,.39,.61,1.79,new THREE.MeshBasicMaterial({color:0x273a33}));
- const [cx,cz]=P(898,566);soft(.6,.14,.63,cx,1.22,cz,'blue');soft(.6,.94,.14,cx+.22,1.6,cz,'blue').rotation.y=Math.PI/2;block(cx,cz,.65,.7);T('media',865,566,1.8,'Listen to the computer recording');
+ buildHomeOffice(world,root,materials);
  // Sunken lounge: orange seating, a low audio/display shelf and blue low table.
  buildLivingSeating(world,root,materials);
  S(406,550,2.75,0);buildLivingAudioShelf(world,root,materials);B(436,620,4.8,.012,3.55,.014,0xc0b69e);
@@ -207,3 +207,4 @@ export function buildHouse(world){
 
  return root;
 }
+import {buildHomeOffice} from './home-office.js';

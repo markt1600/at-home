@@ -33,7 +33,9 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
     const paths=recordAssetPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
     if(!path)return res.status(404).end();
-    const media=await storage.get(path,{...options(),useCache:false,...(range?{headers:{Range:range}}:{})});
+    // Media paths are immutable. Use Blob's upstream CDN after checking the
+    // current record above, so hiding/deleting still revokes access immediately.
+    const media=await storage.get(path,{...options(),useCache:true,...(range?{headers:{Range:range}}:{})});
     if(!media?.stream)return res.status(404).end();
     res.setHeader('Content-Type',media.blob.contentType);res.setHeader('Content-Disposition','inline');res.setHeader('Accept-Ranges','bytes');
     const cr=media.headers.get('content-range');if(cr)res.setHeader('Content-Range',cr);

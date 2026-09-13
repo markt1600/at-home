@@ -25,3 +25,12 @@ kbd{font:11px 'DM Sans',sans-serif}.choice-key{display:inline-grid;place-items:c
 @keyframes memory-image-in{from{opacity:0;filter:blur(3px)}to{opacity:1;filter:blur(0)}}
 @media(prefers-reduced-motion:reduce){.memory-media img{animation:none}}
 @media(max-height:780px){.memory-media img,.memory-media video{max-height:55dvh}.dream-caption h2{font-size:26px}}
+/* A panning optical view, with the house controls out of the eyepiece. */
+.telescope-view{position:fixed;inset:0;z-index:35;pointer-events:none;color:#eee9d9;background:radial-gradient(circle at center,transparent 0 37vmin,rgba(1,3,7,.2) 39vmin,#010307 43vmin);}
+.telescope-caption{position:absolute;bottom:4vh;left:10%;right:10%;text-align:center;text-shadow:0 1px 8px #000;font-size:1rem;}
+.telescope-caption p{margin:0 0 .45rem;font-family:Georgia,serif;font-size:1.4rem;}
+.telescope-caption small{font-size:.77rem;color:#b8bcb6;}
+.telescope-exit{position:absolute;right:1.5rem;top:1.5rem;pointer-events:auto;background:#12191d;color:#eee9d9;border:1px solid #445056;}
+.telescope-reticle{position:absolute;inset:50% auto auto 50%;transform:translate(-50%,-50%);font:200 22px monospace;color:#dedccb55;}
+.using-telescope .hud-top,.using-telescope .controls,.using-telescope .look-hint,.using-telescope .memory-proximity,.using-telescope .touch-walk{visibility:hidden;}
+#house-loading{display:grid;gap:8px}#house-loading progress{display:block;width:100%;height:7px;appearance:none;border:0;border-radius:8px;overflow:hidden;background:#d9dfcc;accent-color:#637f4a}#house-loading progress::-webkit-progress-bar{background:#d9dfcc}#house-loading progress::-webkit-progress-value{background:#637f4a;border-radius:8px;transition:width .35s}#house-loading progress::-moz-progress-bar{background:#637f4a;border-radius:8px}

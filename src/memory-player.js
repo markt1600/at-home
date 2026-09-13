@@ -1,8 +1,9 @@
 import {memoryMedia} from './memory-media.js';
+import {manageVideoBuffer} from './video-buffer.js';
 
 export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65}={}){
  const items=memoryMedia(memory);let index=0,requested=0,timer=null,paused=false,disposed=false,serial=0,loading=false;
- const photos=new Map();
+ const photos=new Map();let videoBuffer=null;
  const soundtrack=memory.soundtrack?.src?new Audio(memory.soundtrack.src):null;let audioBlocked=false;
  if(soundtrack){soundtrack.loop=true;soundtrack.preload='auto';soundtrack.volume=Math.max(0,Math.min(1,volume));soundtrack.addEventListener('error',()=>onError('The soundtrack could not load. You can still browse these photos.'));}
  const playSoundtrack=()=>{if(!soundtrack||paused||disposed||document.hidden)return;soundtrack.play().then(()=>{audioBlocked=false;if(disposed||paused||document.hidden)soundtrack.pause();}).catch(()=>{if(!disposed){audioBlocked=true;onError('Press Space to start the memory soundtrack.');}});};
@@ -28,18 +29,22 @@ export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65}={}){
    try{el=await photo(target);}catch{if(!disposed&&token===serial){loading=false;requested=index;stage.setAttribute('aria-busy','false');onError('This photo could not be loaded. The previous photo is still here; use the arrows to try another.');}return;}
    if(disposed||token!==serial)return;
   }else el=document.createElement('video');
-  stage.querySelector('video')?.pause();index=target;loading=false;stage.setAttribute('aria-busy','false');
+  videoBuffer?.dispose();videoBuffer=null;index=target;loading=false;stage.setAttribute('aria-busy','false');
   if(a.type==='video'){
    el.id='memory-player';el.playsInline=true;el.preload='auto';el.tabIndex=0;el.muted=!!soundtrack;
    el.addEventListener('ended',()=>{if(!disposed&&token===serial&&!paused&&items.length>1)show(index+1);});
   }
   el.addEventListener('error',()=>{if(token===serial){clear();onError('This item could not be loaded. Use the arrows to continue.');}});
   stage.replaceChildren(el);onError('');update();prefetch();
-  if(a.type==='video'){el.src=a.src;if(!paused&&!document.hidden)el.play().catch(()=>{if(!disposed&&token===serial)onError('Press Space to play this memory.');});}else schedule();
+  if(a.type==='video'){
+   const connection=globalThis.navigator?.connection;
+   videoBuffer=manageVideoBuffer(el,{slow:connection?.saveData||['slow-2g','2g','3g'].includes(connection?.effectiveType),onStatus:message=>{if(!disposed&&token===serial)onError(message);},onBlocked:()=>{paused=true;onError('Press Space to play this memory.');update();}});
+   el.src=a.src;el.load();if(!paused&&!document.hidden)videoBuffer.resume();
+  }else schedule();
  }
- function togglePause(){if(audioBlocked&&!paused){playSoundtrack();return;}paused=!paused;clear();if(paused)soundtrack?.pause();else playSoundtrack();const video=stage.querySelector('video');if(video){if(paused)video.pause();else video.play().catch(()=>onError('Press Space to play this memory.'));}else if(!paused)schedule();update();}
+ function togglePause(){if(audioBlocked&&!paused){playSoundtrack();return;}paused=!paused;clear();if(paused)soundtrack?.pause();else playSoundtrack();if(videoBuffer){if(paused)videoBuffer.pause();else videoBuffer.resume();}else if(!paused)schedule();update();}
  const click=e=>{const action=e.target.closest('[data-slide]')?.dataset.slide;if(action==='pause')togglePause();if(action==='next')show(requested+1);if(action==='previous')show(requested-1);};
- const visibility=()=>{if(document.hidden){clear();stage.querySelector('video')?.pause();soundtrack?.pause();}else if(!paused){playSoundtrack();const video=stage.querySelector('video');if(video)video.play().catch(()=>{});else schedule();}};
+ const visibility=()=>{if(document.hidden){clear();videoBuffer?.pause();soundtrack?.pause();}else if(!paused){playSoundtrack();if(videoBuffer)videoBuffer.resume();else schedule();}};
  host.addEventListener('click',click);document.addEventListener('visibilitychange',visibility);show(0);playSoundtrack();
- return {toggle:togglePause,next:()=>show(requested+1),previous:()=>show(requested-1),dispose(){disposed=true;serial++;clear();photos.clear();stage.querySelector('video')?.pause();if(soundtrack){soundtrack.pause();soundtrack.removeAttribute('src');soundtrack.load();}host.removeEventListener('click',click);document.removeEventListener('visibilitychange',visibility);}};
+ return {toggle:togglePause,next:()=>show(requested+1),previous:()=>show(requested-1),dispose(){disposed=true;serial++;clear();photos.clear();videoBuffer?.dispose();if(soundtrack){soundtrack.pause();soundtrack.removeAttribute('src');soundtrack.load();}host.removeEventListener('click',click);document.removeEventListener('visibilitychange',visibility);}};
 }
