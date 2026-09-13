@@ -1,0 +1,17 @@
+[
+  {
+    "pet": "leo",
+    "mode": "Built-in image_gen",
+    "prompt": "Use case: identity-preserve. Asset type: photorealistic first-frame guide for a game animal video. Reference image: preserve this individual animal's identity, fur/shell, coloring and body proportions. Subject: English cream long-haired dachshund Leo, long low sausage body, four short legs and paws, silky pale cream coat, feathered ears, feathery tail. Change camera viewpoint to a STRICT OVERHEAD TOP-DOWN ORTHOGRAPHIC view, as if looking straight down onto the pet's back. Animal stands on all four feet, its head points straight toward the BOTTOM CENTER of the image and tail toward the TOP CENTER. We see the back, crown of head and ears from above, not a frontal or side portrait. Entire animal including tail and paws visible, centered with generous 15% margins on every side. Landscape 3:2 image. Background is perfectly flat saturated magenta #ff00ff edge to edge, no shadow, no objects or floor texture. Soft natural photographic fur/shell details, no cartoon, no polygon style, no text. Fixed scale and symmetrical overhead framing."
+  },
+  {
+    "pet": "miso",
+    "mode": "Built-in image_gen",
+    "prompt": "Use case: identity-preserve. Asset type: photorealistic first-frame guide for a game animal video. Reference image: preserve this individual animal's identity, fur/shell, coloring and body proportions. Subject: Cyrus, a very obese round russet-orange cat with a huge wide belly, all-orange ticked coat, no white bib or patches, dark tail tip and dark blue collar. Change camera viewpoint to a STRICT OVERHEAD TOP-DOWN ORTHOGRAPHIC view, as if looking straight down onto the pet's back. Animal stands on all four feet, its head points straight toward the BOTTOM CENTER of the image and tail toward the TOP CENTER. We see the back, crown of head and ears from above, not a frontal or side portrait. Entire animal including tail and paws visible, centered with generous 15% margins on every side. Landscape 3:2 image. Background is perfectly flat saturated magenta #ff00ff edge to edge, no shadow, no objects or floor texture. Soft natural photographic fur/shell details, no cartoon, no polygon style, no text. Fixed scale and symmetrical overhead framing."
+  },
+  {
+    "pet": "pebble",
+    "mode": "Built-in image_gen",
+    "prompt": "Use case: identity-preserve. Asset type: photorealistic first-frame guide for a game animal video. Reference image: preserve this individual animal's identity, fur/shell, coloring and body proportions. Subject: Pebble, the same small tortoise with a rounded tan-and-dark-brown scuted shell, short scaly legs and small head. Change camera viewpoint to a STRICT OVERHEAD TOP-DOWN ORTHOGRAPHIC view, as if looking straight down onto the pet's back. Animal stands on all four feet, its head points straight toward the BOTTOM CENTER of the image and tail toward the TOP CENTER. We see the back, crown of head and ears from above, not a frontal or side portrait. Entire animal including tail and paws visible, centered with generous 15% margins on every side. Landscape 3:2 image. Background is perfectly flat saturated magenta #ff00ff edge to edge, no shadow, no objects or floor texture. Soft natural photographic fur/shell details, no cartoon, no polygon style, no text. Fixed scale and symmetrical overhead framing."
+  }
+]

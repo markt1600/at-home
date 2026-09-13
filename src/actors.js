@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {createPetModel} from './pet-models.js';
+import {petFilmUrl} from './pet-media.js';
 import {petDirection} from './pet-direction.js';
 
 // Each action shares a reference animal. Foot calibration anchors paws to treads.
@@ -21,48 +21,56 @@ export function createActor(id,height,f,motionFraming={}){
  const geometry=new THREE.PlaneGeometry(height*f.width/f.bodyHeight,height*f.height/f.bodyHeight);
  const body=new THREE.Mesh(geometry,mat);g.add(body);
  const contact=new THREE.Mesh(new THREE.CircleGeometry(height*.33,32),new THREE.MeshBasicMaterial({color:0x354439,transparent:true,opacity:.14,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.48;contact.position.y=.002;g.add(contact);
- const model=createPetModel(id,height);g.add(model);const films=new Map();let current='idle',gait=0,flip=1,view='front',close=true,priming=null;
- for(const mode of ['idle','walk','walk-front','walk-back',...(id==='pebble'?[]:['sleep'])]){
+ const films=new Map();let current='idle',gait=0,flip=1,view='front',overhead=false,priming=null;
+ for(const mode of ['idle','walk','walk-front','walk-back','overhead','overhead-idle',...(id==='pebble'?[]:['sleep'])]){
   const name=mode==='idle'?asset:`${actionAsset}-${mode}`,video=document.createElement('video');
   video.loop=mode!=='sleep';video.muted=true;video.playsInline=true;video.preload='metadata';
-  const film={video,name,loaded:false,pending:false,failed:false,retryAt:0,texture:null};films.set(mode,film);
+  const still=mode.startsWith('overhead')?new THREE.TextureLoader().load(`/art/motion/compact/${name}.webp`):null;if(still)still.colorSpace=THREE.SRGBColorSpace;
+  const film={video,name,loaded:false,pending:false,failed:false,retryAt:0,texture:null,poster:still};films.set(mode,film);
   video.addEventListener('error',()=>{film.failed=true;film.retryAt=gait+15;});
  }
- g.userData.canWalk=()=>true; // A 3D walking rig is available while video transfers catch up.
+ g.userData.canWalk=()=>true; // Movement never waits for a decoder or a network transfer.
  g.userData.films=films;
  g.userData.update=(dt,enabled,near)=>{
   gait+=dt;const play=dt>0&&enabled&&near&&!document.hidden;
   const walking=g.userData.activity==='walk',sleeping=g.userData.activity==='sleep'&&films.has('sleep');
   const direction=petDirection(g.userData.vx||0,g.userData.vz||0,g.userData.cameraX||0,g.userData.cameraZ||0,view);view=direction.view;
-  const wanted=sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
   const horizontal=Math.hypot(g.userData.cameraX||0,g.userData.cameraZ||0);
-  close=horizontal<(close?3.3:2.7)||Math.atan2(g.userData.cameraY||0,horizontal)>.72;
+  overhead=Math.atan2(g.userData.cameraY||0,horizontal)>(overhead?.78:.94);
+  const wanted=overhead?(walking?'overhead':'overhead-idle'):sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
   // Prime just the requested film. iOS may not decode preload=auto until play().
   const candidate=films.get(wanted);
-  if(!close&&play&&(!candidate.failed||gait>=candidate.retryAt)){
-   if(!candidate.loaded||candidate.failed){candidate.loaded=true;candidate.failed=false;candidate.video.src=`/art/motion/${candidate.name}.mp4`;candidate.video.load();}
+  if(play&&(!candidate.failed||gait>=candidate.retryAt)){
+   if(!candidate.loaded||candidate.failed){candidate.loaded=true;candidate.failed=false;candidate.video.src=petFilmUrl(candidate.name);candidate.video.load();}
    if(candidate.video.readyState<2&&!candidate.pending){candidate.pending=true;priming=candidate;candidate.video.play().catch(()=>{}).finally(()=>{candidate.pending=false;if(priming===candidate)priming=null;});}
   }
-  if(wanted!==current&&films.get(wanted).video.readyState>=2){films.get(current).video.pause();current=wanted;if(current==='sleep')films.get(current).video.currentTime=0;}
+  if(wanted!==current&&(candidate.video.readyState>=2||mat.map===poster&&candidate.poster?.image)){films.get(current).video.pause();current=wanted;if(current==='sleep')films.get(current).video.currentTime=0;}
   const film=films.get(current),video=film.video;
   for(const other of films.values())if(other!==film&&other!==priming&&!other.video.paused)other.video.pause();
-  if(view==='side'&&direction.side){const original=id==='sunny'?1:-1;flip=Math.sign(direction.side)*original;}else if(view!=='side')flip=1;
-  const walkingFilm=current.startsWith('walk'),useModel=close||candidate.video.readyState<2||candidate.failed||(walking&&!walkingFilm);
-  model.visible=useModel;body.visible=!useModel;g.userData.volumetric=useModel;
-  if(useModel)model.userData.update(play?dt:0,g.userData,g.rotation.y);
-  const animateFilm=play&&!useModel&&(!walkingFilm||walking);
+  const displayedView=current==='walk-front'?'front':current==='walk-back'?'back':'side';
+  if(displayedView==='side'&&view==='side'&&direction.side){const original=id==='sunny'?1:-1;flip=Math.sign(direction.side)*original;}else if(displayedView!=='side')flip=1;
+  const fromAbove=current.startsWith('overhead'),walkingFilm=current.startsWith('walk')||current==='overhead';
+  body.visible=true;g.userData.volumetric=false;g.userData.overhead=fromAbove;
+  const animateFilm=play&&(!walkingFilm||walking);
   video.playbackRate=walkingFilm?THREE.MathUtils.clamp((g.userData.speed||.1)/(id==='pebble'?.075:id==='sunny'?.42:.34),.65,1.5):1;
-  if(animateFilm&&!film.failed&&video.paused&&!video.ended&&!film.pending){film.pending=true;video.play().catch(()=>{}).finally(()=>film.pending=false);}else if(!animateFilm&&film!==priming&&!video.paused)video.pause();
-  g.userData.view=view;g.userData.currentFilm=current;
-  if(!film.failed&&video.readyState>=2){film.texture??=new THREE.VideoTexture(video);film.texture.colorSpace=THREE.SRGBColorSpace;if(mat.map!==film.texture){mat.map=film.texture;mat.needsUpdate=true;}}
+  if(animateFilm&&film.loaded&&!film.failed&&video.paused&&!video.ended&&!film.pending){film.pending=true;video.play().catch(()=>{}).finally(()=>film.pending=false);}else if(!animateFilm&&film!==priming&&!video.paused)video.pause();
+  g.userData.view=displayedView;g.userData.waitingForFilm=video!==candidate.video&&candidate.video.readyState<2;g.userData.currentFilm=current;
+  if(!film.failed&&video.readyState>=2){if(!film.texture){film.texture=new THREE.VideoTexture(video);film.texture.colorSpace=THREE.SRGBColorSpace;film.texture.needsUpdate=true;}if(mat.map!==film.texture){mat.map=film.texture;mat.needsUpdate=true;}}
+  if(!film.texture&&film.poster?.image&&mat.map!==film.poster){mat.map=film.poster;mat.needsUpdate=true;}
   const calibration=motionFraming[film.name],index=calibration?Math.min(calibration.bottoms.length-1,Math.floor(video.currentTime*calibration.fps)):0;
   const bottom=mat.map===film.texture&&calibration?Math.min(calibration.bottoms[index],calibration.bottoms[Math.min(index+1,calibration.bottoms.length-1)]):f.bottom;
   const frameHeight=mat.map===film.texture&&calibration?calibration.bodyHeight:f.bodyHeight,scale=f.bodyHeight/frameHeight;
-  body.position.y=height*(f.height/2-bottom)/frameHeight;body.scale.x=flip*scale;
-  body.rotation.z=play&&walking?Math.sin(gait*(id==='pebble'?2:6))*(id==='pebble'?.012:.006):0;
-  body.scale.y=scale*(current==='sleep'&&video.ended?1+Math.sin(gait*1.5)*.004:1);
+  if(fromAbove){
+   // These are real overhead films, laid along the pet's travel direction.
+   const length=height*(id==='sunny'?2.3:id==='miso'?2.0:2.1),occupied=calibration?.height?calibration.bodyHeight/calibration.height:.9;
+   const size=length/(height*f.height/f.bodyHeight*occupied);body.scale.set(size,size,1);body.position.set(0,height*.36,0);
+   body.rotation.set(-Math.PI/2,(g.userData.heading||0)-g.rotation.y,0,'YXZ');
+  }else{
+   body.position.set(0,height*(f.height/2-bottom)/frameHeight,0);body.scale.set(flip*scale,scale*(current==='sleep'&&video.ended?1+Math.sin(gait*1.5)*.004:1),1);
+   body.rotation.set(0,0,play&&walking?Math.sin(gait*(id==='pebble'?2:6))*(id==='pebble'?.012:.006):0,'YXZ');
+  }
   contact.material.opacity=g.userData.hopping?.07:.14;
  };
- g.userData.dispose=()=>{model.userData.dispose();for(const film of films.values()){film.video.pause();film.video.removeAttribute('src');film.video.load();film.texture?.dispose();}poster.dispose();geometry.dispose();mat.dispose();contact.geometry.dispose();contact.material.dispose();};
+ g.userData.dispose=()=>{for(const film of films.values()){film.video.pause();film.video.removeAttribute('src');film.video.load();film.texture?.dispose();film.poster?.dispose();}poster.dispose();geometry.dispose();mat.dispose();contact.geometry.dispose();contact.material.dispose();};
  return g;
 }

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {addWaterTap,addBathWater} from './house-interactions.js';
 import {planPoint} from './house-layout.js';
 
 // The mirror belongs above the powder-room basin, on the south wall.
@@ -31,7 +32,7 @@ function fixtures(world,root,m){
  const shower=(px,pz,yaw)=>{
   const g=at('Chrome shower fittings',px,pz,.75,yaw);
   disc(.053,.022,0,1.12,.025,g).rotation.x=Math.PI/2;
-  box(.025,.07,.075,0,1.13,.067,m.chrome,g);
+  const handle=box(.025,.07,.075,0,1.13,.067,m.chrome,g);
   tube([[0,1.17,.02],[0,1.92,.02],[0,2.08,.09],[0,2.08,.27]],.017,g);
   const head=disc(.105,.027,0,2.06,.29,g);head.rotation.x=.35;
   for(let i=0;i<15;i++){const a=i*2.4,r=.08*Math.sqrt(i/15);disc(.003,.002,Math.cos(a)*r,2.042, .29+Math.sin(a)*r,g,m.black);}
@@ -39,6 +40,7 @@ function fixtures(world,root,m){
   tube([[.40,1.28,.08],[.40,1.53,.13]],.025,g);
   box(.08,.05,.08,.40,1.36,.04,m.chrome,g);
   box(.31,.02,.13,-.08,.89,.09,m.chrome,g);
+  addWaterTap(world,g,{id:`shower-${px}`,name:'shower',spout:[0,2.038,.29],bottom:.018,control:[0,1.13,.11],handle,shower:true});
   return g;
  };
  // The door is held open into the wet area, retaining a clear 800 mm entry.
@@ -68,9 +70,10 @@ export function buildMasterBathroom(world,root,m){
  // A closed shell with an actual hollow basin, rim and curved outer apron.
  lathe([[0,.04],[.25,.04],[.32,.10],[.36,.30],[.40,.54],[.40,.59],[.385,.61],[.37,.585],[.335,.27],[.275,.15],[0,.15]],tub,m.ceramic,2.15);
  disc(.027,.004,.18,.154,0,tub);block(tub,1.74,.82);
- const filler=at('Bath filler',922,183);
- tube([[0,0,0],[0,.7,0],[0,.82,-.06],[0,.82,-.23]],.023,filler);
- disc(.075,.025,0,.018,0,filler);box(.018,.10,.06,.065,.65,0,m.chrome,filler);
+ const filler=at('Bath filler',920,181);
+ tube([[0,0,0],[0,.7,0],[0,.82,-.06],[0,.82,-.30]],.023,filler);
+ disc(.075,.025,0,.018,0,filler);const bathHandle=box(.018,.10,.06,.065,.65,0,m.chrome,filler);
+ addBathWater(world,tub,filler,bathHandle);
  f.toilet(935,254,-Math.PI/2,true);
  f.enclosure(910,233,2.01,0,-1);
  f.shower(948.5,211,-Math.PI/2);
@@ -123,6 +126,7 @@ export function buildPowderBathroom(world,root,m){
  const tap=at('Powder wall tap',391,478.4,1.90,Math.PI);
  disc(.047,.015,0,0,.012,tap).rotation.x=Math.PI/2;
  tube([[0,0,.02],[0,.02,.11],[0,.01,.25],[0,-.065,.27]],.012,tap);
+ addWaterTap(world,tap,{id:'powder-tap',name:'basin tap',spout:[0,-.065,.27],bottom:-.288,control:[.10,0,.10],handle:box(.02,.07,.045,.10,0,.09,m.chrome,tap)});
  const spec=POWDER_MIRROR,mirror=at('Illuminated powder mirror',...spec.plan,spec.y,spec.yaw);
  box(spec.width+.015,spec.height+.015,.014,0,0,0,m.chrome,mirror);
  // Separate ring sits in front of the live reflection, without coplanar faces.
@@ -152,6 +156,7 @@ export function buildGuestBathroom(world,root,m){
  const bowl=new THREE.Group();bowl.position.y=.804;vanity.add(bowl);
  lathe([[0,0],[.09,0],[.15,.035],[.20,.13],[.216,.177],[.21,.184],[.204,.175],[.185,.13],[.13,.049],[0,.035]],bowl,m.chrome);disc(.022,.004,0,.039,0,bowl);
  const tap=at('Second bathroom wall tap',987.7,502,1.90,Math.PI/2);disc(.042,.018,0,0,.01,tap).rotation.x=Math.PI/2;tube([[0,0,.01],[0,.015,.15],[0,-.015,.26],[0,-.06,.26]],.013,tap);
+ addWaterTap(world,tap,{id:'guest-tap',name:'basin tap',spout:[0,-.06,.26],bottom:-.305,control:[.10,0,.10],handle:box(.02,.07,.045,.10,0,.09,m.chrome,tap)});
  const spec=GUEST_BATH_MIRROR,mirror=at('Illuminated second bathroom mirror',...spec.plan,spec.y,spec.yaw);
  box(spec.width+.018,spec.height+.018,.014,0,0,0,m.chrome,mirror);
  const ring=mesh(new THREE.TorusGeometry(.285,.005,8,80),new THREE.MeshBasicMaterial({color:0xffdc98}),mirror,0,0,.045);ring.scale.y=1.35;

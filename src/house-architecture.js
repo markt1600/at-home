@@ -110,6 +110,13 @@ export function buildArchitecture(world,root,materials){
   // Adjacent sections meet exactly. Padding every box created coplanar strips
   // at wall seams, door jambs and balcony rail corners (visible as flicker).
   const mesh=world.box(hi-lo,height,depth,x+(xx-x)*t,base+height/2,z+(zz-z)*t,materials[material],root);mesh.rotation.y=angle;mesh.userData.architecture=true;mesh.name=wall.id;
+  if(material==='glass'){
+   // Double-sided glass box caps lay exactly on adjoining floor surfaces.
+   // Keep the vertical panes, with no horizontal cap competing with the floor.
+   const geo=mesh.geometry.toNonIndexed(),normal=geo.attributes.normal,keep=[];
+   for(let i=0;i<normal.count;i+=3)if(Math.abs(normal.getY(i))<.5)keep.push(i,i+1,i+2);
+   geo.setIndex(keep);mesh.geometry.dispose();mesh.geometry=geo;
+  }
   if(collision)world.colliders.push({x:mesh.position.x,z:mesh.position.z,w:hi-lo,d:depth,angle,wall:wall.id});
   return mesh;
  };
@@ -126,12 +133,12 @@ export function buildArchitecture(world,root,materials){
   }
   for(const a of apertures){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
-   solid(wall,a.lo,a.hi,bottom,a.base-bottom,wall.material||'plaster',a.kind==='window');
+   solid(wall,a.lo,a.hi,bottom,a.base-bottom-([0,.45,.75].some(y=>Math.abs(y-a.base)<.001)?.004:0),wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
    const frame=a.kind==='sliding'||(a.id.startsWith('theatre-window')||a.id.startsWith('office-window'))?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
    for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
-   if(['window','closed','lift'].includes(a.kind)){
+   if(['window','closed'].includes(a.kind)){
     solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?(a.id.startsWith('office-window')?'frostedOfficeGlass':'glass'):a.kind==='lift'?'steel':'walnut',true,.045);
     if(a.kind==='window'){const spacing=a.id==='master-windows'?(a.hi-a.lo)/4:.6;for(let t=a.lo+spacing;t<a.hi-.01;t+=spacing)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);}
     if(a.kind==='lift')solid(wall,(a.lo+a.hi)/2-.008,(a.lo+a.hi)/2+.008,a.base,a.height,'black',false,.06);

@@ -1,8 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import * as THREE from 'three';
 import {hasTouchInput,viewportBounds,fitRenderer,installGameViewport} from '../src/game-viewport.js';
-import {createPetModel} from '../src/pet-models.js';
 import {PetRoaming} from '../src/pet-roaming.js';
 import {PETS} from '../src/life.js';
 import {createHouseModel} from '../scripts/house-model.mjs';
@@ -21,12 +19,6 @@ test('each main pass restores the complete viewport after a smaller reflection t
  const calls=[],renderer={getSize:t=>t.set(844,390),setRenderTarget:v=>calls.push(['target',v]),setScissorTest:v=>calls.push(['scissor',v]),setViewport:(...v)=>calls.push(['viewport',...v]),setSize:(...v)=>calls.push(['size',...v]),resetState:()=>calls.push(['reset'])},camera={updateProjectionMatrix:()=>calls.push(['projection'])};
  fitRenderer(renderer,camera,844,390);assert.deepEqual(calls,[['target',null],['scissor',false],['viewport',0,0,844,390]]);
  fitRenderer(renderer,camera,390,700,true);assert.equal(camera.aspect,390/700);assert.ok(calls.some(c=>c[0]==='reset'));assert.deepEqual(calls.at(-1),['viewport',0,0,390,700]);
-});
-test('close-up pets have volume, turn toward travel, and keep their walking paws above the floor',()=>{
- for(const spec of PETS){const g=createPetModel(spec.id,spec.height);g.position.y=.028;g.updateMatrixWorld(true);let b=new THREE.Box3().setFromObject(g);assert.ok(b.max.z-b.min.z>.25);assert.ok(b.max.x-b.min.x>.15);
-  for(let i=0;i<100;i++){g.userData.update(.05,{activity:'walk',vx:.2,vz:0,speed:.2,travel:i*.015});g.updateMatrixWorld(true);b.setFromObject(g);assert.ok(b.min.y>=-.001,`${spec.name} clipped at ${b.min.y}`);}
-  assert.ok(Math.abs(g.rotation.y-Math.PI/2)<.01);g.userData.dispose();
- }
 });
 test('pet-linked photo albums survive editing without creating fixed floor triggers',()=>{
  const id='ad9a4d4f-4465-4faa-8cd1-12b82fc6b6a4',position=[...planPoint(507,620)].toSpliced(1,0,0),input={id,title:'Memories of Cyrus',date:'',description:'Quiet moments',petId:'miso',position,published:true,addMediaPaths:[`media/${id}/image.jpg`,`media/${id}/image.png`]};

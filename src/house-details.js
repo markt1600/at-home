@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint,PLAN_SCALE,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-layout.js';
+import {addWaterTap} from './house-interactions.js';
 import {INTERIOR_WALLS} from './house-architecture.js';
 import {buildLivingSpeakers} from './living-speakers.js';
 
@@ -86,6 +87,8 @@ export function addHouseDetails(world,root,m){
  entranceSwitch.name='Entrance wall switch';entranceSwitch.position.addScaledVector(new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw)),.087);
  box(.084,.084,.014,0,0,0,'white',entranceSwitch);for(const x of [-.018,.018])box(.018,.045,.017,x,0,.004,'cream',entranceSwitch);
  const [sx,sz]=planPoint(535,801);const tap=new THREE.Mesh(new THREE.TorusGeometry(.085,.018,8,16,Math.PI),m.steel);tap.position.set(sx+.085,1.70,sz);root.add(tap);cyl(.018,.07,sx+.17,1.665,sz,'steel');
+ const handle=box(.02,.065,.065,sx-.05,1.57,sz,'steel');
+ addWaterTap(world,root,{id:'kitchen-tap',name:'kitchen tap',spout:[sx+.17,1.63,sz],bottom:1.375,control:[sx-.05,1.58,sz],handle});
  buildLivingSpeakers(world,root,m);
 }
 
@@ -108,7 +111,8 @@ export function buildMasterVanity(world,root,m){
  for(const x of [-.36,.36]){
   box(.055,.008,.055,x,.905,-.10,'black',g);box(.034,.19,.034,x,1.004,-.10,'black',g);
   box(.034,.029,.135,x,1.09,-.044,'black',g);box(.027,.035,.027,x,1.06,.008,'black',g);
-  box(.052,.012,.018,x+.026,1.077,-.10,'black',g);
+  const handle=box(.052,.012,.018,x+.026,1.077,-.10,'black',g);
+  addWaterTap(world,g,{id:`master-tap-${x}`,name:'basin tap',spout:[x,1.042,.028],bottom:.782,control:[x,1.08,.01],handle});
   const drain=cyl(.022,.002,x,.774,.12,'steel',g);drain.name='Basin drain';
  }
  // The drawing shows a black frame and 100 x 3 mm bottom ledge.

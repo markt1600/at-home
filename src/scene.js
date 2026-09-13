@@ -13,6 +13,7 @@ import {BalconyLife} from './balcony-life.js';
 import {applyHomeDetails} from './home-furnishings.js';
 import {applyDiningArt} from './dining-details.js';
 import {applyBalconyWallArt} from './balcony-wall-details.js';
+import {preloadPetFilms} from './pet-media.js';
 import {createActor} from './actors.js';
 import {createMemoryMarker} from './memory-marker.js';
 import {PETS} from './life.js';
@@ -61,6 +62,7 @@ export class House{
     try{apply(t);resolve();}catch(error){reject(error);}
    },undefined,error=>{if(!settled){settled=true;clearTimeout(timeout);reject(error);}});
   })}));
+  for(const id of ['sunny','miso','pebble'])tasks.push({id:`${id}-films`,load:()=>preloadPetFilms(id)});
   tasks.push({id:'pets',load:async()=>{const responses=await Promise.all(['/art/friends/framing.json','/art/motion/framing.json'].map(url=>fetch(url,{cache:'no-cache',signal:AbortSignal.timeout(20000)})));if(responses.some(r=>!r.ok))throw new Error('Pet information unavailable');[this.framing,this.motionFraming]=await Promise.all(responses.map(r=>r.json()));this.syncPets(this.life);}});
   this.artwork=new AssetReadiness(tasks,{onChange:status=>this.onArtworkStatus?.(status)});return this.artwork.run();
  }
@@ -90,7 +92,8 @@ export class House{
    this.camera.position.y=step.grounded?THREE.MathUtils.lerp(this.camera.position.y,eye,1-Math.exp(-18*dt)):eye;
    this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.onTick(dt);this.room=HOUSE_ROOMS.find(r=>pointInPolygon(this.camera.position.x,this.camera.position.z,r.polygon))?.id||this.room;
   }
-  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;actor.userData.heading=Math.atan2(p.vx,p.vz);actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
+  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)actor.userData.heading=Math.atan2(p.vx,p.vz);actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
+  this.houseInteractions.update(active?dt:0);
   this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());
   this.memoryMarkers?.children.forEach(g=>g.visible=g.position.distanceTo(this.camera.position)<6);
   const animated=this.mode==='play'&&!document.hidden&&(!this.paused||this.previewAnimation);
@@ -98,7 +101,8 @@ export class House{
   for(const corner of this.petCorners.values()){corner.care=Math.max(0,corner.care-(animated?dt:0));for(const content of corner.contents){content.scale.setScalar(corner.care>0?1+Math.sin(corner.care*7)*.05:1);}}
   if(checkAim&&this.turntablePosition){const d=this.turntablePosition.clone().sub(this.camera.position);if(d.length()<2.3&&forward.dot(d.clone().normalize())>.72){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.30);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='turntable';}}
   if(checkAim&&this.windowLounge?.telescope){const d=this.windowLounge.telescope.position.clone().add(new THREE.Vector3(0,1.49,.54)).sub(this.camera.position);if(d.length()<2.5&&forward.dot(d.clone().normalize())>.68){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,Math.max(.05,d.length()-.25));if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='telescope';}}
+  if(checkAim){const fixture=this.houseInteractions.select();if(fixture)nearest=fixture;}
   if(this.vinyl&&this.recordPlaying&&!document.hidden)this.vinyl.rotation.y-=dt*Math.PI*2*(33+1/3)/60;
-  if(nearest!==this.lookTarget){this.lookTarget=nearest;this.onLook(nearest);}if(this.telescope.active){this.reflections.surfaces.forEach(p=>p.refresh=false);this.telescope.update(active?dt:0,this.hours,this.motion);return;}this.reflections.update();this.renderer.render(this.scene,this.camera);
+  const fixtureLabel=this.houseInteractions.label(nearest);if(nearest!==this.lookTarget||fixtureLabel!==this.lastFixtureLabel){this.lastFixtureLabel=fixtureLabel;this.lookTarget=nearest;this.onLook(nearest);}if(this.telescope.active){this.reflections.surfaces.forEach(p=>p.refresh=false);this.telescope.update(active?dt:0,this.hours,this.motion);return;}this.reflections.update();this.renderer.render(this.scene,this.camera);
  }
 }

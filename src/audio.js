@@ -10,6 +10,11 @@ export class HomeSound {
   const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter();source.buffer=buffer;source.loop=true;filter.type='lowpass';filter.frequency.value=700;this.breeze=this.ctx.createGain();this.breeze.gain.value=.12;source.connect(filter);filter.connect(this.breeze);this.breeze.connect(this.master);source.start();await this.ctx.resume();
  }
  setVolume(v){this.volume=v;this.master?.gain.setTargetAtTime(v,this.ctx.currentTime,.15);}
+ setWater(volume){
+  if(!this.ctx)return;
+  if(!this.water){const buffer=this.ctx.createBuffer(1,this.ctx.sampleRate*2,this.ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.22;const source=this.ctx.createBufferSource(),filter=this.ctx.createBiquadFilter();source.buffer=buffer;source.loop=true;filter.type='bandpass';filter.frequency.value=1600;filter.Q.value=.4;this.water=this.ctx.createGain();this.water.gain.value=0;source.connect(filter);filter.connect(this.water);this.water.connect(this.master);source.start();}
+  this.water.gain.setTargetAtTime(Math.min(.16,Math.max(0,volume)),this.ctx.currentTime,.2);
+ }
  tone(frequency,duration=.3,volume=.08,delay=0,end=frequency){if(!this.ctx)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type='sine';o.frequency.setValueAtTime(frequency,t);o.frequency.exponentialRampToValueAtTime(end,t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.03);o.onended=()=>{o.disconnect();g.disconnect();};}
  care(){this.tone(523,.35,.04);this.tone(784,.5,.035,.12);}
  step(){this.tone(90,.07,.018,0,58);}

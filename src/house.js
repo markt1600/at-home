@@ -13,10 +13,12 @@ import {buildClawMachine} from './claw-machine.js';
 import {buildLivingSeating} from './living-seating.js';
 import {buildWindowLounge} from './window-lounge.js';
 import {buildBedroomStorage} from './bedroom-storage.js';
+import {HouseInteractions,buildInteractiveFridge,buildLift} from './house-interactions.js';
 import {buildLobbyDetails} from './lobby-details.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
+ world.houseInteractions=new HouseInteractions(world);
  const root=new THREE.Group();root.name='Plan-based home';world.scene.add(root);world.houseRoot=root;
  const materials={plaster:world.mat(0xcfc9b9,.93),sage:world.mat(0x78816b,.55),marble:world.mat(0xd1c9b8,.25,.07),oak:world.mat(0x956a40,.58),white:world.mat(0xe1ded0,.8),black:world.mat(0x171a19,.46),steel:world.mat(0x808480,.24,.8),orange:world.mat(0xb74720,.94),cream:world.mat(0xc6bfa8,.96),teal:world.mat(0x315e5b,.65),walnut:world.mat(0x4b3126,.55),blue:world.mat(0x1b293a,.94),glass:new THREE.MeshStandardMaterial({color:0x809da2,roughness:.16,metalness:.18,transparent:true,opacity:.12,side:THREE.DoubleSide})};world.houseMaterials=materials;
  materials.breccia=world.mat(0xe3e1d8,.22,.06);materials.oakFloor=world.mat(0xa57a51,.55);
@@ -92,7 +94,7 @@ export function buildHouse(world){
  world.door=new THREE.Group();world.door.name='Front door';world.door.position.x=-half;doorFrame.add(world.door);world.door.rotation.y=-1.45;
  box(1.15,2.15,.035,.575,1.075,0,'glass',world.door);for(const x of [.02,1.13])box(.035,2.2,.05,x,1.1,0,'steel',world.door);for(const y of [.02,1.03,2.18])box(1.075,.025,.05,.575,y,0,'steel',world.door);box(.035,.36,.065,1.03,1.12,.06,'black',world.door);
  const fixedStart=-half+1.15;box(half-fixedStart,2.2,.035,(half+fixedStart)/2,1.1,0,'glass',doorFrame);box(.035,2.2,.055,fixedStart,1.1,0,'steel',doorFrame);
- B(949,871,.13,.23,.04,1.8,'black',Math.PI/4);
+ buildLift(world,root,materials);
  // The full-height lobby mirror follows its diagonal wall; the lift is opposite GD01.
  paint(901.5,848,1.72,2.7,2.52,0x87928e,Math.PI-Math.atan2(58,91));
  buildLobbyDetails(world,root,materials);
@@ -159,7 +161,7 @@ export function buildHouse(world){
  // Photo-confirmed return counter and fridge beside the sole service doorway.
  // The counter stops before the fridge; its top does not overlap the north run.
  C(634.5,769.4,53.6/scale,.855,.6,'oak',-Math.PI/2,.45);B(634.5,769.78,.65,.045,52.45/scale,1.3275,'marble');
- B(577,730,1.1,.78,.6,2.26,0x617259);C(632.65,812.5,.84,1.98,.74,'steel',-Math.PI/2,.45);B(617,812.5,.025,.88,.43,1.8,'black');
+ B(577,730,1.1,.78,.6,2.26,0x617259);buildInteractiveFridge(world,root,materials);
  const upper=new THREE.Group(),[ux,uz]=P(644,764);upper.position.set(ux,2.30,uz);upper.rotation.y=-Math.PI/2;root.add(upper);
  box(1.24,.64,.025,0,0,-.14,'plaster',upper);
  for(const x of [-.63,.63])box(.025,.69,.30,x,0,0,'black',upper);

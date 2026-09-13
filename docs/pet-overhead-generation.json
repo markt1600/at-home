@@ -1,0 +1,158 @@
+[
+  {
+    "file": "art/motion/compact/leo-overhead.mp4",
+    "bytes": 103911,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "English cream long-haired dachshund Leo with four short legs, long low body and feathery cream tail",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless overhead in-place walking loop of English cream long-haired dachshund Leo with four short legs, long low body and feathery cream tail.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up.",
+      "detailed_description": "One pet only. A locked straight-down orthographic overhead camera watches a gentle walking cycle in place. The body stays centered at exactly the same size and location throughout. Four feet alternately lift, step forward, plant and push backward in a natural walking rhythm. The back subtly shifts with the gait. Leo gently wags his feathery tail sideways, and his floppy ears sway slightly. The pet neither turns nor travels across the frame. All feet and tail remain fully inside the frame. The loop finishes in the same stance and framing as it begins. Background stays perfectly uniform saturated magenta with no floor shadows, gradients or props. Photographic fur and shell texture. No polygon or cartoon appearance. No camera rotation, pan, zoom, tilt, cut or lighting change.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "3f0a05fe-1ddc-4eff-8ab8-5476437b2222",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  },
+  {
+    "file": "art/motion/compact/leo-overhead-idle.mp4",
+    "bytes": 65476,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "English cream long-haired dachshund Leo with four short legs, long low body and feathery cream tail",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless calm overhead idle loop of English cream long-haired dachshund Leo with four short legs, long low body and feathery cream tail.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up. Preserve the generous magenta margins. Full animal stays centered, no zoom or growth. Every paw stays inside frame with at least 10 percent margin throughout.",
+      "detailed_description": "One pet only. Locked straight-down orthographic overhead camera. The pet stands still with all four feet planted. It never steps, walks, turns, changes direction or changes size. Gentle subtle breathing only. Leo softly wags his feathered tail side to side while his feet and long body stay still. Keep head pointing down the image and tail up. Keep full silhouette and margins from the reference. Photographic fur and shell details. Background perfectly uniform saturated magenta with no shadows or objects. Seamless return to original stance at the end. No camera motion.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "330d8221-36be-4ff9-a941-a2d4832804f0",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  },
+  {
+    "file": "art/motion/compact/miso-overhead.mp4",
+    "bytes": 105797,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "very obese round all-russet-orange cat Cyrus, no white patches, dark tipped tail and blue collar",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless overhead in-place walking loop of very obese round all-russet-orange cat Cyrus, no white patches, dark tipped tail and blue collar.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up. Preserve the generous magenta margins. Full animal stays centered, no zoom or growth. Every paw stays inside frame with at least 10 percent margin throughout.",
+      "detailed_description": "One pet only. A locked straight-down orthographic overhead camera watches a gentle walking cycle in place. The body stays centered at exactly the same size and location throughout. Four feet alternately lift, step forward, plant and push backward in a natural walking rhythm. The back subtly shifts with the gait. Cyrus gently sways his dark-tipped tail, and his broad round belly shifts subtly. The pet neither turns nor travels across the frame. All feet and tail remain fully inside the frame. The loop finishes in the same stance and framing as it begins. Background stays perfectly uniform saturated magenta with no floor shadows, gradients or props. Photographic fur and shell texture. No polygon or cartoon appearance. No camera rotation, pan, zoom, tilt, cut or lighting change.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "ee5e11bd-39a7-4498-8418-d68e9f215cb4",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  },
+  {
+    "file": "art/motion/compact/miso-overhead-idle.mp4",
+    "bytes": 82785,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "very obese round all-russet-orange cat Cyrus, no white patches, dark tipped tail and blue collar",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless calm overhead idle loop of very obese round all-russet-orange cat Cyrus, no white patches, dark tipped tail and blue collar.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up.",
+      "detailed_description": "One pet only. Locked straight-down orthographic overhead camera. The pet stands still with all four feet planted. It never steps, walks, turns, changes direction or changes size. Gentle subtle breathing only. Cyrus lazily swishes his dark-tipped tail while his round orange body stays still. Keep head pointing down the image and tail up. Keep full silhouette and margins from the reference. Photographic fur and shell details. Background perfectly uniform saturated magenta with no shadows or objects. Seamless return to original stance at the end. No camera motion.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "11fffbc5-5f82-4215-bac8-3805584b7711",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  },
+  {
+    "file": "art/motion/compact/pebble-overhead.mp4",
+    "bytes": 131341,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "small tan and brown scuted-shell tortoise Pebble",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless overhead in-place walking loop of small tan and brown scuted-shell tortoise Pebble.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up. Preserve the generous magenta margins. Full animal stays centered, no zoom or growth. Every paw stays inside frame with at least 10 percent margin throughout.",
+      "detailed_description": "One pet only. A locked straight-down orthographic overhead camera watches a gentle walking cycle in place. The body stays centered at exactly the same size and location throughout. Four feet alternately lift, step forward, plant and push backward in a natural walking rhythm. The back subtly shifts with the gait. Pebble takes very slow deliberate alternating steps, extending and bending each leg while his head gently bobs. The pet neither turns nor travels across the frame. All feet and tail remain fully inside the frame. The loop finishes in the same stance and framing as it begins. Background stays perfectly uniform saturated magenta with no floor shadows, gradients or props. Photographic fur and shell texture. No polygon or cartoon appearance. No camera rotation, pan, zoom, tilt, cut or lighting change.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "7380e30d-8187-4f72-a073-e15bb6aa7843",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  },
+  {
+    "file": "art/motion/compact/pebble-overhead-idle.mp4",
+    "bytes": 130815,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 73,
+    "prompt": {
+      "subject_definitions": [
+        {
+          "id": "pet",
+          "description": "small tan and brown scuted-shell tortoise Pebble",
+          "reference": "The first frame defines this exact pet and the fixed overhead composition."
+        }
+      ],
+      "summary": "A seamless calm overhead idle loop of small tan and brown scuted-shell tortoise Pebble.",
+      "retention_analysis": "Keep identity, coat colors, body proportions, complete silhouette, fixed top-down camera, magenta backdrop and framing exactly as the first frame. Head always points down the image, tail up.",
+      "detailed_description": "One pet only. Locked straight-down orthographic overhead camera. The pet stands still with all four feet planted. It never steps, walks, turns, changes direction or changes size. Gentle subtle breathing only. Pebble slightly extends and retracts his small head while all four feet and shell stay still. Keep head pointing down the image and tail up. Keep full silhouette and margins from the reference. Photographic fur and shell details. Background perfectly uniform saturated magenta with no shadows or objects. Seamless return to original stance at the end. No camera motion.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "3bed4eff-29a4-43d9-a3fc-ef86339d3e70",
+    "review": "Identity, complete feet/tail, fixed top-down view and walking/idle motion checked across all sampled frames."
+  }
+]
