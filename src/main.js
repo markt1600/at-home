@@ -50,9 +50,9 @@ world.onTelescopeChange=active=>{
 world.onTelescopePeriod=night=>{const el=$('#telescope-period');if(el)el.textContent=night?'A little closer to the stars':'Little moments in the neighborhood';};
 function leaveTelescope(){world.telescope.leave();world.resumeWandering();}
 function updateArtworkStatus(){
- const status=world.artwork.status,button=$('#continue-game')||$('#welcome-form button[type="submit"]');if(!button)return;
- button.disabled=!status.ready;
- let note=$('#house-loading');if(!note){note=document.createElement('p');note.id='house-loading';note.className='fine';note.setAttribute('role','status');button.after(note);}
+ const status=world.artwork.status,card=$('.welcome-menu .welcome-card');if(!card)return;
+ card.querySelectorAll('#continue-game,#new-game').forEach(button=>button.disabled=!status.ready);
+ let note=$('#house-loading');if(!note){note=document.createElement('p');note.id='house-loading';note.className='fine';note.setAttribute('role','status');card.append(note);}
  note.replaceChildren();const label=document.createElement('span');label.textContent=status.ready?'The house is ready.':status.loading?`Opening the house and its artwork… ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
  const progress=document.createElement('progress');progress.max=status.total;progress.value=status.loaded;progress.setAttribute('aria-label','House textures loaded');note.append(progress);if(status.ready)return;
  if(!status.loading){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry loading';retry.onclick=()=>world.loadArtwork();note.append(retry);}
@@ -62,16 +62,11 @@ function updateLookHint(id){const el=$('#look-hint');if(el)el.textContent=(world
 async function toggleRecord(){try{await recordPlayer.toggle();}catch{toast('Music could not start. Try the turntable again.');}}
 function save(){if(!playing&&!hasSavedGame)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));hasSavedGame=true;}catch{}}
 function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),6500);}
-const welcomeGuide=()=>`<p class="welcome-guide">Explore the house and find its memories. Walk into a glowing memory circle and ${touchMode()?'tap <strong>Interact</strong>':'press <strong>E</strong>'} to relive it. Some other things in the house respond to a little curiosity, too.</p>`;
-function renderMenu(fresh=!hasSavedGame){
- if(!fresh&&hasSavedGame){
-  app.innerHTML=`<main class="welcome"><div class="welcome-copy"><p class="eyebrow">A place to take your time</p><h1>At Home<span>.</span></h1><p class="intro">Welcome back, ${escape(state.name)}.</p><p class="quiet">Your little household is waiting for you.</p>${welcomeGuide()}</div><section class="welcome-card"><p class="eyebrow">Make yourself comfortable</p><h2>Pick up your day.</h2><p class="panel-intro">Day ${dayNumber(state.hours)} · ${clockLabel(state.hours)}</p><div class="stack"><button class="primary" id="continue-game">Continue game <span>↗</span></button><button id="new-game">Start a new game</button></div><p class="fine">A new game starts a fresh day, journal and pet routine. Your saved memories and music stay in the house.</p></section></main>`;
-  $('#continue-game').onclick=()=>enter();$('#new-game').onclick=()=>renderMenu(true);updateArtworkStatus();return;
- }
- app.innerHTML=`<main class="welcome"><div class="welcome-copy"><p class="eyebrow">A place to take your time</p><h1>At Home<span>.</span></h1><p class="intro">Watch the light change. Make a cup of tea.<br>Look after a few little friends.</p><p class="quiet">No score. No rush. Just a day that belongs to you.</p>${welcomeGuide()}</div><form id="welcome-form" class="welcome-card"><p class="eyebrow">Make yourself comfortable</p><h2>Enter your name<br>or nickname</h2><label class="sr-only" for="name">Name or nickname</label><input id="name" name="name" maxlength="28" autocomplete="given-name" placeholder="What shall we call you?" value="${state.name==='Friend'?'':escape(state.name)}"><label class="check"><input id="personalized" type="checkbox" ${state.personalized?'checked':''}><span>Include my name in spoken greetings</span></label><p class="fine">Optional. Your nickname is used to generate these greetings. Your microphone stays off until you connect Voice.</p><button class="primary" type="submit">${state.journal.length?'Welcome back':'Come on in'} <span>↗</span></button><p class="fine">Your day is saved on this device. Pets rest while you are away.</p></form><div class="menu-footer">An unhurried life, one small moment at a time.</div></main>`;
- if(hasSavedGame){const back=document.createElement('button');back.type='button';back.className='dream-return';back.textContent='Back to saved game';back.onclick=()=>renderMenu(false);$('#welcome-form').append(back);}
- $('#welcome-form button[type="submit"]').innerHTML=`${hasSavedGame?'Start a new game':'Come on in'} <span>↗</span>`;
- $('#welcome-form').addEventListener('submit',async e=>{e.preventDefault();if(!world.artwork.ready)return;const personalized=$('#personalized').checked;recordPlayer.stop();state=newLife($('#name').value);state.personalized=personalized;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);});updateArtworkStatus();
+function renderMenu(){
+ app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack">${hasSavedGame?'<button class="primary" id="continue-game">Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game">${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
+ if(hasSavedGame)$('#continue-game').onclick=()=>enter();
+ $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;recordPlayer.stop();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
+ updateArtworkStatus();
 }
 async function enter(fresh=false){
  if(!world.artwork.ready)return;
@@ -172,8 +167,8 @@ function currentMemorySelection(){
 }
 let lastAimUpdate=-1;
 function tick(dt){if(!playing)return;timer+=dt;
-if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySelection(),m=selection.hovered||selection.memory,available=selection.memory?.id===m?.id,prompt=$('#memory-proximity'),key=m?m.id+':'+available+':'+!!selection.hovered+':'+m.title:'';
- if(prompt&&prompt.dataset.ids!==key){prompt.dataset.ids=key;prompt.classList.toggle('in-memory-zone',!!available&&!!m);const content=m?`<small style="color:${memoryAppearance(m).css}">${available?'Memory zone · ':''}${memoryAppearance(m).symbol} ${memoryAppearance(m).label}</small><strong>${escape(m.title)}</strong>${available&&m.description?`<p class="zone-description">${escape(m.description)}</p>`:''}<span class="zone-instruction">${available?`${touchMode()?'Tap Interact':'Press E'} to relive this moment`:'Walk closer to relive'}</span>`:'';prompt.innerHTML=m?(available?`<button data-memory="${escape(m.id)}">${content}</button>`:`<div class="memory-aim-label">${content}</div>`):'';}
+if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySelection(),m=selection.hovered||selection.memory,available=selection.memory?.id===m?.id,prompt=$('#memory-proximity'),key=m?m.id+':'+available+':'+!!selection.hovered+':'+m.title+':'+m.date:'';
+ if(prompt&&prompt.dataset.ids!==key){prompt.dataset.ids=key;prompt.classList.toggle('in-memory-zone',!!available&&!!m);const date=m&&formatMemoryDate(m.date),content=m?`<small style="color:${memoryAppearance(m).css}">${available?'Memory zone · ':''}${memoryAppearance(m).symbol} ${memoryAppearance(m).label}</small><strong>${escape(m.title)}</strong>${date?`<time class="memory-date" datetime="${escape(m.date)}">${escape(date)}</time>`:''}${available&&m.description?`<p class="zone-description">${escape(m.description)}</p>`:''}<span class="zone-instruction">${available?`${touchMode()?'Tap Interact':'Press E'} to relive this moment`:'Walk closer to relive'}</span>`:'';prompt.innerHTML=m?(available?`<button data-memory="${escape(m.id)}">${content}</button>`:`<div class="memory-aim-label">${content}</div>`):'';}
  const hint=$('#look-hint');if(hint)hint.hidden=!!m;
  world.memoryMarkers?.children.forEach(g=>{const selected=g.userData.memoryId===m?.id;g.children.forEach(mesh=>mesh.material.opacity=selected?1:.6);});
 }
