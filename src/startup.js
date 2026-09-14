@@ -1,3 +1,6 @@
+import {installGameGestures} from './game-gestures.js';
+installGameGestures();
+
 // Give the HTML welcome screen a paint before fetching/evaluating the 3D code.
 const painted=()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
 await painted();

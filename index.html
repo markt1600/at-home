@@ -2,7 +2,7 @@
 <html lang="en" prefix="og: https://ogp.me/ns#" data-starting>
 <head>
  <meta charset="UTF-8"/>
- <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+ <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"/>
  <meta name="theme-color" content="#faf6ed"/>
  <meta name="description" content="At Home — a peaceful house, changing light, favorite memories and three pets to care for."/>
  <title>At Home — A little room to breathe</title>
@@ -25,6 +25,8 @@
  <link rel="icon" href="/favicon.svg"/>
  <!-- This small first screen can paint before any scripts, fonts or 3D assets. -->
  <style>
+  /* Reserve touch gestures for the game, including before its scripts load. */
+  html,body{width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:pan-y}#scene{touch-action:none}#app,.panel,.welcome,.boot-screen{touch-action:pan-y}button,input,select,textarea{touch-action:pan-y}input,select,textarea{font-size:16px}
   html{background:#eeefdf;color:#29382e;font-family:Arial,sans-serif}body{margin:0}html[data-starting] #scene{visibility:hidden}html[data-starting] #app{position:fixed;inset:0;overflow:auto}html[data-starting] #toast{display:none}
   .boot-screen{box-sizing:border-box;min-height:100%;display:grid;justify-items:center;align-content:center;gap:28px;padding:32px 20px;background:linear-gradient(90deg,#eeeede80,#eeeede08),url('/social/living-room-v1.jpg') center/cover;background-color:#e2e8d4}
   .boot-screen *{box-sizing:border-box}.boot-screen h1{font:400 clamp(64px,8vw,100px)/1.05 Georgia,serif;letter-spacing:-.055em;margin:0}.boot-screen h1 span{color:#859c55}

@@ -15,10 +15,13 @@ import {buildWindowLounge} from './window-lounge.js';
 import {buildBedroomStorage} from './bedroom-storage.js';
 import {HouseInteractions,buildInteractiveFridge,buildLift} from './house-interactions.js';
 import {buildLobbyDetails} from './lobby-details.js';
+import {MovableFurniture} from './movable-furniture.js';
+import {buildEntranceNook} from './entrance-nook.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
  world.houseInteractions=new HouseInteractions(world);
+ world.movableFurniture=new MovableFurniture(world);
  const root=new THREE.Group();root.name='Plan-based home';world.scene.add(root);world.houseRoot=root;
  const materials={plaster:world.mat(0xcfc9b9,.93),sage:world.mat(0x78816b,.55),marble:world.mat(0xd1c9b8,.25,.07),oak:world.mat(0x956a40,.58),white:world.mat(0xe1ded0,.8),black:world.mat(0x171a19,.46),steel:world.mat(0x808480,.24,.8),orange:world.mat(0xb74720,.94),cream:world.mat(0xc6bfa8,.96),teal:world.mat(0x315e5b,.65),walnut:world.mat(0x4b3126,.55),blue:world.mat(0x1b293a,.94),glass:new THREE.MeshStandardMaterial({color:0x809da2,roughness:.16,metalness:.18,transparent:true,opacity:.12,side:THREE.DoubleSide})};world.houseMaterials=materials;
  materials.breccia=world.mat(0xe3e1d8,.22,.06);materials.oakFloor=world.mat(0xa57a51,.55);
@@ -35,7 +38,7 @@ export function buildHouse(world){
  const painting=(x,y,z,w,h,c,a=0)=>{const g=new THREE.Group();g.position.set(x,y,z);g.rotation.y=a;root.add(g);box(w+.07,h+.07,.04,0,0,0,'walnut',g);box(w,h,.047,0,0,.012,c,g);return g;};
  const cabinet=(x,z,w,h,d,m='sage',a=0,b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);box(w,h,d,0,h/2,0,m,g);const n=Math.max(1,Math.round(w/.55));for(let i=0;i<n;i++){const dx=-w/2+(i+.5)*w/n;box(w/n-.016,h-.03,.024,dx,h/2,d/2+.008,m,g);box(.012,.13,.025,dx+w/n*.35,h*.45,d/2+.035,'steel',g);}block(x,z,Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*d,Math.abs(Math.cos(a))*d+Math.abs(Math.sin(a))*w);return g;};
  const sofa=(x,z,w,a,m='orange',b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);soft(w,.26,.98,0,.27,0,m,g);soft(w,.58,.25,0,.65,-.43,m,g);const n=Math.round(w/.7);for(let i=0;i<n;i++)soft(w/n-.025,.2,.72,-w/2+(i+.5)*w/n,.48,.08,m,g);if(m!=='orange')for(const dx of [-w/2+.08,w/2-.08])soft(.19,.37,1.04,dx,.51,0,m,g);for(const [dx,c] of [[-w*.28,'cream'],[w*.22,'blue']]){const p=soft(.44,.43,.16,dx,.79,-.18,c,g);p.rotation.x=-.17;p.rotation.z=dx*.15;}block(x,z,Math.abs(Math.cos(a))*w+Math.abs(Math.sin(a))*1.03,Math.abs(Math.cos(a))*1.03+Math.abs(Math.sin(a))*w,0,b+.58);};
- const chair=(x,z,a,b=0)=>{const g=new THREE.Group();g.position.set(x,b,z);g.rotation.y=a;root.add(g);soft(.5,.09,.49,0,.46,0,'cream',g);soft(.5,.52,.09,0,.74,-.23,'cream',g);for(const u of [-.19,.19])for(const v of [-.18,.18])cyl(.014,.012,.44,u,.22,v,'steel',g);block(x,z,.55,.58,0,b+.505);};
+ const chair=(x,z,a,b=0)=>{const g=new THREE.Group();g.name='Dining chair';g.position.set(x,b,z);g.rotation.y=a;root.add(g);soft(.5,.09,.49,0,.46,0,'cream',g);soft(.5,.52,.09,0,.74,-.23,'cream',g);for(const u of [-.19,.19])for(const v of [-.18,.18])cyl(.014,.012,.44,u,.22,v,'steel',g);world.movableFurniture.add(g,{w:.55,d:.58,top:.505});};
  const plant=(x,z,b=0,s=1)=>{
   cyl(.2*s,.15*s,.35*s,x,b+.175*s,z,'walnut');cyl(.177*s,.177*s,.009,x,b+.352*s,z,0x211e17);
   cyl(.014*s,.027*s,.65*s,x,b+.67*s,z,'walnut');
@@ -104,9 +107,9 @@ export function buildHouse(world){
  buildHomeFurnishings(world,root,materials);
  // Photo-confirmed full-height shoe enclosure: opaque backing, inward-facing oak doors.
  C(953,704,1.52,2.495,.45,'oak',-Math.PI*3/4,.45);
+ Object.assign(world.colliders.at(-1),{w:1.52,d:.45,angle:-Math.PI*3/4,label:'Fitted diagonal shoe cabinets'});
  C(972,670,.77,2.495,.45,'oak',-Math.PI/2,.45);
- C(950,651,.49,.65,.42,'oak',0,.45);plant(...P(950,651),1.11,.35);
- B(951,646,.81,.38,.04,2.67,'black');for(let i=0;i<8;i++)B(951,647,.82,.021,.055,2.52+i*.043,'oak');
+ buildEntranceNook(world,root,materials);
  T('records',749,644,1.31,'Read the entry notebook');T('radio',913.66,744.34,1.78,'House intercom');B(913.66,744.34,.24,.16,.035,1.78,'black',-Math.PI/4);
  const [dx,dz]=P(...FRONT_DOOR.center);world.targets.push({id:'door',pos:new THREE.Vector3(dx,1.9,dz),name:'Front door'},{id:'post',pos:new THREE.Vector3(dx,1.9,dz),name:'Begin the night at the front door',explorationOnly:true});
  buildHomeOffice(world,root,materials);

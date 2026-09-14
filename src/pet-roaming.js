@@ -4,14 +4,14 @@ import {INTERIOR_WALLS} from './house-architecture.js';
 
 // Paths follow the same furniture footprints and stair limits as the player.
 export class PetRoaming{
- constructor(obstacles,random=Math.random){this.obstacles=obstacles;this.dynamicObstacles=obstacles.filter(c=>c.wall==='fridge-door');this.random=random;this.step=.20;this.nodes=new Map();this.pets=new Map();
+ constructor(obstacles,random=Math.random){this.obstacles=obstacles;this.dynamicObstacles=obstacles.filter(c=>c.wall==='fridge-door'||c.movable);const fixed=obstacles.filter(c=>!c.movable);this.random=random;this.step=.20;this.nodes=new Map();this.pets=new Map();
   const points=HOUSE_ROOMS.flatMap(r=>r.polygon),xs=points.map(p=>p[0]),zs=points.map(p=>p[1]);
   for(let i=Math.ceil(Math.min(...xs)/this.step);i<=Math.floor(Math.max(...xs)/this.step);i++)for(let j=Math.ceil(Math.min(...zs)/this.step);j<=Math.floor(Math.max(...zs)/this.step);j++){
-   const x=i*this.step,z=j*this.step;if(inWalkableArea(x,z,true,obstacles))this.nodes.set(`${i},${j}`,{key:`${i},${j}`,i,j,x,z,y:floorHeight(x,z),links:[]});
+   const x=i*this.step,z=j*this.step;if(inWalkableArea(x,z,true,fixed))this.nodes.set(`${i},${j}`,{key:`${i},${j}`,i,j,x,z,y:floorHeight(x,z),links:[]});
   }
-  for(const n of this.nodes.values())for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const next=this.nodes.get(`${n.i+di},${n.j+dj}`);if(!next)continue;const moved=moveAlongFloor(n.x,n.z,next.x-n.x,next.z-n.z,obstacles);if(Math.hypot(moved.x-next.x,moved.z-next.z)<.001)n.links.push(next.key);}
+  for(const n of this.nodes.values())for(const [di,dj] of [[1,0],[-1,0],[0,1],[0,-1]]){const next=this.nodes.get(`${n.i+di},${n.j+dj}`);if(!next)continue;const moved=moveAlongFloor(n.x,n.z,next.x-n.x,next.z-n.z,fixed);if(Math.hypot(moved.x-next.x,moved.z-next.z)<.001)n.links.push(next.key);}
  }
- nearest(x,z){let found,distance=Infinity;for(const n of this.nodes.values()){const d=(n.x-x)**2+(n.z-z)**2;if(d<distance){distance=d;found=n;}}return found;}
+ nearest(x,z){let found,distance=Infinity;for(const n of this.nodes.values()){const d=(n.x-x)**2+(n.z-z)**2;if(d<distance&&!this.dynamicObstacles.some(c=>intersectsFootprint(n.x,n.z,c))){distance=d;found=n;}}return found;}
  restingSpot(n){return n.resting??=(n.links.length>=3&&!INTERIOR_WALLS.some(w=>w.openings?.some(o=>['door','front','sliding'].includes(o.kind)&&Math.hypot(n.x-planPoint(...o.center)[0],n.z-planPoint(...o.center)[1])<.85)));}
  register(id,plan){if(this.pets.has(id))return this.pets.get(id);const [x,z]=planPoint(...plan),n=this.nearest(x,z);const p={id,x:n.x,z:n.z,y:n.y,home:n.key,path:[],wait:1+this.random()*4,moving:false,activity:'idle',distance:0,vx:0,vz:0,speed:id==='pebble'?.075:id==='sunny'?.42:.34};this.pets.set(id,p);return p;}
  interact(id){const p=this.pets.get(id);if(p){p.greeting=null;p.path=[];p.wait=15;p.moving=false;p.activity='idle';}}

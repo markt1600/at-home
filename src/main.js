@@ -1,6 +1,7 @@
 import {floorMemories,memoriesForPet,PET_MEMORY_NAMES} from './pet-memories.js';
 import {installTouchStick} from './touch-controls.js';
 import {pickTouchInteraction} from './touch-targets.js';
+import {clawControlsHTML,mountClawControls} from './claw-game.js';
 import {hasTouchInput,installGameViewport} from './game-viewport.js';
 import {selectMemory,lookedAtMemory} from './memory-selection.js';
 import './style.css';
@@ -22,7 +23,7 @@ import {SAVE_KEY,PETS,ACTIVITIES,newLife,restoreLife,clockLabel,dayNumber,dayPha
 const $=s=>document.querySelector(s),escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 installGameViewport();
 const touchMode=()=>hasTouchInput()||document.documentElement.classList.contains('touch-device');
-let disposeTouchControls=()=>{},lastTouchMode=null;
+let disposeTouchControls=()=>{},disposeClawControls=()=>{},lastTouchMode=null;
 const controlHelp=()=>touchMode()?'Left thumb to walk · Drag the view to look · Tap Interact or a nearby object':'WASD · Mouse to look · E to interact · Space to jump · H for keys';
 const app=$('#app'),sound=new HomeSound(),speech=new RenderedVoice(sound);
 let state;try{state=restoreLife(localStorage.getItem(SAVE_KEY));}catch{}let hasSavedGame=!!state;state??=newLife();
@@ -39,6 +40,8 @@ const world=new House($('#scene'),id=>{updateLookHint(id);},tick);
 world.onUnlock=()=>openPanel('settings');
 world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};
+world.onHouseMessage=toast;
+world.onClawPlay=()=>openPanel('claw');
 world.onStep=()=>sound.step();world.hours=state.hours;world.syncPets(state);
 async function refreshMemories(){const items=await loadMemories();for(const m of memories)releaseMemoryUrls(m);memories=items;syncMemories();}
 refreshMemories();
@@ -72,7 +75,7 @@ function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('
 function renderMenu(){
  app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack" hidden>${hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game" disabled>${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
  if(hasSavedGame)$('#continue-game').onclick=()=>enter();
- $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;recordPlayer.stop();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
+ $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
  updateArtworkStatus();
 }
 async function enter(fresh=false){
@@ -93,9 +96,10 @@ function renderHUD(){disposeTouchControls();app.innerHTML=`<header class="hud-to
 function updateHUD(){if(!playing)return;const mobile=touchMode();if(lastTouchMode!==mobile){lastTouchMode=mobile;$('#controls').textContent=controlHelp();updateLookHint(world.lookTarget);}for(const [id,text] of [['clock',`Day ${dayNumber(state.hours)} · ${clockLabel(state.hours)}`],['phase',dayPhase(state.hours)],['place',roomNames[world.room]||'At home']]){const el=$('#'+id);if(el.textContent!==text)el.textContent=text;}
 }
 function openPanel(type){
- if(!playing)return;sound.setWater(0);document.body.classList.add('panel-open');if(world.telescope.active)world.telescope.leave();if(panel==='memory')releaseMemory();world.paused=true;world.unlock();world.previewAnimation=type==='pets';panel=type;
- const dialog=$('#panel');dialog.classList.toggle('wide',type==='rooms');dialog.classList.toggle('memory-panel',type==='memory');$('#panel-content').innerHTML=panelHTML(type);if(!dialog.open)dialog.showModal();
+ if(!playing)return;sound.setWater(0);document.body.classList.add('panel-open');if(world.telescope.active)world.telescope.leave();if(panel==='memory')releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}world.paused=true;world.unlock();world.previewAnimation=type==='pets'||type==='claw';panel=type;
+ const dialog=$('#panel');dialog.classList.toggle('wide',type==='rooms');dialog.classList.toggle('memory-panel',type==='memory');dialog.classList.toggle('claw-panel',type==='claw');$('#panel-content').innerHTML=panelHTML(type);if(!dialog.open)dialog.showModal();
  if(type==='voice')updateTranscript();prepareDialog(dialog,type);
+ if(type==='claw'){world.clawGame.enter(world);disposeClawControls=mountClawControls($('#panel-content'),world.clawGame);}
  if(type==='memory'){
   speech.stop();recordPlayer.suspend();memoryVolume=sound.volume;sound.setVolume(0);
   if(companion.session&&!companion.muted){companion.mute();memoryMutedMic=true;}companion.setVolume(0);
@@ -103,9 +107,10 @@ function openPanel(type){
  }
 }
 function releaseMemory(){memoryPlayer?.dispose();memoryPlayer=null;if(memoryVolume!==null){sound.setVolume(memoryVolume);companion.setVolume(memoryVolume);memoryVolume=null;}if(memoryMutedMic&&companion.session&&companion.muted)companion.mute();memoryMutedMic=false;recordPlayer.resume();}
-function closePanel(resume=true){if(!panel)return;const wasMemory=panel==='memory';if(wasMemory)releaseMemory();$('#panel').close();document.body.classList.remove('panel-open');panel=null;world.paused=false;world.previewAnimation=false;speech.stop();save();if(resume||wasMemory)world.resumeWandering();}
+function closePanel(resume=true){if(!panel)return;const wasMemory=panel==='memory';if(wasMemory)releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}$('#panel').close();document.body.classList.remove('panel-open');panel=null;world.paused=false;world.previewAnimation=false;speech.stop();save();if(resume||wasMemory)world.resumeWandering();}
 const heading=(eyebrow,title,text='')=>`<p class="eyebrow">${eyebrow}</p><h2>${title}</h2>${text?`<p class="panel-intro">${text}</p>`:''}`;
 function panelHTML(type){
+ if(type==='claw')return clawControlsHTML(touchMode());
  if(type==='memories')return heading('The house remembers the good things','Memories','Find a little memory marker as you walk, or return to a moment here.')+`<p class="memory-legend"><span style="color:#4d97c5">▧ Photo memories</span><span style="color:#c58a35">▷ Video memories</span></p><p class="fine">${state.memoryFilter.from||state.memoryFilter.to?`Showing memories ${state.memoryFilter.from?'from '+escape(formatMemoryDate(state.memoryFilter.from)):''} ${state.memoryFilter.to?'through '+escape(formatMemoryDate(state.memoryFilter.to)):''}. Change this in Pause.`:'Showing memories from every date.'}</p><div class="memory-list">${activeMemories().map(m=>`<article><button data-memory="${escape(m.id)}"><span class="memory-symbol" style="color:${memoryAppearance(m).css}">${memoryAppearance(m).symbol}</span><span><strong>${escape(m.title)}</strong><small>${escape(m.description)}</small></span></button><button class="memory-go" data-memory-go="${escape(m.id)}">${m.petId?'Find '+escape(PET_MEMORY_NAMES[m.petId]):'Go to this spot'} ↗</button>${m.local?`<button class="memory-go" data-memory-delete="${escape(m.id)}">Remove from this device</button>`:''}</article>`).join('')||'<p class="panel-intro">No memories in this time period. Change the date filter in Pause, or add a moment below.</p>'}</div><details class="add-memory"><summary>Add a memory from this device</summary><label class="field">A title<input id="memory-title" maxlength="80" placeholder="A moment worth keeping"></label><label class="field">Place the memory<select id="memory-placement"><option value="here">Where I am standing now</option>${MEMORY_PLACEMENTS.map(m=>`<option value="${m.id}">${escape(m.title)} · ${escape(m.room)}</option>`).join('')}</select></label><label class="file-picker">Choose photos or a video<input id="memory-file" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,video/quicktime"></label><p class="fine">Added files stay in this browser on this device. Keep your originals. Use the memory editor for cloud uploads.</p></details>`;
  if(type==='memory'){const m=memories.find(m=>m.id===selectedMemory);if(!m)return '';const count=memoryMedia(m).length;return `<div class="dream"><div class="memory-media"></div><div class="dream-caption"><p class="eyebrow">${m.date?escape(formatMemoryDate(m.date)):'A moment to come back to'}</p><h2>${escape(m.title)}</h2><p class="memory-caption">${escape(m.description)}</p>${count===1&&(m.soundtrack||m.type==='video')?'<div class="slideshow-controls"><button data-slide="pause">Pause memory</button></div>':''}${count>1?'<div class="slideshow-controls"><button data-slide="previous" aria-label="Previous photo">←</button><span class="slide-counter" aria-live="off"></span><button data-slide="pause">Pause slideshow</button><button data-slide="next" aria-label="Next photo">→</button></div>':''}${memoryMedia(m).some(a=>a.type==='video')?'<div class="slideshow-controls"><button data-video="retry">Retry video</button><button data-video="download">Load video first</button></div>':''}<p class="fine" id="memory-error">${touchMode()?'Use the playback buttons below.':`${count>1?'Photos every 2 seconds · ← → to browse · ':''}${count>1||m.type==='video'||m.soundtrack?'Space to pause · ':''}Esc to return`}</p><button data-action="resume" class="dream-return">Return to the house ↗</button></div></div>`;}
  if(type==='rooms')return heading('Find a quiet corner','Make yourself at home','Choose a place, then take a walk from there.')+`<div class="room-grid">${[['living','Living room','Light & company'],['balcony','Living balcony','A little fresh air'],['dining','Dining room','Room at the table'],['kitchen','Kitchen','Something warm'],['bedroom','Main bedroom','A place to rest'],['guest','Second bedroom','Books & music'],['theatre','Window lounge','A wider view'],['study','Home office','Ideas & little projects'],['wine','Wine cellar','For an evening together'],['door','Front door','The entrance']].map(([id,title,sub])=>`<button class="room" data-room="${id}"><strong>${title}</strong><small>${sub}</small><span>↗</span></button>`).join('')}</div>`;
@@ -161,6 +166,7 @@ document.addEventListener('keydown',e=>{
  if(world.telescope.active){e.preventDefault();if(['Escape','KeyE'].includes(e.code))leaveTelescope();else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code))world.telescope.pan(e.code==='ArrowLeft'?-65:e.code==='ArrowRight'?65:0,e.code==='ArrowUp'?-65:e.code==='ArrowDown'?65:0);return;}
  if(panel){
   if(e.code==='Escape'){e.preventDefault();closePanel();return;}
+  if(panel==='claw')return;
   if(panel==='memory'&&['Space','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(e.code==='Space')memoryPlayer?.toggle();else if(e.code==='ArrowLeft')memoryPlayer?.previous();else memoryPlayer?.next();return;}
   navigateDialog(e,$('#panel'));return;
  }

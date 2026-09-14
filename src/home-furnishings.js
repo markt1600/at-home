@@ -40,14 +40,15 @@ export function buildHomeFurnishings(world,root,m){
  rod(feeder,[0,2.89,0],[0,2.66,0],.005,m.black);
  world.cyl(.09,.14,.11,0,2.65,0,feederRed,feeder,12);world.cyl(.065,.065,.19,0,2.51,0,new THREE.MeshStandardMaterial({color:0xf0de93,transparent:true,opacity:.47,roughness:.2}),feeder,20);
  world.cyl(.15,.13,.035,0,2.405,0,feederRed,feeder,24);rod(feeder,[-.18,2.355,0],[.18,2.355,0],.009,feederRed);
- // C-02: 2.5 m keydrop table, 900 mm wide, 300 mm stone plus 100 mm steel.
+ // The entrance keydrop is clad in one continuous marble finish.
  // Its clipped end follows the diagonal entry, with clear air under the overhang.
  const console=group('Angled cantilevered marble keydrop',853,646,.75,-Math.PI/4);
  const stone=world.mat(0xb68b72,.29,.08);m.keydropStone=stone;
  const shape=new THREE.Shape();shape.moveTo(-1.25,.45);shape.lineTo(1.25,.45);shape.lineTo(1.25,-.45);shape.lineTo(-.35,-.45);shape.closePath();
  const geo=new THREE.ExtrudeGeometry(shape,{depth:.30,bevelEnabled:false});geo.rotateX(-Math.PI/2);
+ const positions=geo.attributes.position,uv=geo.attributes.uv,normals=geo.attributes.normal;for(let i=0;i<positions.count;i++){const xx=positions.getX(i),yy=positions.getY(i),zz=positions.getZ(i);uv.setXY(i,Math.abs(normals.getX(i))>.9?(zz+.45)/.9:(xx+1.25)/2.5,(zz+.45+.3-yy)/1.5);}uv.needsUpdate=true;
  const solid=new THREE.Mesh(geo,stone);solid.position.y=.10;solid.castShadow=solid.receiveShadow=true;console.add(solid);
- box(console,1.605,.10,.365,.15,.05,0,m.steel);block(console,2.5,.9,.40);
+ box(console,1.605,.10,.365,.15,.05,0,stone);block(console,2.5,.9,.40);world.keydrop=console;
  // Green glass lamp, ceramic vessels, a shallow wooden key bowl and small book.
  const green=world.mat(0x316052,.3,.1);sphere(console,.13,-.25,.60,-.1,green,.82,1.5,.82);
  const shade=new THREE.Mesh(new THREE.SphereGeometry(.25,32,16,0,Math.PI*2,0,Math.PI/2),green);shade.position.set(-.25,.72,-.1);console.add(shade);
@@ -69,10 +70,10 @@ export function buildHomeFurnishings(world,root,m){
  // Clean artwork surfaces use only the extracted paintings, never private rooms.
  const picture=(key,px,pz,y,w,h,a=0)=>{const g=group(key,px,pz,y,a);box(g,w+.14,h+.14,.035,0,0,0,m.oak);box(g,w+.10,h+.10,.009,0,0,.024,m.cream);const mat=world.mat(key==='artBay'?0x6c91a4:key==='artTickets'?0x397969:0xe1d5bc,.92);m[key]=mat;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);mesh.position.z=.031;g.add(mesh);};
  // Keep each full frame within its wall run, 104 mm off the wall centreline.
- // The narrow diagonal return is only 623 mm wide, including plaster.
- picture('artBay',913.66,744.34,2.12,.44,.30,-Math.PI/4);
+ // Hang the wave print on the apartment-facing side of the cabinet wall.
+ picture('artBay',931.16,738.16,2.12,.44,.30,-Math.PI*3/4);
  picture('artTickets',882,636.02,2.18,.62,.69);
- picture('artCats',961,646.02,1.99,.53,.49);
+ picture('artCats',947.02,649.5,1.99,.53,.49,Math.PI/2);
  const disc=group('Round white wall relief',851,635.5,2.18);const rim=new THREE.Mesh(new THREE.CircleGeometry(.25,48),m.white);disc.add(rim);sphere(disc,.095,0,0,.01,m.blue,1,1,.5);
 }
 

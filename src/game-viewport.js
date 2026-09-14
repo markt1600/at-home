@@ -2,8 +2,10 @@
 // address-bar changes, keyboard dismissal, page restoration and rotation.
 export const hasTouchInput=(win=window)=>win.navigator.maxTouchPoints>0||win.matchMedia('(any-pointer: coarse)').matches;
 export function viewportBounds(win=window){
- const v=win.visualViewport;
- return {width:Math.max(1,Math.round(v?.width||win.innerWidth)),height:Math.max(1,Math.round(v?.height||win.innerHeight)),left:v?.offsetLeft||0,top:v?.offsetTop||0};
+ const v=win.visualViewport,scale=v?.scale||1,zoomed=Math.abs(scale-1)>.01;
+ // Browser zoom is not a smaller phone. Keep renderer dimensions stable even
+ // if a browser restores a previously zoomed page before the gesture guard runs.
+ return {width:Math.max(1,Math.round(v?.width*scale||win.innerWidth)),height:Math.max(1,Math.round(v?.height*scale||win.innerHeight)),left:zoomed?0:v?.offsetLeft||0,top:zoomed?0:v?.offsetTop||0};
 }
 export function installGameViewport(win=window,root=document.documentElement){
  let touch=hasTouchInput(win),last='';const listeners=[];

@@ -4,9 +4,9 @@ import {planPoint} from './house-layout.js';
 // Facing the kitchen wall from the cellar walkway, east is on the left.
 // These are photo-based proportions; the private reference photos do not ship.
 export const HALLWAY_ART=[
- {id:'ink',name:'Tall ink drawing',x:658,y:2.03,width:.54,height:1.01,mat:.042,frame:.058,style:'black',uv:[2,2,570,1020]},
- {id:'bench',name:'Gold-framed bench print',x:620,y:2.16,width:.88,height:.34,mat:.012,frame:.041,style:'gold',uv:[576,2,957,506]},
- {id:'miniature',name:'White-framed mechanical landscape',x:580,y:2.16,width:.24,height:.36,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
+ {id:'ink',name:'Tall ink drawing',x:680,y:2.03,width:.54,height:1.01,mat:.042,frame:.058,style:'black',uv:[2,2,570,1020]},
+ {id:'bench',name:'Gold-framed bench print',x:634,y:2.12,width:.88,height:.34,mat:.012,frame:.041,style:'gold',uv:[576,2,957,506]},
+ {id:'miniature',name:'White-framed mechanical landscape',x:579,y:2.12,width:.32,height:.40,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
 ];
 
 export function buildHallwayGallery(world,root,m){
@@ -39,15 +39,20 @@ export function buildHallwayGallery(world,root,m){
   }
  }
  // The tall ochre frame surrounds the existing narrow kitchen window.
- const niche=mount(551,2.30);niche.name='Gold hallway window surround';
- rails(niche,.445,1.105,.066,.034,.064,gold);
- box(.44,.024,.12,0,-.55,.062,gold,niche);
- const tint=new THREE.Mesh(new THREE.PlaneGeometry(.43,1.09),new THREE.MeshStandardMaterial({color:0x625344,roughness:.22,transparent:true,opacity:.36,depthWrite:false}));tint.position.z=.005;niche.add(tint);
+ const niche=mount(601,2.295);niche.name='Gold hallway window surround';
+ rails(niche,.345,1.155,.055,.034,.064,gold);
+ box(.34,.024,.12,0,-.575,.062,gold,niche);
  for(let i=0;i<6;i++){
-  const x=-.15+i*.056,h=.025+(i%3)*.015;
-  box(.028,h,.027,x,-.532+h/2,.047,[m.teal,m.white,gold][i%3],niche);
-  box(.013,.012,.013,x,-.526+h,.047,black,niche);
+  const x=-.13+i*.052,h=.025+(i%3)*.015;
+  box(.028,h,.027,x,-.56+h/2,.047,[m.teal,m.white,gold][i%3],niche);
+  box(.013,.012,.013,x,-.554+h,.047,black,niche);
  }
+ const wide=mount(539,2.32);wide.name='Wide kitchen window by the steps';rails(wide,.785,.685,.033,.027,.066,m.oak);box(.78,.022,.14,0,-.34,.04,m.oak,wide);
+ for(let i=0;i<7;i++)box(.075,.11,.012,-.29+i*.09,-.275,.045,[m.orange,m.teal,m.cream,m.blue][i%4],wide);
+ const display=mount(557,1.94);display.name='Green tiled wall display beside kitchen window';box(.57,.88,.13,0,0,.034,m.teal,display);
+ const tileMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.63,vertexColors:true});
+ for(let row=0;row<6;row++)for(let col=0;col<4;col++){const tile=box(.139,.142,.016,-.214+col*.143,-.363+row*.146,.106,tileMaterial,display),color=new THREE.Color([0x365c52,0x3c665b,0x41675c,0x30564e][(row+col)%4]),colors=new Float32Array(tile.geometry.attributes.position.count*3);for(let i=0;i<colors.length;i+=3)color.toArray(colors,i);tile.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));}
+ for(let i=0;i<3;i++){const toy=world.sphere(.038,-.18+i*.17,.48,.07,[m.teal,m.white,gold][i],display,1,.65,1);toy.name='Small display keepsake';}
 }
 
 export function applyHallwayArt(atlas,materials,anisotropy){

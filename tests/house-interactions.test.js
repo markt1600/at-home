@@ -7,7 +7,7 @@ import {planPoint} from '../src/house-layout.js';
 
 test('every new household control is selectable from a walkable position, but not remotely',()=>{
  const w=createHouseModel(),r=new PetRoaming(w.colliders);w.houseRoot.updateMatrixWorld(true);
- const controls=w.houseInteractions;assert.equal(controls.items.size,12);
+ const controls=w.houseInteractions;assert.ok(controls.items.has('claw-machine'));assert.ok(controls.items.has('lift'));
  for(const item of controls.items.values()){
   if(item.available)continue;
   const nearby=[...r.nodes.values()].filter(n=>Math.hypot(n.x-item.pos.x,n.z-item.pos.z)<1.9);

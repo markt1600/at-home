@@ -74,6 +74,6 @@ export function buildHomeOffice(world,root,m){
  const chair=at('Blue office gaming chair',903,590,.75,Math.PI/2);
  cyl(chair,.033,.055,.41,0,.24,0,'steel');for(let i=0;i<5;i++){const a=i*Math.PI*2/5;rod(chair,[0,.12,0],[Math.cos(a)*.35,.065,Math.sin(a)*.35],.019,'black');cyl(chair,.039,.039,.043,Math.cos(a)*.35,.043,Math.sin(a)*.35,'black');}
  soft(chair,.58,.12,.57,0,.46,0,'blue');soft(chair,.58,.88,.13,0,.94,-.23,'blue').rotation.x=-.10;soft(chair,.34,.17,.16,0,1.20,-.13,'black');
- for(const x of [-.34,.34]){rod(chair,[x,.39,-.08],[x,.66,-.02],.018,'black');soft(chair,.075,.07,.38,x,.70,.01,'black');}block(chair,.75,.72,.53);
+ for(const x of [-.34,.34]){rod(chair,[x,.39,-.08],[x,.66,-.02],.018,'black');soft(chair,.075,.07,.38,x,.70,.01,'black');}world.movableFurniture.add(chair,{w:.75,d:.72,top:.53});
  world.homeOffice={cameraCabinet,desk,simulator,pc,shelves,chair};
 }

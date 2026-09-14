@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint} from './house-layout.js';
+import {ShoeTidying} from './shoe-tidying.js';
 
 export function buildLobbyDetails(world,root,m){
  const g=new THREE.Group();g.name='Metal shoe bench by lobby mirror';
@@ -16,6 +17,7 @@ export function buildLobbyDetails(world,root,m){
  for(let i=0;i<15;i++)box(.015,.012,.39,-.61+i*.087,.11,0,'steel');
  box(.38,.11,.26,.38,.516,.015,'cream');box(.027,.112,.262,.38,.519,.015,'white');box(.382,.008,.028,.38,.576,.015,'white');
  box(.38,.033,.26,.38,.474,.015,'blue');box(.29,.05,.21,.33,.602,.02,'black');
+ const tidying=new ShoeTidying(world,g);world.shoeTidy=tidying;
  // Individual, slightly untidy pairs of trainers, loafers, sandals and boots.
  function shoe(x,z,yaw,key,boot=false){
   const s=new THREE.Group();s.position.set(x,.016,z);s.rotation.y=yaw;g.add(s);
@@ -24,8 +26,9 @@ export function buildLobbyDetails(world,root,m){
   soft(.106,.068,.25,0,.06,0,key);soft(.095,boot?.14:.04,.10,0,boot?.12:.088,-.071,key);
   soft(.063,.008,.053,0,boot?.193:.112,-.063,'black');
   if(key==='cream'||key==='blue')for(let i=0;i<4;i++)soft(.070,.008,.009,0,.098,-.01+i*.024,'white');
+  tidying.add(s,boot?'tan boot':key==='cream'?'cream trainer':key==='blue'?'blue trainer':key==='walnut'?'brown loafer':'black shoe');
  }
- for(const [x,z,a,c,b] of [[-.43,.31,.25,'black'],[-.29,.35,.06,'black'],[-.10,.44,-.42,'cream'],[.04,.41,-.12,'cream'],[.31,.49,.3,'walnut'],[.46,.55,.6,'walnut'],[-.77,.08,-.5,'blue'],[-.80,.26,.2,'blue'],[.76,.12,-.3,'oak',true],[.87,.17,.04,'oak',true],[-.3,-.02,.13,'cream'],[-.13,0,.02,'cream'],[.15,0,-.2,'black'],[.30,.01,0,'black']])shoe(x,z,a,c,b);
+ for(const [x,z,a,c,b] of [[-.43,.31,.25,'black'],[-.29,.35,.06,'black'],[-.10,.44,-.42,'cream'],[.04,.41,-.12,'cream'],[.31,.49,.3,'walnut'],[.46,.55,.6,'walnut'],[-.77,.08,-.5,'blue'],[-.80,.26,.2,'blue'],[.76,.12,-.3,'oak',true],[.87,.17,.04,'oak',true],[-.3,.67,.13,'cream'],[-.13,.72,.02,'cream'],[.15,.82,-.2,'black'],[.30,.79,0,'black'],[-.71,.91,.8,'cream'],[-.53,1.04,-.5,'cream'],[.53,1.13,1.1,'blue'],[.68,.95,.3,'blue'],[-.94,.58,-.4,'walnut'],[-1.07,.78,.6,'walnut'],[.98,.57,.9,'black'],[1.10,.42,.5,'black']])shoe(x,z,a,c,b);
  world.colliders.push({x,z,w:1.34,d:.45,angle:g.rotation.y,top:.91,landable:true,label:g.name});
  world.lobbyBench=g;
 }

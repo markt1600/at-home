@@ -26,11 +26,12 @@ export const INTERIOR_WALLS=[
  {id:'office-north',a:[853,531],b:[984,531]},
  {id:'office-west',a:[853,482],b:[853,632]},
  {id:'office-south',a:[853,632],b:[947,632],openings:[opening('office',[928,632],.9,2.25)]},
+ {id:'entry-nook-side-return',a:[943,632],b:[943,666]},
  {id:'wine-north',a:[653,482],b:[853,482],openings:[opening('wine-corridor-glazing',[753,482],200/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-south',a:[653,632],b:[853,632],openings:[opening('wine-entry-glazing',[718,632],130/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-west',a:[653,482],b:[653,632],material:'glass',openings:[opening('wine',[653,563],.84,2)]},
  ...BALCONY_DOORS.map(d=>({id:d.id,a:d.a,b:d.b,openings:[d]})),
- {id:'kitchen-north',a:[523,718],b:[650,718],openings:[opening('kitchen-window',[551,718],.44,1.1,1.75,'window')]},
+ {id:'kitchen-north',a:[523,718],b:[650,718],openings:[opening('kitchen-window',[601,718],.34,1.15,1.72,'window'),opening('kitchen-window-wide',[539,718],.78,.68,1.98,'window')]},
  {id:'kitchen-west',a:[523,718],b:[523,883],openings:[opening('kitchen',[523,837],.9,2.13,.45)]},
  // The bathroom is entered from the service passage, not through this wall.
  {id:'kitchen-east',a:[650,718],b:[650,883],openings:[opening('yard-access',[650,850],.9,2.13,.45)]},
@@ -51,6 +52,7 @@ export const INTERIOR_WALLS=[
 ];
 
 export const EXTERIOR_OPENINGS=[
+ opening('entry-nook-window',[956,642],.45,1.36,1.19,'window'),
  opening('office-window-one',[947,600],.34,1.66,1.54,'window'),
  opening('office-window-two',[947,622],.34,1.66,1.54,'window'),
  opening('master-windows',[690,208],4.5,1.7,1.45,'window'),
@@ -139,8 +141,8 @@ export function buildArchitecture(world,root,materials){
    for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed'].includes(a.kind)){
-    solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?(a.id.startsWith('office-window')?'frostedOfficeGlass':'glass'):a.kind==='lift'?'steel':'walnut',true,.045);
-    if(a.kind==='window'){const spacing=a.id==='master-windows'?(a.hi-a.lo)/4:.6;for(let t=a.lo+spacing;t<a.hi-.01;t+=spacing)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);}
+    solid(wall,a.lo,a.hi,a.base,a.height,a.kind==='window'?(a.id.startsWith('office-window')||a.id==='entry-nook-window'?'frostedOfficeGlass':'glass'):a.kind==='lift'?'steel':'walnut',true,.045);
+    if(a.kind==='window'){const spacing=a.id.startsWith('kitchen-window')?Infinity:a.id==='master-windows'?(a.hi-a.lo)/4:.6;for(let t=a.lo+spacing;t<a.hi-.01;t+=spacing)solid(wall,t-.014,t+.014,a.base,a.height,'black',false,.06);}
     if(a.kind==='lift')solid(wall,(a.lo+a.hi)/2-.008,(a.lo+a.hi)/2+.008,a.base,a.height,'black',false,.06);
    }
    if(a.kind==='sliding'){
