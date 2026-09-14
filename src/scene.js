@@ -23,6 +23,7 @@ import {Telescope} from './telescope.js';
 import {petPose} from './pet-locomotion.js';
 import {hasTouchInput,viewportBounds,fitRenderer} from './game-viewport.js';
 import {installTouchLook} from './touch-controls.js';
+import {installDesktopInteraction} from './desktop-controls.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
@@ -39,7 +40,7 @@ export class House{
   document.addEventListener('keyup',e=>delete this.keys[e.code]);document.addEventListener('pointerlockchange',()=>{const locked=document.pointerLockElement===canvas;document.body.classList.toggle('wandering',locked||this.freeLook);if(!locked){this.keys={};if(this.mode==='play'&&!this.paused&&!document.hidden&&!this.freeLook)this.onUnlock?.();}});
   document.addEventListener('mousemove',e=>{if(hasTouchInput()||(document.pointerLockElement!==canvas&&!this.freeLook)||this.paused||this.mode!=='play')return;if(this.telescope.active){this.telescope.pan(e.movementX,e.movementY);return;}this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
   canvas.addEventListener('wheel',e=>{if(this.telescope.active){e.preventDefault();this.telescope.zoom(e.deltaY);}},{passive:false});
-  canvas.addEventListener('click',()=>this.lock());this.animate();
+  installDesktopInteraction(canvas,this);this.animate();
   installTouchLook(canvas,this);
 
  }
@@ -105,7 +106,7 @@ export class House{
   if(checkAim&&this.turntablePosition){const d=this.turntablePosition.clone().sub(this.camera.position);if(d.length()<2.3&&forward.dot(d.clone().normalize())>.72){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.30);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='turntable';}}
   if(checkAim&&this.windowLounge?.telescope){const d=this.windowLounge.telescope.position.clone().add(new THREE.Vector3(0,1.49,.54)).sub(this.camera.position);if(d.length()<2.5&&forward.dot(d.clone().normalize())>.68){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,Math.max(.05,d.length()-.25));if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='telescope';}}
   if(checkAim){const fixture=this.houseInteractions.select();if(fixture)nearest=fixture;}
-  if(this.vinyl&&this.recordPlaying&&!document.hidden)this.vinyl.rotation.y-=dt*Math.PI*2*(33+1/3)/60;
-  const fixtureLabel=this.houseInteractions.label(nearest);if(nearest!==this.lookTarget||fixtureLabel!==this.lastFixtureLabel){this.lastFixtureLabel=fixtureLabel;this.lookTarget=nearest;this.onLook(nearest);}if(this.telescope.active){this.reflections.surfaces.forEach(p=>p.refresh=false);this.telescope.update(active?dt:0,this.hours,this.motion);return;}this.reflections.update();this.renderer.render(this.scene,this.camera);
+  this.turntable.update(active?dt:0,this.recordPlaying);
+  const fixtureLabel=this.houseInteractions.label(nearest)||(nearest==='turntable'?this.turntable.label:'');if(nearest!==this.lookTarget||fixtureLabel!==this.lastFixtureLabel){this.lastFixtureLabel=fixtureLabel;this.lookTarget=nearest;this.onLook(nearest);}if(this.telescope.active){this.reflections.surfaces.forEach(p=>p.refresh=false);this.telescope.update(active?dt:0,this.hours,this.motion);return;}this.reflections.update();this.renderer.render(this.scene,this.camera);
  }
 }

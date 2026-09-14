@@ -4,6 +4,7 @@ import {planPoint,PLAN_SCALE,GUEST_MIRROR_POSITION,MASTER_VANITY} from './house-
 import {addWaterTap} from './house-interactions.js';
 import {INTERIOR_WALLS} from './house-architecture.js';
 import {buildLivingSpeakers} from './living-speakers.js';
+import {Turntable} from './turntable.js';
 
 function helpers(world,root,m){
  const box=(w,h,d,x,y,z,key='white',parent=root)=>world.box(w,h,d,x,y,z,typeof key==='string'?m[key]:world.mat(key),parent);
@@ -158,13 +159,7 @@ export function buildLivingAudioShelf(world,root,m){
   for(const x of [-.135,.135])world.box(.19,.125,.016,x,y,.193,silver,rack);
   cyl(.006,.004,0,y,.207,0xc4bd71,rack).rotation.x=Math.PI/2;
  }
- box(.49,.055,.35,0,.797,0,'walnut',rack);cyl(.132,.022,-.055,.835,0,'steel',rack);
- const vinyl=new THREE.Group();vinyl.name='Spinning vinyl';vinyl.userData.dynamic=true;vinyl.position.set(-.055,.849,0);rack.add(vinyl);world.vinyl=vinyl;
- cyl(.121,.005,0,0,0,'black',vinyl);cyl(.027,.006,0,.004,0,0xa59770,vinyl);
- for(let r=.042;r<.118;r+=.008){const groove=new THREE.Mesh(new THREE.TorusGeometry(r,.0005,3,80),m.black);groove.rotation.x=Math.PI/2;groove.position.y=.003;vinyl.add(groove);}
- box(.011,.001,.003,.012,.008,.008,'cream',vinyl);box(.017,.001,.002,-.008,.008,-.012,'walnut',vinyl);
+ box(.49,.055,.35,0,.797,0,'walnut',rack);world.turntable=new Turntable(world,rack,m);
  const [rx,rz]=planPoint(333,700);world.turntablePosition=new THREE.Vector3(rx,.86,rz);
- box(.012,.012,.18,.155,.857,.012,'steel',rack).rotation.y=-.38;box(.028,.02,.037,.12,.850,.095,'black',rack);
- box(.52,.006,.39,0,1.006,0,'glass',rack);for(const x of [-.257,.257])box(.006,.18,.39,x,.916,0,'glass',rack);box(.52,.18,.006,0,.916,-.192,'glass',rack);
  block(333,700,.52,.64);
 }

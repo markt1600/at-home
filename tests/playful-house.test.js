@@ -37,7 +37,12 @@ test('claw faces the bedroom landing, catches aligned prizes and restores the pl
  const front=new THREE.Vector3(0,0,1).transformDirection(g.matrixWorld);assert.ok(front.x>.99&&Math.abs(front.z)<.001);assert.deepEqual([g.position.x,g.position.z],planPoint(436,465));
  const control=w.houseInteractions.items.get('claw-machine');assert.ok(control.pos.x>g.position.x,'controls face clockwise into the landing');
  const collider=w.colliders.find(c=>c.label===g.name);assert.equal(collider.angle,g.rotation.y);
- assert.ok(inWalkableArea(g.position.x+1.25,g.position.z,true,w.colliders),'clear landing in front of the controls');
+ // Use the aisle between the claw and the newly added pinball cabinet, rather
+ // than the old standing point at the pinball cabinet's collision margin.
+ const approach=g.position.clone().addScaledVector(front,1);
+ assert.ok(inWalkableArea(approach.x,approach.z,true,w.colliders),'clear landing in front of the controls');
+ w.camera.position.set(approach.x,g.position.y+1.67,approach.z);w.camera.lookAt(control.pos);
+ assert.equal(w.houseInteractions.select(),'claw-machine','the controls can be used from the clear aisle');
  w.yaw=.3;w.pitch=-.1;w.feet={x:0,y:.75,z:0,grounded:true};w.eyeHeight=1.67;w.camera.position.set(0,2.42,0);const original=w.camera.position.clone();game.enter(w);
  game.keys.add('left');game.update(.1);assert.ok(game.x<0);game.keys.clear();
  const prize=game.prizes[1];game.x=prize.start.x;game.z=prize.start.z;assert.ok(game.grab());assert.ok(!game.grab());
