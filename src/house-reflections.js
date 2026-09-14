@@ -24,6 +24,7 @@ export function reflectionSurfaces(){
 export class HouseReflections {
  constructor(world){
   this.world=world;this.mobile=globalThis.matchMedia?.('(pointer:coarse)').matches||false;this.lastRefresh=-Infinity;
+  this.frustum=new THREE.Frustum();this.projection=new THREE.Matrix4();this.forward=new THREE.Vector3();this.offset=new THREE.Vector3();
   this.surfaces=reflectionSurfaces().map(spec=>{
    const shader={...Reflector.ReflectorShader,uniforms:THREE.UniformsUtils.clone(Reflector.ReflectorShader.uniforms)};
    shader.uniforms.reflectionOpacity={value:spec.glass?.18:1};
@@ -33,12 +34,13 @@ export class HouseReflections {
    const normal=new THREE.Vector3(Math.sin(spec.yaw),0,Math.cos(spec.yaw));
    mesh.name=spec.label+' reflection';mesh.position.set(...spec.position).addScaledVector(normal,spec.offset);mesh.rotation.y=spec.yaw;
    mesh.material.transparent=!!spec.glass;mesh.material.depthWrite=!spec.glass;
-   world.scene.add(mesh);return {...spec,mesh,normal,refresh:false};
+   world.scene.add(mesh);mesh.updateMatrixWorld();return {...spec,mesh,normal,refresh:false,lastRefresh:-Infinity};
   });
   for(const pane of this.surfaces){
    const render=pane.mesh.onBeforeRender.bind(pane.mesh);
    pane.mesh.onBeforeRender=(...args)=>{
     if(!pane.refresh)return;
+    pane.refresh=false;pane.lastRefresh=this.lastRefresh;
     const visibility=this.surfaces.map(p=>p.mesh.visible),renderer=args[0],viewport=renderer.getCurrentViewport(new THREE.Vector4()),target=renderer.getRenderTarget();
     // A single reflection pass must not recursively render every other pane.
     this.surfaces.forEach(p=>p.mesh.visible=false);
@@ -46,5 +48,24 @@ export class HouseReflections {
    };
   }
  }
- update(){const camera=this.world.camera,forward=camera.getWorldDirection(new THREE.Vector3());this.surfaces.forEach(p=>p.refresh=false);const now=performance.now();if(now-this.lastRefresh<(this.mobile?200:100))return;this.lastRefresh=now;this.surfaces.map(p=>{const d=p.mesh.position.clone().sub(camera.position);return {p,score:p.normal.dot(d)<0?forward.dot(d.clone().normalize())*p.width*p.height/Math.max(1,d.lengthSq()):0};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,this.mobile?1:2).forEach(x=>x.p.refresh=true);}
+ update(now=performance.now()){
+  this.surfaces.forEach(p=>p.refresh=false);
+  if(now-this.lastRefresh<(this.mobile?200:50))return;
+  const camera=this.world.camera;camera.getWorldDirection(this.forward);
+  this.projection.multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);this.frustum.setFromProjectionMatrix(this.projection);
+  const candidates=[];
+  for(const p of this.surfaces){
+   if(!p.mesh.visible||!this.frustum.intersectsObject(p.mesh))continue;
+   const d=this.offset.copy(p.mesh.position).sub(camera.position),distance=d.lengthSq();
+   if(p.normal.dot(d)>=0)continue;
+   const score=this.forward.dot(d.normalize())*p.width*p.height/Math.max(1,distance);
+   if(score>0)candidates.push({p,score});
+  }
+  // Keep the two most prominent desktop panes fresh at their existing 10 Hz,
+  // but capture only one per frame. Reuse the other pane's finished texture.
+  const next=candidates.sort((a,b)=>b.score-a.score).slice(0,this.mobile?1:2)
+   .filter(({p})=>now-p.lastRefresh>=(this.mobile?200:100))
+   .sort((a,b)=>a.p.lastRefresh-b.p.lastRefresh)[0];
+  if(next){next.p.refresh=true;this.lastRefresh=now;}
+ }
 }

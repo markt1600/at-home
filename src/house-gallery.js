@@ -1,12 +1,13 @@
 import * as THREE from 'three';
 import {planPoint} from './house-layout.js';
+import {buildFishMooncake,buildJeweledPretz} from './hallway-keepsakes.js';
 
 // Facing the kitchen wall from the cellar walkway, east is on the left.
 // These are photo-based proportions; the private reference photos do not ship.
 export const HALLWAY_ART=[
  {id:'ink',name:'Tall ink drawing',x:680,y:2.03,width:.54,height:1.01,mat:.042,frame:.058,style:'black',uv:[2,2,570,1020]},
  {id:'bench',name:'Gold-framed bench print',x:634,y:2.12,width:.88,height:.34,mat:.012,frame:.041,style:'gold',uv:[576,2,957,506]},
- {id:'miniature',name:'White-framed mechanical landscape',x:579,y:2.12,width:.32,height:.40,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
+ {id:'miniature',name:'White-framed mechanical landscape',x:585.3,y:2.12,width:.26,height:.325,mat:.022,frame:.017,style:'white',uv:[746,514,630,507]}
 ];
 
 export function buildHallwayGallery(world,root,m){
@@ -48,8 +49,8 @@ export function buildHallwayGallery(world,root,m){
   box(.013,.012,.013,x,-.554+h,.047,black,niche);
  }
  const wide=mount(539,2.32);wide.name='Wide kitchen window by the steps';rails(wide,.785,.685,.033,.027,.066,m.oak);box(.78,.022,.14,0,-.34,.04,m.oak,wide);
- for(let i=0;i<7;i++)box(.075,.11,.012,-.29+i*.09,-.275,.045,[m.orange,m.teal,m.cream,m.blue][i%4],wide);
- const display=mount(557,1.94);display.name='Green tiled wall display beside kitchen window';box(.57,.88,.13,0,0,.034,m.teal,display);
+ buildJeweledPretz(world,wide);buildFishMooncake(world,group,m);
+ const display=mount(556,1.94);display.name='Green tiled wall display beside kitchen window';box(.57,.88,.13,0,0,.034,m.teal,display);
  const tileMaterial=new THREE.MeshStandardMaterial({color:0xffffff,roughness:.63,vertexColors:true});
  for(let row=0;row<6;row++)for(let col=0;col<4;col++){const tile=box(.139,.142,.016,-.214+col*.143,-.363+row*.146,.106,tileMaterial,display),color=new THREE.Color([0x365c52,0x3c665b,0x41675c,0x30564e][(row+col)%4]),colors=new Float32Array(tile.geometry.attributes.position.count*3);for(let i=0;i<colors.length;i+=3)color.toArray(colors,i);tile.geometry.setAttribute('color',new THREE.BufferAttribute(colors,3));}
  for(let i=0;i<3;i++){const toy=world.sphere(.038,-.18+i*.17,.48,.07,[m.teal,m.white,gold][i],display,1,.65,1);toy.name='Small display keepsake';}

@@ -24,13 +24,16 @@ import {petPose} from './pet-locomotion.js';
 import {hasTouchInput,viewportBounds,fitRenderer} from './game-viewport.js';
 import {installTouchLook} from './touch-controls.js';
 import {installDesktopInteraction} from './desktop-controls.js';
+import {optimizeLocalLights} from './render-lighting.js';
+import {AdaptiveResolution} from './render-quality.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
   this.camera=new THREE.PerspectiveCamera(62,1,.06,220);this.scene.add(this.camera);this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,hasTouchInput()?1.15:1.6));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
+  this.renderQuality=new AdaptiveResolution(this.renderer.getPixelRatio());
   Object.assign(this,{materials:{},colliders:[],targets:[],keys:{},actors:new Map(),mode:'menu',paused:false,motion:true,yaw:0,pitch:0,elapsed:0,hours:7.25,room:'living',walking:false});
   buildHouse(this);this.targets=[];optimizeHouse(this);this.cinema.installRoomDimming();this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
-  this.petRoaming=new PetRoaming(this.colliders);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
+  this.petRoaming=new PetRoaming(this.colliders);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   this.viewportDirty=true;for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,()=>{this.viewportDirty=true;});
   window.visualViewport?.addEventListener('resize',()=>{this.viewportDirty=true;});
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.keys={};this.touchMove={x:0,z:0};});
@@ -79,7 +82,10 @@ export class House{
  resumeWandering(){this.freeLook=true;this.keys={};this.canvas.classList.add('free-wander');document.body.classList.add('wandering');this.lock();}
  unlock(){this.touchMove={x:0,z:0};this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
  resize(){const {width,height}=viewportBounds();fitRenderer(this.renderer,this.camera,width,height,this.viewportDirty);this.clawGame?.resizeView();this.pinballGame?.resizeView();this.viewportDirty=false;}
- animate(){requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);if(document.hidden||this.contextLost)return;const frozen=this.mode==='play'&&this.paused&&!this.previewAnimation&&!this.cinema.active&&this.cinema.darkness===0;if(frozen&&this.renderWasPaused&&!this.viewportDirty)return;this.renderWasPaused=frozen;this.resize();this.elapsed+=dt;const active=this.mode==='play'&&!this.paused&&!document.hidden;this.walking=false;
+ animate(){requestAnimationFrame(()=>this.animate());const frameSeconds=this.clock.getDelta(),dt=Math.min(frameSeconds,.05);if(document.hidden||this.contextLost){this.renderQuality.reset();return;}
+  const ratio=this.renderQuality.update(frameSeconds,this.mode==='play'&&!this.paused&&!this.telescope.active&&!this.clawGame.active&&!this.pinballGame.active&&this.artwork.ready&&!this.viewportDirty);
+  if(ratio!==undefined){this.renderer.setPixelRatio(ratio);this.viewportDirty=true;}
+  const frozen=this.mode==='play'&&this.paused&&!this.previewAnimation&&!this.cinema.active&&this.cinema.darkness===0;if(frozen&&this.renderWasPaused&&!this.viewportDirty)return;this.renderWasPaused=frozen;this.resize();this.elapsed+=dt;const active=this.mode==='play'&&!this.paused&&!document.hidden;this.walking=false;
   if(active&&this.telescope.active)this.onTick(dt);
   if(active&&!this.telescope.active){const v=new THREE.Vector3((this.keys.KeyD||this.keys.ArrowRight?1:0)-(this.keys.KeyA||this.keys.ArrowLeft?1:0),0,(this.keys.KeyS||this.keys.ArrowDown?1:0)-(this.keys.KeyW||this.keys.ArrowUp?1:0));
    v.x+=this.touchMove?.x||0;v.z+=this.touchMove?.z||0;
