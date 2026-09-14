@@ -7,7 +7,7 @@ import {updateOliveBreeze} from '../src/olive-tree.js';
 test('entry artworks have wall support behind every frame corner without sinking into plaster',()=>{
  const world=createHouseModel({optimize:false});world.houseRoot.updateMatrixWorld(true);
  const walls=[];world.houseRoot.traverse(o=>{if(o.isMesh&&o.userData.architecture)walls.push(o);});
- for(const [name,w,h] of [['artBay',.58,.44],['artTickets',.76,.83],['artCats',.67,.63]]){
+ for(const [name,w,h] of [['artBay',.58,.44],['artTickets',.76,.83],['artCats',.40,.44]]){
   const art=world.houseRoot.getObjectByName(name),normal=new THREE.Vector3(0,0,1).transformDirection(art.matrixWorld);
   for(const x of [-w/2,0,w/2])for(const y of [-h/2,0,h/2]){
    const back=art.localToWorld(new THREE.Vector3(x,y,-.0175));

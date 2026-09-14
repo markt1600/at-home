@@ -26,7 +26,6 @@ export const INTERIOR_WALLS=[
  {id:'office-north',a:[853,531],b:[984,531]},
  {id:'office-west',a:[853,482],b:[853,632]},
  {id:'office-south',a:[853,632],b:[947,632],openings:[opening('office',[928,632],.9,2.25)]},
- {id:'entry-nook-side-return',a:[943,632],b:[943,666]},
  {id:'wine-north',a:[653,482],b:[853,482],openings:[opening('wine-corridor-glazing',[753,482],200/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-south',a:[653,632],b:[853,632],openings:[opening('wine-entry-glazing',[718,632],130/PLAN_SCALE,2.2,.75,'window')]},
  {id:'wine-west',a:[653,482],b:[653,632],material:'glass',openings:[opening('wine',[653,563],.84,2)]},
@@ -52,7 +51,8 @@ export const INTERIOR_WALLS=[
 ];
 
 export const EXTERIOR_OPENINGS=[
- opening('entry-nook-window',[956,642],.45,1.36,1.19,'window'),
+ // W03 on the entrance's east wall (Windows Plan, page 9).
+ opening('entry-nook-window',[984,666.5],.9,1.25,1.19,'window'),
  opening('office-window-one',[947,600],.34,1.66,1.54,'window'),
  opening('office-window-two',[947,622],.34,1.66,1.54,'window'),
  opening('master-windows',[690,208],4.5,1.7,1.45,'window'),

@@ -68,12 +68,12 @@ export function buildHomeFurnishings(world,root,m){
  rod(sculpture,[-.06,.37,.13],[-.36,.56,.16],.012,rust);sphere(sculpture,.073,-.39,.58,.16,rust,.85,1,.12);
  world.colliders.push({x:sculpture.position.x,z:sculpture.position.z,w:.67,d:.47});
  // Clean artwork surfaces use only the extracted paintings, never private rooms.
- const picture=(key,px,pz,y,w,h,a=0)=>{const g=group(key,px,pz,y,a);box(g,w+.14,h+.14,.035,0,0,0,m.oak);box(g,w+.10,h+.10,.009,0,0,.024,m.cream);const mat=world.mat(key==='artBay'?0x6c91a4:key==='artTickets'?0x397969:0xe1d5bc,.92);m[key]=mat;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);mesh.position.z=.031;g.add(mesh);};
+ const picture=(key,px,pz,y,w,h,a=0)=>{const g=group(key,px,pz,y,a);box(g,w+.14,h+.14,.035,0,0,0,key==='artCats'?m.black:m.oak);box(g,w+.10,h+.10,.009,0,0,.024,world.mat(0xf4f0e7,.92));const mat=world.mat(key==='artBay'?0x6c91a4:key==='artTickets'?0x397969:0xe1d5bc,.92);m[key]=mat;const mesh=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);mesh.position.z=.031;g.add(mesh);};
  // Keep each full frame within its wall run, 104 mm off the wall centreline.
  // Hang the wave print on the apartment-facing side of the cabinet wall.
- picture('artBay',931.16,738.16,2.12,.44,.30,-Math.PI*3/4);
+ picture('artBay',913.66,744.34,2.12,.44,.30,-Math.PI/4);
  picture('artTickets',882,636.02,2.18,.62,.69);
- picture('artCats',947.02,649.5,1.99,.53,.49,Math.PI/2);
+ picture('artCats',955,646.02,1.99,.26,.30);
  const disc=group('Round white wall relief',851,635.5,2.18);const rim=new THREE.Mesh(new THREE.CircleGeometry(.25,48),m.white);disc.add(rim);sphere(disc,.095,0,0,.01,m.blue,1,1,.5);
 }
 

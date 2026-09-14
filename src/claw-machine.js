@@ -5,7 +5,7 @@ import {ClawGame} from './claw-game.js';
 import {batchObject} from './movable-furniture.js';
 
 export function buildClawMachine(world,root,m){
- const g=new THREE.Group(),[x,z]=planPoint(436,465);g.position.set(x,.75,z);g.rotation.y=Math.PI;g.name='Claw and capsule machine beside bathroom';root.add(g);const prizes=[];
+ const g=new THREE.Group(),[x,z]=planPoint(436,465);g.position.set(x,.75,z);g.rotation.y=Math.PI/2;g.name='Claw and capsule machine beside bathroom';root.add(g);const prizes=[];
  const silver=world.mat(0xb1b4bd,.29,.7),white=world.mat(0xdbe0e5,.38),blue=world.mat(0x405c9f,.45),black=m.black;
  const led=new THREE.MeshStandardMaterial({color:0x9ddaff,emissive:0x4da6e8,emissiveIntensity:.75});
  const mint=new THREE.MeshStandardMaterial({color:0xc0eece,emissive:0x74b89b,emissiveIntensity:.55});
@@ -49,6 +49,6 @@ export function buildClawMachine(world,root,m){
   const label=(text,w,h,y,z)=>{const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=128;const ctx=canvas.getContext('2d');ctx.fillStyle='#486092';ctx.fillRect(0,0,1024,128);ctx.fillStyle='#edf3ee';ctx.font='bold 70px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,512,68,990);const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace;const face=new THREE.Mesh(new THREE.PlaneGeometry(w,h),new THREE.MeshStandardMaterial({map:texture,roughness:.5}));face.position.set(0,y,z);g.add(face);};
   label('CAPSULE TOYS',.50,.064,.13,.339);label('Already here? Give it a twist!',.74,.040,1.105,.320);
  }
- world.colliders.push({x,z,w:.94,d:.89,angle:Math.PI,label:g.name});g.updateWorldMatrix(true,true);
+ world.colliders.push({x,z,w:.94,d:.89,angle:g.rotation.y,label:g.name});g.updateWorldMatrix(true,true);
  world.houseInteractions.add({id:'claw-machine',pos:g.localToWorld(new THREE.Vector3(0,1.12,.42)),range:2.1,surfaceOffset:.12,touchRadius:.27,label:()=> 'Play the claw machine',activate:()=>world.onClawPlay?.()});
 }

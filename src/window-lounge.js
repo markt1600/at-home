@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
 import {planPoint} from './house-layout.js';
+import {Cinema} from './cinema.js';
 
 // September 13 reference photos: both seats face east, the bay is behind them.
 export function buildWindowLounge(world,root,m){
@@ -34,7 +35,7 @@ export function buildWindowLounge(world,root,m){
  cyl(ottoman,.033,.04,.27,0,.17,0,'steel');for(const x of [-.32,.32])for(const z of [-.23,.23])rod(ottoman,[0,.2,0],[x,.05,z],.016,'steel');
  soft(ottoman,.76,.09,.61,0,.33,0,'oak');soft(ottoman,.76,.18,.61,0,.43,0,'black');soft(ottoman,.65,.11,.5,0,.56,0,'cream');block(ottoman,.79,.64,.53);
  const screen=at('Projection screen',515,293,2.32,-Math.PI/2);
- box(screen,3.82,1.92,.09,0,0,0,'black');box(screen,3.66,1.76,.018,0,0,.056,'white');
+ box(screen,3.82,1.92,.09,0,0,0,'black');
  const console=at('Cinema media cabinet',508,293,.75,-Math.PI/2);
  box(console,3.82,.5,.52,0,.25,0,'oak');for(let i=0;i<6;i++)box(console,.617,.46,.025,-1.91+(i+.5)*3.82/6,.25,.273,'oak');block(console,3.84,.57,.51);
  for(let i=0;i<10;i++)for(let j=0;j<2+i%3;j++)box(console,.16,.014,.13,-1.63+i*.28,.512+j*.016,.04,i%3===0?'blue':j%2?'cream':'black');
@@ -78,6 +79,6 @@ export function buildWindowLounge(world,root,m){
  rod(optics,[0,0,-.39],[0,.05,-.53],.034,'black');block(scope,.95,.98);
  const projector=at('Ceiling projector',339,273,3.19,Math.PI/2);soft(projector,.43,.17,.55,0,0,0,'black');cyl(projector,.035,.035,.21,0,.16,0,'steel');const lens=cyl(projector,.072,.072,.05,0,0,.3,'blue');lens.rotation.x=Math.PI/2;
  const ceiling=at('Circular cinema ceiling',405,289,3.51);const ring=new THREE.Mesh(new THREE.RingGeometry(1.2,1.79,80),m.black);ring.rotation.x=Math.PI/2;ceiling.add(ring);
- for(const [px,pz,yaw] of [[308,332,Math.PI/2],[474,215,-Math.PI/4]]){const curtain=at('Cinema curtain',px,pz,2.53,yaw),geo=new THREE.PlaneGeometry(.46,1.88,24,1),p=geo.attributes.position;for(let i=0;i<p.count;i++)p.setZ(i,.035*Math.sin(p.getX(i)*70));geo.computeVertexNormals();curtain.add(new THREE.Mesh(geo,m.cream));}
+ world.cinema=new Cinema(world,screen);
  world.windowLounge={sofa,chair,ottoman,screen,telescope:scope};
 }

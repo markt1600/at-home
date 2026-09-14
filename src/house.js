@@ -106,9 +106,6 @@ export function buildHouse(world){
   const red=paint(811,636,1.96,1.12,1.46,0x991b23);const ring=new THREE.Mesh(new THREE.TorusGeometry(.41,.055,10,60),mat('black'));ring.scale.y=1.2;ring.position.z=.05;red.add(ring);
  buildHomeFurnishings(world,root,materials);
  // Photo-confirmed full-height shoe enclosure: opaque backing, inward-facing oak doors.
- C(953,704,1.52,2.495,.45,'oak',-Math.PI*3/4,.45);
- Object.assign(world.colliders.at(-1),{w:1.52,d:.45,angle:-Math.PI*3/4,label:'Fitted diagonal shoe cabinets'});
- C(972,670,.77,2.495,.45,'oak',-Math.PI/2,.45);
  buildEntranceNook(world,root,materials);
  T('records',749,644,1.31,'Read the entry notebook');T('radio',913.66,744.34,1.78,'House intercom');B(913.66,744.34,.24,.16,.035,1.78,'black',-Math.PI/4);
  const [dx,dz]=P(...FRONT_DOOR.center);world.targets.push({id:'door',pos:new THREE.Vector3(dx,1.9,dz),name:'Front door'},{id:'post',pos:new THREE.Vector3(dx,1.9,dz),name:'Begin the night at the front door',explorationOnly:true});

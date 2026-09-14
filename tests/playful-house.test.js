@@ -34,7 +34,10 @@ test('all scattered shoes can be selected and neatly placed by the bench',()=>{
 
 test('claw faces the bedroom landing, catches aligned prizes and restores the player on exit',()=>{
  const w=createHouseModel(),game=w.clawGame,g=game.machine;w.houseRoot.updateMatrixWorld(true);
- const front=new THREE.Vector3(0,0,1).transformDirection(g.matrixWorld);assert.ok(front.z<-.99);assert.deepEqual([g.position.x,g.position.z],planPoint(436,465));
+ const front=new THREE.Vector3(0,0,1).transformDirection(g.matrixWorld);assert.ok(front.x>.99&&Math.abs(front.z)<.001);assert.deepEqual([g.position.x,g.position.z],planPoint(436,465));
+ const control=w.houseInteractions.items.get('claw-machine');assert.ok(control.pos.x>g.position.x,'controls face clockwise into the landing');
+ const collider=w.colliders.find(c=>c.label===g.name);assert.equal(collider.angle,g.rotation.y);
+ assert.ok(inWalkableArea(g.position.x+1.25,g.position.z,true,w.colliders),'clear landing in front of the controls');
  w.yaw=.3;w.pitch=-.1;w.feet={x:0,y:.75,z:0,grounded:true};w.eyeHeight=1.67;w.camera.position.set(0,2.42,0);const original=w.camera.position.clone();game.enter(w);
  game.keys.add('left');game.update(.1);assert.ok(game.x<0);game.keys.clear();
  const prize=game.prizes[1];game.x=prize.start.x;game.z=prize.start.z;assert.ok(game.grab());assert.ok(!game.grab());
@@ -49,9 +52,27 @@ test('entrance window recess, gallery windows and marble surfaces match the refe
  const kitchen=w.architectureWalls.find(w=>w.id==='kitchen-north');assert.equal(kitchen.apertures.filter(a=>a.kind==='window').length,2);
  assert.ok(w.architectureWalls.some(w=>w.apertures.some(a=>a.id==='entry-nook-window')));
  assert.ok(w.entranceNook);assert.ok(w.houseRoot.getObjectByName('Green tiled wall display beside kitchen window'));
- const [x,z]=planPoint(936,691),eye=new THREE.Vector3(x,2.15,z),target=w.entranceNook.position.clone().add(new THREE.Vector3(-.07,1.1,.015)),direction=target.clone().sub(eye);
+ const [x,z]=planPoint(914,677),eye=new THREE.Vector3(x,2.15,z),target=w.entranceNook.localToWorld(new THREE.Vector3(-.07,1.1,-.24)),direction=target.clone().sub(eye);
  assert.ok(inWalkableArea(x,z,true,w.colliders),'the nook can be approached from the hallway');
  assert.ok(!new THREE.Raycaster(eye,direction.clone().normalize(),.01,direction.length()-.17).intersectObject(w.houseRoot,true).some(h=>!h.object.material.transparent),'the return wall does not hide the bonsai');
- const art=w.houseRoot.getObjectByName('artBay'),normal=new THREE.Vector3(0,0,1).transformDirection(art.matrixWorld);assert.ok(normal.x<0&&normal.z<0);
+ const art=w.houseRoot.getObjectByName('artBay'),normal=new THREE.Vector3(0,0,1).transformDirection(art.matrixWorld);assert.ok(normal.x<0&&normal.z>0);
  const stones=[];w.keydrop.traverse(o=>{if(o.isMesh&&o.material===w.houseMaterials.keydropStone)stones.push(o);});assert.ok(stones.length>=2,'main island and lower visible plinth share marble');
+});
+
+test('entrance niche opens into the apartment flush with the shoe cupboard and leaves the office approach clear',()=>{
+ const w=createHouseModel({optimize:false});w.houseRoot.updateMatrixWorld(true);
+ assert.ok(!w.architectureWalls.some(w=>w.id==='entry-nook-side-return'),'no invented partition in front of the niche');
+ const aperture=w.architectureWalls.flatMap(w=>w.apertures).find(a=>a.id==='entry-nook-window');
+ assert.deepEqual(aperture.center,[984,666.5]);assert.equal(aperture.width,.9);assert.equal(aperture.height,1.25);
+ const face=new THREE.Vector3(0,0,1).transformDirection(w.entranceNook.matrixWorld);assert.ok(face.x<-.999&&Math.abs(face.z)<.001);
+ const front=name=>w.houseRoot.getObjectByName(name).localToWorld(new THREE.Vector3(0,0,.009)).x;
+ assert.ok(Math.abs(front('Nook lower cupboard front')-front('Shoe cupboard front beside nook'))<1e-6);
+ for(const name of ['Bonsai inside entrance recess','Camera inside entrance recess']){
+  const pos=w.houseRoot.getObjectByName(name).getWorldPosition(new THREE.Vector3());assert.ok(pos.x>w.entranceJoinery.frontX&&pos.x<w.entranceJoinery.backX,name+' stays within the recess');
+ }
+ for(const p of [[928,640],[928,659],[939,659],[939,676]])assert.ok(inWalkableArea(...planPoint(...p),true,w.colliders),'clear office/nook approach '+p);
+ // The picture and intercom share the short end return, not the cabinet backing.
+ const art=w.houseRoot.getObjectByName('artBay'),normal=new THREE.Vector3(0,0,1).transformDirection(art.matrixWorld),wallMeshes=[];
+ w.houseRoot.traverse(o=>{if(o.isMesh&&o.userData.architecture)wallMeshes.push(o);});
+ const hit=new THREE.Raycaster(art.position,normal.clone().negate(),0,.15).intersectObjects(wallMeshes,false)[0];assert.equal(hit.object.name,'shoe-cabinet-return');
 });

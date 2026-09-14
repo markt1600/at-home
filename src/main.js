@@ -1,6 +1,7 @@
 import {floorMemories,memoriesForPet,PET_MEMORY_NAMES} from './pet-memories.js';
 import {installTouchStick} from './touch-controls.js';
 import {pickTouchInteraction} from './touch-targets.js';
+import {cinemaVideos} from './cinema.js';
 import {clawControlsHTML,mountClawControls} from './claw-game.js';
 import {hasTouchInput,installGameViewport} from './game-viewport.js';
 import {selectMemory,lookedAtMemory} from './memory-selection.js';
@@ -29,6 +30,7 @@ const app=$('#app'),sound=new HomeSound(),speech=new RenderedVoice(sound);
 let state;try{state=restoreLife(localStorage.getItem(SAVE_KEY));}catch{}let hasSavedGame=!!state;state??=newLife();
 let playing=false,panel=null,selectedPet='miso',voiceStatus='Disconnected',transcript=[],timer=0,savedAt=0,lastContext=0,lastSpoken=0,toastTimer;
 const recordPlayer=new RecordPlayer(sound,{onChange:spinning=>{world.recordPlaying=spinning;updateLookHint(world.lookTarget);},onMessage:toast});
+let moviePlayer=null;
 let memories=[],selectedMemory=null,memoryVolume=null,memoryMutedMic=false,memoryPlayer=null;
 const activeMemories=()=>filterMemories(memories,state.memoryFilter);
 const memoryVisit=createMemoryVisit();let visitMemories=[];
@@ -42,10 +44,11 @@ world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active)ret
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};
 world.onHouseMessage=toast;
 world.onClawPlay=()=>openPanel('claw');
+world.onCinemaPlay=()=>{if(world.cinema.active){stopCinema();return;}const choices=cinemaVideos(activeMemories());if(!choices.length){toast('No video memories in this date range. Add a video in the memory editor, or choose another time period.');return;}startCinema(choices[Math.floor(Math.random()*choices.length)]);};
 world.onStep=()=>sound.step();world.hours=state.hours;world.syncPets(state);
 async function refreshMemories(){const items=await loadMemories();for(const m of memories)releaseMemoryUrls(m);memories=items;syncMemories();}
 refreshMemories();
-window.addEventListener('focus',()=>{if(panel!=='memory')refreshMemories();});
+window.addEventListener('focus',()=>{if(panel!=='memory'&&!world.cinema.active)refreshMemories();});
 sound.onVoiceUnavailable=()=>{const el=$('#audio-note');if(el)el.textContent='Spoken audio is unavailable. All conversations remain available as text.';};
 world.onAssetError=()=>toast('Some character artwork could not load. Please refresh to try again.');
 world.onArtworkStatus=updateArtworkStatus;
@@ -69,13 +72,24 @@ function updateArtworkStatus(){
 }
 const roomNames={living:'Living room',living_landing:'Living room',living_south:'Living room',hall:'Entrance',passage:'Hallway',dining:'Dining room',balcony:'Living balcony',dining_bay:'Dining balcony',kitchen:'Kitchen',bedroom:'Main bedroom',guest:'Second bedroom',study:'Home office',wine:'Wine cellar',theatre:'Window lounge',bath:'Main bathroom',powder:'Guest bathroom',vanity:'Vanity',wardrobe:'Wardrobe',meditation:'Meditation alcove',utility:'Utility yard'};
 function updateLookHint(id){const el=$('#look-hint');if(el)el.textContent=(world.houseInteractions.label(id)?`E · ${world.houseInteractions.label(id)}`:id==='telescope'?'E · Look through the telescope':id==='turntable'?`E · ${recordPlayer.enabled?'Stop the record':'Play the record'}`:id?`E · ${PETS.find(p=>p.id===id)?.name}`:'').replace(/^E · /,touchMode()?'Tap · ':'E · ');}
-async function toggleRecord(){try{await recordPlayer.toggle();}catch{toast('Music could not start. Try the turntable again.');}}
+async function toggleRecord(){if(world.cinema.active)stopCinema();try{await recordPlayer.toggle();}catch{toast('Music could not start. Try the turntable again.');}}
+
+function startCinema(memory){
+ speech.stop();recordPlayer.suspend();world.cinema.enter();world.cinema.volume=sound.volume;
+ const host=document.createElement('section');host.id='cinema-player';host.className='cinema-controls';host.setAttribute('aria-label','Movie playback');
+ host.innerHTML=`<div class="memory-media" aria-hidden="true"></div><strong>${escape(memory.title)}</strong><p class="fine movie-status" role="status">Closing the curtains…</p><div class="slideshow-controls"><button data-slide="pause">Play movie</button><button data-action="stop-movie">Stop movie</button><details><summary>Playback help</summary><button data-video="retry">Retry video</button><button data-video="download">Load video first</button></details></div>`;
+ app.append(host);host.querySelector('[data-action="stop-movie"]').onclick=stopCinema;
+ moviePlayer=mountMemoryPlayer(host,memory,{volume:sound.volume,startPaused:true,label:'movie',onVideo:video=>world.cinema.attachVideo(video),onEnded:stopCinema,onError:message=>{host.querySelector('.movie-status').textContent=message;}});
+ const controls=host.querySelectorAll('button:not([data-action="stop-movie"])');controls.forEach(b=>b.disabled=true);world.cinema.onReady=()=>{controls.forEach(b=>b.disabled=false);moviePlayer?.resume();};
+ updateLookHint(world.lookTarget);
+}
+function stopCinema(){if(!world.cinema.active)return;moviePlayer?.dispose();moviePlayer=null;world.cinema.leave();$('#cinema-player')?.remove();if(panel!=='memory')recordPlayer.resume();updateLookHint(world.lookTarget);}
 function save(){if(!playing&&!hasSavedGame)return;try{localStorage.setItem(SAVE_KEY,JSON.stringify(state));hasSavedGame=true;}catch{}}
 function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),6500);}
 function renderMenu(){
  app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack" hidden>${hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game" disabled>${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
  if(hasSavedGame)$('#continue-game').onclick=()=>enter();
- $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
+ $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;stopCinema();recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
  updateArtworkStatus();
 }
 async function enter(fresh=false){
@@ -101,12 +115,13 @@ function openPanel(type){
  if(type==='voice')updateTranscript();prepareDialog(dialog,type);
  if(type==='claw'){world.clawGame.enter(world);disposeClawControls=mountClawControls($('#panel-content'),world.clawGame);}
  if(type==='memory'){
+  if(world.cinema.video)world.cinema.video.muted=true;
   speech.stop();recordPlayer.suspend();memoryVolume=sound.volume;sound.setVolume(0);
   if(companion.session&&!companion.muted){companion.mute();memoryMutedMic=true;}companion.setVolume(0);
   const m=memories.find(m=>m.id===selectedMemory);if(m)memoryPlayer=mountMemoryPlayer($('#panel-content'),m,{volume:memoryVolume,onError:message=>{const el=$('#memory-error');if(el)el.textContent=message;}});
  }
 }
-function releaseMemory(){memoryPlayer?.dispose();memoryPlayer=null;if(memoryVolume!==null){sound.setVolume(memoryVolume);companion.setVolume(memoryVolume);memoryVolume=null;}if(memoryMutedMic&&companion.session&&companion.muted)companion.mute();memoryMutedMic=false;recordPlayer.resume();}
+function releaseMemory(){memoryPlayer?.dispose();memoryPlayer=null;if(memoryVolume!==null){sound.setVolume(memoryVolume);companion.setVolume(memoryVolume);memoryVolume=null;}if(memoryMutedMic&&companion.session&&companion.muted)companion.mute();memoryMutedMic=false;if(world.cinema.video)world.cinema.video.muted=false;if(!world.cinema.active)recordPlayer.resume();}
 function closePanel(resume=true){if(!panel)return;const wasMemory=panel==='memory';if(wasMemory)releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}$('#panel').close();document.body.classList.remove('panel-open');panel=null;world.paused=false;world.previewAnimation=false;speech.stop();save();if(resume||wasMemory)world.resumeWandering();}
 const heading=(eyebrow,title,text='')=>`<p class="eyebrow">${eyebrow}</p><h2>${title}</h2>${text?`<p class="panel-intro">${text}</p>`:''}`;
 function panelHTML(type){
@@ -144,7 +159,7 @@ app.addEventListener('click',async e=>{
   case 'sound':try{await sound.start();sound.setVolume(sound.volume>0?0:.65);companion.setVolume(sound.volume);recordPlayer.setVolume(sound.volume);if(!sound.volume)speech.stop();$('#sound-button').textContent=sound.volume?'Sound on':'Sound off';}catch{toast('Sound is unavailable in this browser.');}break;
   case 'view-pet':world.lookAtPet(selectedPet);closePanel();toast(`Enjoy a moment with ${PETS.find(p=>p.id===selectedPet).name}. ${touchMode()?'Tap Interact':'Press E'} to care for them.`);break;
   case 'resume':closePanel();break;
-  case 'leave':disposeTouchControls();recordPlayer.stop();save();closePanel(false);await companion.disconnect();speech.stop();sound.setVolume(0);playing=false;world.mode='menu';renderMenu();break;
+  case 'leave':disposeTouchControls();stopCinema();recordPlayer.stop();save();closePanel(false);await companion.disconnect();speech.stop();sound.setVolume(0);playing=false;world.mode='menu';renderMenu();break;
   case 'connect':try{speech.stop();if(companion.session)await companion.disconnect();await companion.connect(import.meta.env.ELEVENLABS_AGENT_ID,contextForVoice(state,world.room),state.name);}catch{$('#voice-status').textContent=import.meta.env.ELEVENLABS_AGENT_ID?'Could not connect. Check microphone permission and try again.':'Voice chat is not set up yet. Add a friendly companion agent to this deployment.';}break;
   case 'mute':companion.mute();b.textContent=companion.muted?'Unmute microphone':'Mute microphone';break;
   case 'disconnect':await companion.disconnect();break;
@@ -170,12 +185,12 @@ document.addEventListener('keydown',e=>{
   if(panel==='memory'&&['Space','ArrowLeft','ArrowRight'].includes(e.code)){e.preventDefault();if(e.code==='Space')memoryPlayer?.toggle();else if(e.code==='ArrowLeft')memoryPlayer?.previous();else memoryPlayer?.next();return;}
   navigateDialog(e,$('#panel'));return;
  }
- if(e.code==='Escape'){e.preventDefault();openPanel('settings');return;}
+ if(e.code==='Escape'){e.preventDefault();if(world.cinema.active){stopCinema();world.resumeWandering();}else openPanel('settings');return;}
  const shortcut=PANEL_SHORTCUTS[e.code];if(shortcut){e.preventDefault();if(shortcut==='pets')world.lookAtPet(selectedPet);openPanel(shortcut);return;}
  if(e.code!=='KeyE')return;e.preventDefault();
  interact();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if(panel!=='memory')recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if(panel!=='memory'&&!world.cinema.active)recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
 window.addEventListener('pagehide',save);
 function currentMemorySelection(){
  const p=world.camera.position,d=world.camera.getWorldDirection(p.clone()),all=visitMemories,hovered=lookedAtMemory(all,p,d,{visible:m=>world.memoryVisible(m)});
@@ -185,10 +200,10 @@ function currentMemorySelection(){
  return {...(hovered&&selection.memory?.id!==hovered.id?{memory:null,aimed:false}:selection),hovered};
 }
 let lastAimUpdate=-1;
-function tick(dt){if(!playing)return;timer+=dt;
+function tick(dt){if(!playing)return;timer+=dt;world.cinema.volume=sound.volume;
 if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySelection(),m=selection.hovered||selection.memory,available=selection.memory?.id===m?.id,prompt=$('#memory-proximity'),key=m?m.id+':'+available+':'+!!selection.hovered+':'+m.title+':'+m.date+':'+touchMode():'';
  if(prompt&&prompt.dataset.ids!==key){prompt.dataset.ids=key;prompt.classList.toggle('in-memory-zone',!!available&&!!m);const date=m&&formatMemoryDate(m.date),content=m?`<small style="color:${memoryAppearance(m).css}">${available?'Memory zone · ':''}${memoryAppearance(m).symbol} ${memoryAppearance(m).label}</small><strong>${escape(m.title)}</strong>${date?`<time class="memory-date" datetime="${escape(m.date)}">${escape(date)}</time>`:''}${available&&m.description?`<p class="zone-description">${escape(m.description)}</p>`:''}<span class="zone-instruction">${available?`${touchMode()?'Tap':'Press E'} to relive this moment`:'Walk closer to relive'}</span>`:'';prompt.innerHTML=m?(available?`<button data-memory="${escape(m.id)}">${content}</button>`:`<div class="memory-aim-label">${content}</div>`):'';}
- const hint=$('#look-hint');if(hint)hint.hidden=!!m;
+ const hint=$('#look-hint');if(hint)hint.hidden=!!m||(world.cinema.active&&world.lookTarget==='cinema-screen');
  world.memoryMarkers?.children.forEach(g=>{const selected=g.userData.memoryId===m?.id;g.children.forEach(mesh=>mesh.material.opacity=selected?1:.6);});
 }
  sound.setWater([...world.houseInteractions.items.values()].reduce((level,item)=>item.running?Math.max(level,.12*Math.max(0,1-item.pos.distanceTo(world.camera.position)/5)):level,0));
