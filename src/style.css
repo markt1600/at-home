@@ -50,7 +50,7 @@ kbd{font:11px 'DM Sans',sans-serif}.choice-key{display:inline-grid;place-items:c
 .touch-actions button{min-width:94px;min-height:48px;padding:12px 15px;background:#faf8f0d9;touch-action:manipulation;font-size:14px}
 .touch-device .hud-top{top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right))}
 .touch-device .top-actions button{min-height:44px}.touch-device .choice-key{display:none}
-.touch-device .controls{bottom:8px;padding:0 20px;font-size:9px}.touch-device .look-hint{max-width:75vw;text-align:center}
+.touch-device .controls{bottom:8px;padding:0 20px;font-size:9px}.touch-device .look-hint{max-width:75vw;min-height:44px;text-align:center;touch-action:manipulation}
 .touch-device #toast{bottom:180px;max-width:calc(100vw - 44px)}
 .panel-open .touch-walk,.panel-open .touch-actions,.using-telescope .touch-actions{visibility:hidden}
 .telescope-zoom{position:absolute;bottom:max(90px,env(safe-area-inset-bottom));right:max(20px,env(safe-area-inset-right));display:grid;gap:12px;pointer-events:auto}

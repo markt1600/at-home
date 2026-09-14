@@ -12,7 +12,7 @@ export class RecordPlayer{
   if(this.tracks.length)await this.playTrack(0);else{this.sound.music=true;this.changed();this.onMessage('A gentle house melody fills the room.');}
  }
  async playTrack(index){if(!this.enabled||this.suspended||!this.tracks.length)return;const version=this.version;this.index=index;this.audio.src=this.tracks[index].src;this.trackLoaded=true;
-  try{await this.audio.play();if(version!==this.version||!this.enabled||this.suspended){this.audio.pause();return;}this.changed();this.onMessage(`On the turntable: ${this.tracks[index].title}`);}catch{if(version===this.version&&!this.suspended){this.stop();this.onMessage('Music could not start. Press E at the turntable to try again.');}}
+  try{await this.audio.play();if(version!==this.version||!this.enabled||this.suspended){this.audio.pause();return;}this.changed();this.onMessage(`On the turntable: ${this.tracks[index].title}`);}catch{if(version===this.version&&!this.suspended){this.stop();this.onMessage('Music could not start. Try the turntable again.');}}
  }
  stop(){this.version++;this.enabled=false;this.sound.music=false;this.audio.pause();this.changed();}
  suspend(){this.suspended=true;this.sound.music=false;this.audio.pause();this.changed();}

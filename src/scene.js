@@ -22,6 +22,7 @@ import {AssetReadiness} from './asset-readiness.js';
 import {Telescope} from './telescope.js';
 import {petPose} from './pet-locomotion.js';
 import {hasTouchInput,viewportBounds,fitRenderer} from './game-viewport.js';
+import {installTouchLook} from './touch-controls.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
@@ -39,7 +40,7 @@ export class House{
   document.addEventListener('mousemove',e=>{if(hasTouchInput()||(document.pointerLockElement!==canvas&&!this.freeLook)||this.paused||this.mode!=='play')return;if(this.telescope.active){this.telescope.pan(e.movementX,e.movementY);return;}this.yaw-=e.movementX*.0018;this.pitch=THREE.MathUtils.clamp(this.pitch-e.movementY*.0018,-1.15,1.05);});
   canvas.addEventListener('wheel',e=>{if(this.telescope.active){e.preventDefault();this.telescope.zoom(e.deltaY);}},{passive:false});
   canvas.addEventListener('click',()=>this.lock());this.animate();
-  let drag=null;canvas.addEventListener('pointerdown',e=>{if(e.pointerType!=='touch'||this.paused||this.mode!=='play'||drag)return;e.preventDefault();drag={id:e.pointerId,x:e.clientX,y:e.clientY};canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId||this.paused)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;if(this.telescope.active)this.telescope.pan(dx*2,dy*2);else{this.yaw-=dx*.005;this.pitch=THREE.MathUtils.clamp(this.pitch-dy*.005,-1.3,1.05);}drag.x=e.clientX;drag.y=e.clientY;});for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>{if(drag?.id===e.pointerId)drag=null;});for(const event of ['blur','resize','orientationchange','pageshow'])window.addEventListener(event,()=>{drag=null;this.touchMove={x:0,z:0};this.keys={};});
+  installTouchLook(canvas,this);
 
  }
  mat(color,roughness=.8,metalness=0){const key=[color,roughness,metalness].join();return this.materials[key]||(this.materials[key]=new THREE.MeshStandardMaterial({color,roughness,metalness}));}

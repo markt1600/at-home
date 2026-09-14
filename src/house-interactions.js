@@ -19,7 +19,23 @@ export class HouseInteractions{
    chosen=item.id;best=aim;
   }return chosen;
  }
- activate(id){const item=this.items.get(id);if(!item||this.select()!==id)return false;item.activate();this.world.onLook?.(id);return true;}
+ selectRay(ray){
+  let chosen=null;
+  const obstruction=ray.intersectObject(this.world.houseRoot,true).find(hit=>!hit.object.material.transparent)?.distance??Infinity;
+  for(const item of this.items.values()){
+   if(item.available&&!item.available())continue;
+   let distance=Infinity;
+   if(item.touchObjects){for(const object of item.touchObjects)for(const hit of ray.intersectObject(object,true))distance=Math.min(distance,hit.distance);}
+   else for(const point of item.touchPoints||[item.pos]){
+    if(point.distanceTo(ray.ray.origin)>(item.range||2.15))continue;
+    const hit=ray.ray.intersectSphere(new THREE.Sphere(point,item.touchRadius||.16),new THREE.Vector3());
+    if(hit)distance=Math.min(distance,hit.distanceTo(ray.ray.origin));
+   }
+   if(distance>(item.range||2.15)||distance>obstruction+.025||distance>=(chosen?.distance??Infinity))continue;
+   chosen={id:item.id,distance};
+  }return chosen;
+ }
+ activate(id,ray=null){const item=this.items.get(id);if(!item||(ray?this.selectRay(ray)?.id:this.select())!==id)return false;item.activate();this.world.onLook?.(id);return true;}
 }
 const dynamic=g=>{g.userData.dynamic=true;return g;};
 function mesh(parent,geo,material,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);parent.add(m);return m;}
@@ -38,7 +54,7 @@ export function addWaterTap(world,parent,{id,name,spout,bottom,control,handle,sh
  const rings=[];for(let i=0;i<3;i++){const ring=mesh(water,new THREE.RingGeometry(.031,.036,28),material,spout[0],bottom+.002+i*.001,spout[2]);ring.rotation.x=-Math.PI/2;rings.push(ring);}
  if(handle)dynamic(handle);
  let running=false,time=0;const initial=handle?.rotation.z||0;
- const item=world.houseInteractions.add({id,pos:position(parent,control||spout),surfaceOffset:.095,
+ const item=world.houseInteractions.add({id,pos:position(parent,control||spout),touchPoints:[position(parent,control||spout),position(parent,spout)],surfaceOffset:.095,
   label:()=>`${running?'Turn off':'Turn on'} ${name}`,get running(){return running;},water,
   setRunning(value){running=!!value;water.visible=running;onChange(running);},
   activate(){this.setRunning(!running);},
@@ -77,7 +93,7 @@ export function buildInteractiveFridge(world,root,m){
  const collider={x:0,z:0,w:.84,d:.06,angle:0,wall:'fridge-door'};world.colliders.push(collider);
  let open=false;
  const updateCollider=()=>{g.updateWorldMatrix(true,true);const p=door.localToWorld(new THREE.Vector3(.42,0,0));Object.assign(collider,{x:p.x,z:p.z,angle:g.rotation.y+door.rotation.y});};updateCollider();
- const item=world.houseInteractions.add({id:'fridge',pos:position(g,[.10,1.25,.43]),surfaceOffset:.12,label:()=>open?'Close fridge':'Open fridge',door,get open(){return open;},activate(){open=!open;},update(dt){if(dt<=0)return;const before=door.rotation.y,desired=open?-1.7:0;door.rotation.y=THREE.MathUtils.damp(before,desired,5,dt);
+ const item=world.houseInteractions.add({id:'fridge',pos:position(g,[.10,1.25,.43]),touchObjects:[door],surfaceOffset:.12,label:()=>open?'Close fridge':'Open fridge',door,get open(){return open;},activate(){open=!open;},update(dt){if(dt<=0)return;const before=door.rotation.y,desired=open?-1.7:0;door.rotation.y=THREE.MathUtils.damp(before,desired,5,dt);
   // Do not sweep a closing door through the player. Leave it open and retry later.
   updateCollider();const p=world.camera?.position;if(!open&&p){const dx=p.x-collider.x,dz=p.z-collider.z,a=collider.angle;if(Math.abs(dx*Math.cos(a)-dz*Math.sin(a))<.57&&Math.abs(dx*Math.sin(a)+dz*Math.cos(a))<.19){open=true;door.rotation.y=before;updateCollider();}}
  }});return item;
