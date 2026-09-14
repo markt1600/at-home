@@ -1,23 +1,24 @@
 import './admin.css';
 import {PHOTO_ACCEPT,prepareMemoryPhotos} from './photo-import.js';
+import {preparePhotoReplacements} from './photo-compression.js';
 import {PET_MEMORY_NAMES,cleanMemoryPet} from './pet-memories.js';
 import {upload} from '@vercel/blob/client';
-import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,saveLocalSoundtrack,removeLocalMemory} from './memories.js';
+import {loadMemories,saveLocalMetadata,MEMORY_PLACEMENTS,placedMemory,addLocalMemory,appendLocalPhotos,replaceLocalPhotos,saveLocalSoundtrack,removeLocalMemory} from './memories.js';
 import {cleanMemoryMetadata,formatMemoryDate} from './memory-metadata.js';
 import {memoryMedia,releaseMemoryUrls,validateMemoryFiles} from './memory-media.js';
 import {mountMemoryFloorPlan} from './memory-placement.js';
 import {mountMusicLibrary} from './music-admin.js';
 import {AUDIO_ACCEPT,audioExtension,audioContentType} from './audio-formats.js';
 import {validateSoundtrack} from './memory-soundtrack.js';
-import {memoryStorageLabel} from './memory-storage.js';
+import {memoryStorageLabel,formatFileSize} from './memory-storage.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[];
+let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[],pendingReplacements=[],replacementPreviews=[];
 let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined;
 function soundtrackPicker(m){return `<div class="memory-soundtrack" data-audio-drop><h3>Memory soundtrack <small>Optional</small></h3><p class="fine">A song plays continuously while the photos cycle. House audio pauses until you return. For mixed albums, it replaces video audio too.</p>${m?.soundtrack?`<p>${esc(m.soundtrack.title)}</p><audio controls preload="none" src="${esc(m.soundtrack.src)}"></audio>`:''}<label>Drop a song here or choose audio<input name="soundtrack" type="file" accept="${AUDIO_ACCEPT}"></label><p class="fine">MP3, M4A/AAC, WAV, Ogg/Opus, FLAC or WebM audio · Up to 100 MB</p><p id="soundtrack-selection" role="status"></p><button type="button" data-action="remove-soundtrack">No soundtrack</button></div>`;}
 function selectSoundtrack(files){if(files.length!==1)throw Error('Choose one song for this memory.');pendingSoundtrack=validateSoundtrack(files[0]);root.querySelector('#soundtrack-selection').textContent=pendingSoundtrack.name+' — ready to save';status('Soundtrack ready. Save the memory to attach it.');}
-function clearFile(){pendingSoundtrack=undefined;pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
+function clearFile(){pendingReplacements=[];for(const url of replacementPreviews)URL.revokeObjectURL(url);replacementPreviews=[];pendingSoundtrack=undefined;pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
 async function api(path='',body){
  const r=await fetch('/api/memories'+path,{...(body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{}),credentials:'same-origin'});
  let data;try{data=await r.json();}catch{throw Error('Cloud storage is available on the Vercel deployment. Local editing still works here.');}
@@ -44,13 +45,21 @@ function confirmDelete(memory){return new Promise(resolve=>{
  dialog.addEventListener('close',()=>{const confirmed=dialog.returnValue==='delete';dialog.remove();resolve(confirmed);},{once:true});document.body.append(dialog);dialog.showModal();
  });}
 const locations=()=>MEMORY_PLACEMENTS.map(p=>`<option value="${p.id}">${esc(p.title)} · ${esc(p.room)}</option>`).join('');
-const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-symbol" aria-hidden="true">↥</span><strong>Drop photos or a video here</strong><span>or choose a file from your device</span><label class="file-choice">Choose files<input name="file" type="file" multiple accept="${PHOTO_ACCEPT},video/mp4,video/webm,video/quicktime"></label><p class="fine">JPG, PNG, WebP or iPhone HEIC/HEIF · Up to 30 items in one memory · Photos advance every 2 seconds · Up to 250 MB each</p><div id="file-selection" role="status"></div></div>`;
+const compressionPanel=m=>memoryMedia(m).some(a=>a.type==='image')?'<section class="photo-compression"><strong>Smaller photo files</strong><p class="fine">Reduce existing photos to 1 MB or less each. Review the sizes below, then save changes to replace the stored copies. Videos and audio stay as they are.</p><button type="button" data-action="compress-photos">Compress photos</button><div id="compression-selection" role="status"></div></section>':'';
+async function compressExistingPhotos(){
+ const memory=items.find(m=>m.id===selected);if(!memory)return;lock(true);
+ const replacements=await preparePhotoReplacements(memoryMedia(memory),{onProgress:status});
+ for(const url of replacementPreviews)URL.revokeObjectURL(url);pendingReplacements=replacements;replacementPreviews=replacements.map(r=>URL.createObjectURL(r.file));
+ root.querySelector('#compression-selection').innerHTML=replacements.length?`<div class="album-strip">${replacements.map((r,i)=>`<div><img src="${esc(replacementPreviews[i])}" alt="Compressed photo ${i+1}"><small>${formatFileSize(r.previousSize)} → ${formatFileSize(r.file.size)}</small></div>`).join('')}</div><p>${replacements.length} compressed ${replacements.length===1?'photo':'photos'} ready. Save changes to apply.</p>`:'<p>Every photo is already 1 MB or less.</p>';
+ status(replacements.length?'Compression ready. Review the photos and save changes to replace the stored copies.':'Every photo is already 1 MB or less.');
+}
+const dropzone=()=>`<div class="file-dropzone" data-dropzone><span class="drop-symbol" aria-hidden="true">↥</span><strong>Drop photos or a video here</strong><span>or choose a file from your device</span><label class="file-choice">Choose files<input name="file" type="file" multiple accept="${PHOTO_ACCEPT},video/mp4,video/webm,video/quicktime"></label><p class="fine">JPG, PNG, WebP or iPhone HEIC/HEIF · Up to 30 items in one memory · Photos advance every 2 seconds · Photos compressed in your browser to 1 MB or less · Videos up to 250 MB</p><div id="file-selection" role="status"></div></div>`;
 const spotPicker=(edit=false)=>`<label>Open this memory from<select name="petId"><option value="">A spot in the house</option>${Object.entries(PET_MEMORY_NAMES).map(([id,name])=>`<option value="${id}">Interacting with ${name}</option>`).join('')}</select></label><p class="fine pet-memory-note" hidden>Find this memory when you interact with the pet. It does not add a floor marker.</p><div class="floor-memory-controls"><label>Start from a familiar spot<select name="placement">${edit?'<option value="keep">Keep current location</option>':''}${locations()}<option value="custom" hidden>Custom spot on floor plan</option></select></label><div id="floor-plan"></div></div>`;
 function editorContent(m){
  if(m?.deleting)return `<div class="empty"><h2>${esc(m.title)}</h2><p>This memory is hidden while deletion finishes. Retry to remove the remaining stored files.</p><button type="button" class="danger" data-action="delete">Delete memory</button></div>`;
  if(selected==='new')return `<h2>A new memory</h2><form id="new-memory">${dropzone()}<label>Title<input name="title" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date"></label><label>Description<textarea name="description" rows="3" maxlength="1600"></textarea></label>${soundtrackPicker()}${spotPicker()}<p class="fine">MP4 gives the widest video playback support.</p><button class="primary">${session.authenticated?'Upload as private draft':'Save on this device'}</button><progress id="progress" max="100" value="0" hidden></progress></form>`;
  if(!m)return `<div class="empty" data-dropzone><span>✧</span><h2>Make a moment your own.</h2><p>Select a memory to edit its story, or drop a photo or video here to start.</p><button type="button" data-action="new">Choose a photo or video</button></div>`;
- return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${memoryMedia(m)[0].type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><div class="album-strip">${memoryMedia(m).map((a,i)=>`<div>${a.type==='video'?'<span>▷</span>':`<img src="${esc(a.src)}" alt="Photo ${i+1}" loading="lazy">`}<small>${i+1}</small></div>`).join('')}</div><div class="append-photos" data-dropzone><strong>Add photos to this memory</strong><p class="fine">Drop more photos here, or select them below. They will be added to the slideshow when you save. iPhone HEIC/HEIF photos are converted automatically.</p><label>Choose additional photos<input name="append-photos" type="file" multiple accept="${PHOTO_ACCEPT}"></label><div id="file-selection" role="status"></div></div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${soundtrackPicker(m)}${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
+ return `<div class="editor-heading"><h2>Edit memory</h2><button type="button" class="danger-text" data-action="delete">Delete memory</button></div><div class="preview">${memoryMedia(m)[0].type==='video'?`<video controls playsinline preload="metadata" src="${esc(m.src)}"></video>`:`<img src="${esc(m.src)}" alt="${esc(m.title)}">`}</div><div class="album-strip">${memoryMedia(m).map((a,i)=>`<div>${a.type==='video'?'<span>▷</span>':`<img src="${esc(a.src)}" alt="Photo ${i+1}" loading="lazy">`}<small>${i+1}</small></div>`).join('')}</div>${compressionPanel(m)}<div class="append-photos" data-dropzone><strong>Add photos to this memory</strong><p class="fine">Drop more photos here, or select them below. They will be added to the slideshow when you save. iPhone HEIC/HEIF photos are converted automatically. Each new photo is compressed to 1 MB or less before uploading.</p><label>Choose additional photos<input name="append-photos" type="file" multiple accept="${PHOTO_ACCEPT}"></label><div id="file-selection" role="status"></div></div><form id="edit-memory"><label>Title<input name="title" value="${esc(m.title)}" maxlength="100" required></label><label>Date <small>Optional</small><input name="date" type="date" value="${esc(m.date)}"></label><label>Description<textarea name="description" rows="4" maxlength="1600">${esc(m.description)}</textarea></label>${soundtrackPicker(m)}${spotPicker(true)}${m.cloud?`<label class="check"><input type="checkbox" name="published" ${m.published?'checked':''}><span>Show this memory in the game<br><small>Anyone who opens the game can relive it.</small></span></label>`:''}<div class="row"><button class="primary">Save changes</button>${!m.cloud&&session.authenticated?'<button type="button" data-action="upload-local">Copy to cloud as private draft</button>':''}</div><progress id="progress" max="100" value="0" hidden></progress></form>`;
 }
 function render(){
  root.querySelectorAll('audio,video').forEach(media=>media.pause());
@@ -74,7 +83,7 @@ async function selectFiles(input){
  let files;lock(true);try{files=await prepareMemoryPhotos(input,{photosOnly:append,existing:append?memoryMedia(m).length:0,onProgress:status});}finally{lock(false);}
  if(!append&&selected!=='new'){clearFile();selected='new';render();}
  for(const url of filePreviews)URL.revokeObjectURL(url);pendingFiles=files;filePreviews=files.map(file=>URL.createObjectURL(file));
- document.querySelector('#file-selection').innerHTML=`<div class="album-strip">${files.map((file,i)=>`<div>${file.type.startsWith('video/')?'<span>▷</span>':`<img src="${esc(filePreviews[i])}" alt="Selected photo ${i+1}">`}<small>${esc(file.name)}</small></div>`).join('')}</div><p>${files.length} ${append?'additional ':''}item${files.length===1?'':'s'} ready to save.</p>`;
+ document.querySelector('#file-selection').innerHTML=`<div class="album-strip">${files.map((file,i)=>`<div>${file.type.startsWith('video/')?'<span>▷</span>':`<img src="${esc(filePreviews[i])}" alt="Selected photo ${i+1}">`}<small>${esc(file.name)} · ${formatFileSize(file.size)}</small></div>`).join('')}</div><p>${files.length} ${append?'additional ':''}item${files.length===1?'':'s'} ready to save.</p>`;
  const title=document.querySelector('#new-memory input[name="title"]');if(title&&!title.value)title.value=files[0].name.replace(/\.[^.]+$/,'').slice(0,100);
  status(append?'Photos ready. Save changes to add them to this memory.':'Files ready. Add their story and choose a spot on the floor plan.');
 }
@@ -96,7 +105,7 @@ root.addEventListener('change',async e=>{
  }catch(error){status(error.message);}
 });
 async function uploadPhotos(files,id,existingCount=0){
- files=validateMemoryFiles(files,{existing:existingCount});const paths=[];
+ files=await prepareMemoryPhotos(files,{existing:existingCount,onProgress:status});const paths=[];
  const extensions={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','video/mp4':'mp4','video/webm':'webm','video/quicktime':'mov'};
  const progress=document.querySelector('#progress');if(progress)progress.hidden=false;
  for(let i=0;i<files.length;i++){
@@ -118,6 +127,7 @@ async function cloudUpload(files,meta,position,soundtrack=pendingSoundtrack){
 root.addEventListener('click',async e=>{
  if(e.target.closest('#music-studio'))return;
  const b=e.target.closest('button');if(!b||busy)return;try{
+  if(b.dataset.action==='compress-photos'){await compressExistingPhotos();return;}
   if(b.dataset.action==='remove-soundtrack'){pendingSoundtrack=null;root.querySelector('[name=soundtrack]').value='';root.querySelector('.memory-soundtrack audio')?.pause();root.querySelector('#soundtrack-selection').textContent='No soundtrack — save to apply';return;}
   if(b.dataset.action==='refresh'){clearFile();lock(true);message='';await refresh();return;}
   if(b.dataset.action==='delete'){
@@ -129,7 +139,7 @@ root.addEventListener('click',async e=>{
   if(b.dataset.id){clearFile();selected=b.dataset.id;message='';render();return;}
   if(b.dataset.action==='new'){clearFile();selected='new';message='';render();return;}
   if(b.dataset.action==='logout'){clearFile();lock(true);await api('?action=logout',{});selected=null;await refresh();}
-  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const files=[];for(const a of memoryMedia(m)){if(a.file)files.push(a.file);else{const r=await fetch(a.src);if(!r.ok)throw Error('Could not read an original file');files.push(await r.blob());}}files.push(...pendingFiles);await cloudUpload(files,meta,position,pendingSoundtrack===undefined?m.soundtrackFile:pendingSoundtrack);clearFile();await refresh();}
+  if(b.dataset.action==='upload-local'){const m=items.find(m=>m.id===selected),form=document.querySelector('#edit-memory'),meta=metadata(form),position=floorPlan.getPosition();lock(true);const files=[];for(const a of memoryMedia(m)){if(pendingReplacements.some(r=>r.id===a.id))files.push(pendingReplacements.find(r=>r.id===a.id).file);else if(a.file)files.push(a.file);else{const r=await fetch(a.src);if(!r.ok)throw Error('Could not read an original file');files.push(await r.blob());}}files.push(...pendingFiles);await cloudUpload(files,meta,position,pendingSoundtrack===undefined?m.soundtrackFile:pendingSoundtrack);clearFile();await refresh();}
  }catch(error){status(error.message);}finally{lock(false);}
 });
 root.addEventListener('submit',async e=>{
@@ -142,8 +152,8 @@ root.addEventListener('submit',async e=>{
    const files=pendingFiles;if(!files.length)throw Error('Choose or drop photos or a video first.');
    if(session.authenticated)await cloudUpload(files,meta,position);
    else{const added=await addLocalMemory(files,{position,description:meta.description},meta.title);await saveLocalMetadata(added.id,{...meta,position});if(pendingSoundtrack!==undefined)await saveLocalSoundtrack(added.id,pendingSoundtrack);releaseMemoryUrls(added);selected=added.id;status('Saved on this device.');}
-  }else if(m.cloud){const addMediaPaths=pendingFiles.length?await uploadPhotos(pendingFiles,m.id,memoryMedia(m).length):[];const audio=await uploadSoundtrack(pendingSoundtrack,m.id);await api('',{id:m.id,etag:m.etag,...meta,position,addMediaPaths,...audio,published:fields.has('published')});status('Changes saved to the cloud.');}
-  else{if(pendingFiles.length)await appendLocalPhotos({...m,position},pendingFiles);await saveLocalMetadata(m.id,{...meta,position});if(pendingSoundtrack!==undefined)await saveLocalSoundtrack(m.id,pendingSoundtrack);status('Changes saved on this device.');}
+  }else if(m.cloud){const replacementPaths=pendingReplacements.length?await uploadPhotos(pendingReplacements.map(r=>r.file),m.id):[],replacePhotos=pendingReplacements.map((r,i)=>({id:r.id,path:replacementPaths[i]}));const addMediaPaths=pendingFiles.length?await uploadPhotos(pendingFiles,m.id,memoryMedia(m).length):[];const audio=await uploadSoundtrack(pendingSoundtrack,m.id);await api('',{id:m.id,etag:m.etag,...meta,position,addMediaPaths,replacePhotos,...audio,published:fields.has('published')});status('Changes saved to the cloud.');}
+  else{if(pendingReplacements.length){await replaceLocalPhotos(m,pendingReplacements);m.files=memoryMedia(m).map(a=>pendingReplacements.some(r=>r.id===a.id)?{id:a.id,type:a.type,file:pendingReplacements.find(r=>r.id===a.id).file}:a);}if(pendingFiles.length)await appendLocalPhotos({...m,position},pendingFiles);await saveLocalMetadata(m.id,{...meta,position});if(pendingSoundtrack!==undefined)await saveLocalSoundtrack(m.id,pendingSoundtrack);status('Changes saved on this device.');}
   clearFile();await refresh();
  }catch(error){status(error.message);}finally{lock(false);}
 });

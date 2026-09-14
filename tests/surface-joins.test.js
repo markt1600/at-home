@@ -26,6 +26,12 @@ test('nearby separate surfaces and glass are not collapsed into a single plane',
  const before=b.geometry.attributes.position.count;const result=resolveSurfaceJoins([a,b,glass]);
  assert.equal(result.trimmedFaces,0);assert.equal(b.geometry.attributes.position.count,before);assert.equal(glass.geometry.attributes.position.count,36);
 });
+
+test('clipping preserves interpolated vertex colors for batched kitchen packaging',()=>{
+ const records=[record(0),record(1)];for(const r of records){const p=r.geometry.attributes.position,colors=[];for(let i=0;i<p.count;i++)colors.push((p.getX(i)+1)/3,.25,.75);r.geometry.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));}
+ assert.ok(resolveSurfaceJoins(records).trimmedFaces>0);
+ for(const r of records){const p=r.geometry.attributes.position,c=r.geometry.attributes.color;assert.equal(c.count,p.count);for(let i=0;i<p.count;i++)assert.ok(Math.abs(c.getX(i)-(p.getX(i)+1)/3)<1e-6);}
+});
 test('house cleanup removes duplicate patches and retains the independent moving door',()=>{
  const world=createHouseModel();assert.ok(world.optimization.trimmedFaces>100);assert.ok(world.optimization.removedArea>10);
  assert.ok(world.door.parent);assert.ok(world.door.children.length>5);assert.ok(world.houseRoot.children.some(o=>o.name==='Static house material'));

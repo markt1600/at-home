@@ -25,7 +25,18 @@ export function validateRecord(input,existing){
  const spot=accessibleMemorySpot(x*PLAN_SCALE+881,z*PLAN_SCALE+789);
  if(!spot)throw Error('Choose an accessible location away from furniture');
  if(input.addMediaPaths!==undefined&&!Array.isArray(input.addMediaPaths))throw Error('Invalid photo list');
- const mediaPaths=[...new Set([...recordMediaPaths(existing||{mediaPath:input.mediaPath}),...(input.addMediaPaths||[])])];
+ let originals=recordMediaPaths(existing||{mediaPath:input.mediaPath});
+ if(input.replacePhotos!==undefined){
+  if(!existing||!Array.isArray(input.replacePhotos)||input.replacePhotos.length>MAX_MEMORY_ITEMS)throw Error('Invalid photo replacements');
+  const replacements=new Map();
+  for(const entry of input.replacePhotos){
+   const old=originals.find(path=>path.split('/').at(-1)===entry?.id),path=entry?.path;
+   if(!old||mediaType(old)!=='image'||replacements.has(old)||!validMediaPath(path)||path.split('/')[1]!==input.id||mediaType(path)!=='image'||originals.includes(path)||[...replacements.values()].includes(path))throw Error('Replace only photos belonging to this memory');
+   replacements.set(old,path);
+  }
+  originals=originals.map(path=>replacements.get(path)||path);
+ }
+ const mediaPaths=[...new Set([...originals,...(input.addMediaPaths||[])])];
  if(!mediaPaths.length||mediaPaths.length>MAX_MEMORY_ITEMS||mediaPaths.some(p=>!validMediaPath(p)||p.split('/')[1]!==input.id))throw Error('Upload media for this memory first (up to 30 items)');
  const soundtrackPath=input.soundtrackPath===undefined?existing?.soundtrackPath||null:input.soundtrackPath;
  if(soundtrackPath!==null&&(!validSoundtrackPath(soundtrackPath)||soundtrackPath.split('/')[1]!==input.id))throw Error('Upload a soundtrack for this memory first');

@@ -6,6 +6,7 @@ import {UUID,validateRecord,publicRecord,recordAssetPaths,MAX_SIZE,CONTENT_TYPES
 import {audioContentType} from '../src/audio-formats.js';
 import {resolveStoredSizes} from '../server/memory-storage.js';
 import {validFileSize} from '../src/memory-storage.js';
+import {MAX_PHOTO_BYTES} from '../src/photo-compression.js';
 
 export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
@@ -75,10 +76,11 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
     record.assetSizes=Object.fromEntries(recordAssetPaths(record).filter(path=>validFileSize(prior?.record.assetSizes?.[path])).map(path=>[path,prior.record.assetSizes[path]]));
-    for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path);if(!blob||!blob.size||blob.size>(audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:'Upload a supported media file first'});record.assetSizes[path]=blob.size;}
+    for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path),replacement=input.replacePhotos?.some(p=>p.path===path);if(!blob||!blob.size||blob.size>(replacement?MAX_PHOTO_BYTES:audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(replacement?!/^image\/(jpeg|png|webp)$/.test(blob.contentType):audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:replacement?'Compressed photos must be 1 MB or less':'Upload a supported media file first'});record.assetSizes[path]=blob.size;}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});
-    // Only retire the previous soundtrack after the replacement has committed.
-    if(prior?.record.soundtrackPath&&prior.record.soundtrackPath!==record.soundtrackPath)await storage.del(prior.record.soundtrackPath,options()).catch(()=>{});
+    // The old photo remains playable until the entire replacement record has
+    // committed with its ETag. Failed uploads or conflicts never delete originals.
+    for(const path of recordAssetPaths(prior?.record).filter(p=>!recordAssetPaths(record).includes(p)))await storage.del(path,options()).catch(()=>{});
     return res.status(200).json({...publicRecord(record),etag:saved.etag});
    }
    res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed'});

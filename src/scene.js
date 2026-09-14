@@ -77,7 +77,7 @@ export class House{
  lock(){if(this.mode!=='play'||this.paused||hasTouchInput())return;this.canvas.requestPointerLock()?.catch(()=>{});}
  resumeWandering(){this.freeLook=true;this.keys={};this.canvas.classList.add('free-wander');document.body.classList.add('wandering');this.lock();}
  unlock(){this.touchMove={x:0,z:0};this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
- resize(){const {width,height}=viewportBounds();fitRenderer(this.renderer,this.camera,width,height,this.viewportDirty);this.clawGame?.resizeView();this.viewportDirty=false;}
+ resize(){const {width,height}=viewportBounds();fitRenderer(this.renderer,this.camera,width,height,this.viewportDirty);this.clawGame?.resizeView();this.pinballGame?.resizeView();this.viewportDirty=false;}
  animate(){requestAnimationFrame(()=>this.animate());const dt=Math.min(this.clock.getDelta(),.05);if(document.hidden||this.contextLost)return;const frozen=this.mode==='play'&&this.paused&&!this.previewAnimation&&!this.cinema.active&&this.cinema.darkness===0;if(frozen&&this.renderWasPaused&&!this.viewportDirty)return;this.renderWasPaused=frozen;this.resize();this.elapsed+=dt;const active=this.mode==='play'&&!this.paused&&!document.hidden;this.walking=false;
   if(active&&this.telescope.active)this.onTick(dt);
   if(active&&!this.telescope.active){const v=new THREE.Vector3((this.keys.KeyD||this.keys.ArrowRight?1:0)-(this.keys.KeyA||this.keys.ArrowLeft?1:0),0,(this.keys.KeyS||this.keys.ArrowDown?1:0)-(this.keys.KeyW||this.keys.ArrowUp?1:0));
@@ -96,7 +96,7 @@ export class House{
   }
   this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)actor.userData.heading=Math.atan2(p.vx,p.vz);actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
   this.houseInteractions.update(active?dt:0);
-  this.clawGame.update(this.clawGame.active?dt:0);this.cinema.update(dt);
+  this.clawGame.update(this.clawGame.active?dt:0);this.pinballGame.update(this.pinballGame.active?dt:0);this.cinema.update(dt);
   this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());
   this.memoryMarkers?.children.forEach(g=>g.visible=g.position.distanceTo(this.camera.position)<6);
   const animated=!document.hidden&&(this.mode==='menu'||this.mode==='play'&&(!this.paused||this.previewAnimation));

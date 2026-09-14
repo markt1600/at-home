@@ -17,6 +17,8 @@ import {HouseInteractions,buildInteractiveFridge,buildLift} from './house-intera
 import {buildLobbyDetails} from './lobby-details.js';
 import {MovableFurniture} from './movable-furniture.js';
 import {buildEntranceNook} from './entrance-nook.js';
+import {buildKitchenDetails} from './kitchen-details.js';
+import {buildPinballMachine} from './pinball-machine.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -157,18 +159,18 @@ export function buildHouse(world){
  C(536,773,2.364,.855,.6,'oak',Math.PI/2,.45);B(536,773,.65,.045,2.414,1.3275,'marble');
  C(584,731,2.3,.855,.6,'oak',0,.45);B(584,731,2.35,.045,.65,1.3275,'marble');
  B(584,722.5,2.42,.72,.035,1.71,0x31593e);B(525,771,.035,.7,2.4,1.7,0xc7c5b4);
- B(577,734,1.05,.88,.62,.89,'orange');B(577,747,.95,.46,.035,.98,'orange');for(const x of [565,587]){B(x,748,.34,.025,.05,1.14,'steel');for(const z of [727,739]){const [xx,zz]=P(x,z);cyl(.095,.095,.025,xx,1.342,zz,'black');}}
  // Photo-confirmed return counter and fridge beside the sole service doorway.
  // The counter stops before the fridge; its top does not overlap the north run.
  C(634.5,769.4,53.6/scale,.855,.6,'oak',-Math.PI/2,.45);B(634.5,769.78,.65,.045,52.45/scale,1.3275,'marble');
  B(577,730,1.1,.78,.6,2.26,0x617259);buildInteractiveFridge(world,root,materials);
- const upper=new THREE.Group(),[ux,uz]=P(644,764);upper.position.set(ux,2.30,uz);upper.rotation.y=-Math.PI/2;root.add(upper);
+ const upper=new THREE.Group(),[ux,uz]=P(644,764);upper.name='Glass-front food cabinet';upper.position.set(ux,2.30,uz);upper.rotation.y=-Math.PI/2;root.add(upper);
  box(1.24,.64,.025,0,0,-.14,'plaster',upper);
  for(const x of [-.63,.63])box(.025,.69,.30,x,0,0,'black',upper);
  for(const y of [-.345,0,.345])box(1.28,.022,.30,0,y,0,'black',upper);
- for(let i=0;i<3;i++){const x=-.42+i*.42;box(.017,.69,.035,x+.21,0,.154,'black',upper);box(.398,.66,.02,x,0,.157,'glass',upper);}
+ for(let i=0;i<4;i++){const x=-.4725+i*.315;box(.017,.69,.035,x+.1575,0,.154,'black',upper);box(.293,.66,.02,x,0,.157,'glass',upper);}
  C(537,773,.91,.6,.37,'walnut',Math.PI/2,2.2);B(536,801,.56,.015,.48,1.36,'steel');const [sx,sz]=P(535,801);cyl(.018,.018,.38,sx,1.52,sz,'steel');
  C(584,870,2.45,.85,.55,'white',Math.PI,.45);B(584,870,2.5,.05,.6,1.325,'marble');
+ buildKitchenDetails(world,root,materials,upper);
  // Service passage separates the bathroom, store, small bedroom and L-shaped yard.
  shelf(...P(712,746),1.05,2.1,Math.PI/2,.45);B(750,741,.5,.7,.5,.8,'black');
  const [servx,servz]=P(754,816);soft(1.9,.22,.91,servx,.77,servz,'walnut');soft(1.88,.17,.89,servx,.96,servz,'cream');block(servx,servz,1.93,.94,0,1.045);
@@ -193,7 +195,7 @@ export function buildHouse(world){
  buildSecondBedroom(world,root,materials);
  buildGuestBathroom(world,root,materials);
  buildWindowLounge(world,root,materials);
- buildClawMachine(world,root,materials);
+ buildClawMachine(world,root,materials);buildPinballMachine(world,root,materials);
  addHouseDetails(world,root,materials);
  buildPowderBathroom(world,root,materials);
  // Downlights follow rooms and their ceiling heights; moonlight enters the bays.

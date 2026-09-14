@@ -35,6 +35,18 @@ export async function appendLocalPhotos(memory,photos){
  const record={id:memory.id,title:memory.title,date:memory.date,description:memory.description,position:safePosition(memory.position),view:memory.view,type:memory.type,files:[...current,...files.map(file=>({id:crypto.randomUUID(),type:'image',file}))]};
  await transact('readwrite',s=>s.put(record));
 }
+export async function replaceLocalPhotos(memory,replacements){
+ const d=await db();try{await new Promise((resolve,reject)=>{
+  const t=d.transaction('memories','readwrite'),store=t.objectStore('memories'),request=store.get(memory.id);
+  request.onsuccess=()=>{try{
+   const record=request.result||{id:memory.id,title:memory.title,date:memory.date,description:memory.description,position:memory.position,view:memory.view,type:memory.type,files:memoryMedia(memory)};
+   const files=record.files||(record.file?[{id:'original',type:record.type,file:record.file}]:[]),map=new Map();
+   for(const replacement of replacements){if(map.has(replacement.id)||!files.some(a=>a.id===replacement.id&&a.type==='image'))throw Error('This memory changed. Refresh before compressing again.');validateMemoryFiles([replacement.file],{photosOnly:true});if(replacement.file.size>1_000_000)throw Error('Compressed photos must be 1 MB or less');map.set(replacement.id,replacement.file);}
+   const next={...record,files:files.map(a=>map.has(a.id)?{id:a.id,type:'image',file:map.get(a.id)}:a)};delete next.file;store.put(next);
+  }catch(error){reject(error);t.abort();}};
+  t.oncomplete=resolve;t.onerror=()=>reject(t.error);t.onabort=()=>reject(t.error||Error('Photo compression could not be saved.'));
+ });}finally{d.close();}
+}
 export async function removeLocalMemory(memory){
  const d=await db();try{await new Promise((resolve,reject)=>{
   const t=d.transaction(['memories','metadata'],'readwrite');t.objectStore('memories').delete(memory.id);
