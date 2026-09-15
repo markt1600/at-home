@@ -73,7 +73,7 @@ function updateArtworkStatus(){
  card.querySelectorAll('#continue-game,#new-game,#explore-house').forEach(button=>button.disabled=!status.ready);
  let note=$('#house-loading');if(!note){note=document.createElement('div');note.id='house-loading';note.className='fine';note.setAttribute('role','status');card.append(note);}
  note.hidden=status.ready;note.replaceChildren();if(status.ready)return;
- const label=document.createElement('span');label.textContent=status.loading?`Please wait… Loading the house — ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
+ const label=document.createElement('span');label.textContent=status.loading?`Please wait… ${status.preparing?'Finishing':'Loading'} the house — ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
  const progress=document.createElement('progress');progress.max=status.total;progress.value=status.loaded;progress.setAttribute('aria-label','House textures loaded');note.append(progress);
  if(!status.loading){const retry=document.createElement('button');retry.type='button';retry.textContent='Retry loading';retry.onclick=()=>world.loadArtwork();note.append(retry);}
 }

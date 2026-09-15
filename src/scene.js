@@ -26,6 +26,7 @@ import {installTouchLook} from './touch-controls.js';
 import {installDesktopInteraction} from './desktop-controls.js';
 import {optimizeLocalLights} from './render-lighting.js';
 import {AdaptiveResolution} from './render-quality.js';
+import {prepareHouseRenderer} from './render-preparation.js';
 import {installPetBone} from './pet-bone-model.js';
 import {HandInteractionBody} from './hand-interaction-body.js';
 export class House{
@@ -72,7 +73,7 @@ export class House{
   })}));
   for(const id of ['sunny','miso','pebble'])tasks.push({id:`${id}-films`,load:()=>preloadPetFilms(id)});
   tasks.push({id:'pets',load:async()=>{const responses=await Promise.all(['/art/friends/framing.json','/art/motion/framing.json'].map(url=>fetch(url,{cache:'no-cache',signal:AbortSignal.timeout(20000)})));if(responses.some(r=>!r.ok))throw new Error('Pet information unavailable');[this.framing,this.motionFraming]=await Promise.all(responses.map(r=>r.json()));this.syncPets(this.life);}});
-  this.artwork=new AssetReadiness(tasks,{onChange:status=>this.onArtworkStatus?.(status)});return this.artwork.run();
+  this.artwork=new AssetReadiness(tasks,{onChange:status=>this.onArtworkStatus?.(status),prepare:()=>prepareHouseRenderer(this)});return this.artwork.run();
  }
  syncPets(s){this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
   const ids=new Set(specs.map(p=>p.id));for(const [id,g] of this.actors)if(!ids.has(id)){this.scene.remove(g);g.userData.dispose();this.actors.delete(id);}
@@ -86,7 +87,7 @@ export class House{
  resumeWandering(){this.freeLook=true;this.keys={};this.canvas.classList.add('free-wander');document.body.classList.add('wandering');this.lock();}
  unlock(){this.touchMove={x:0,z:0};this.freeLook=false;this.canvas.classList.remove('free-wander');document.body.classList.remove('wandering');this.keys={};if(document.pointerLockElement)document.exitPointerLock();}
  resize(){const {width,height}=viewportBounds();fitRenderer(this.renderer,this.camera,width,height,this.viewportDirty);this.clawGame?.resizeView();this.pinballGame?.resizeView();this.viewportDirty=false;}
- animate(){requestAnimationFrame(()=>this.animate());const frameSeconds=this.clock.getDelta(),dt=Math.min(frameSeconds,.05);if(document.hidden||this.contextLost){this.renderQuality.reset();return;}
+ animate(){requestAnimationFrame(()=>this.animate());const frameSeconds=this.clock.getDelta(),dt=Math.min(frameSeconds,.05);if(document.hidden||this.contextLost||this.preparingRenderer){this.renderQuality.reset();return;}
   // Audio can continue behind a silent album even when its frozen background
   // lets us skip the expensive scene update and render below.
   if(this.mode==='play')this.onAudioTick?.(dt);
