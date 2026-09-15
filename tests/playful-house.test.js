@@ -6,6 +6,7 @@ import {PetRoaming} from '../src/pet-roaming.js';
 import {planPoint} from '../src/house-layout.js';
 import {footprintsOverlap} from '../src/movable-furniture.js';
 import {inWalkableArea} from '../src/navigation.js';
+import {HandInteractionBody} from '../src/hand-interaction-body.js';
 
 test('chairs move with their colliders, stop at obstacles and remain on their floor',()=>{
  const w=createHouseModel(),f=w.movableFurniture;assert.equal(f.items.length,7);
@@ -22,12 +23,13 @@ test('chairs move with their colliders, stop at obstacles and remain on their fl
 });
 
 test('all scattered shoes can be selected and neatly placed by the bench',()=>{
- const w=createHouseModel(),tidy=w.shoeTidy,controls=w.houseInteractions,r=new PetRoaming(w.colliders);w.houseRoot.updateMatrixWorld(true);assert.equal(tidy.shoes.length,22);
- const select=item=>[...r.nodes.values()].filter(n=>Math.hypot(n.x-item.pos.x,n.z-item.pos.z)<1.9).some(n=>{w.camera.position.set(n.x,n.y+1.67,n.z);w.camera.lookAt(item.pos);return controls.select()===item.id;});
+ const w=createHouseModel(),tidy=w.shoeTidy,controls=w.houseInteractions,r=new PetRoaming(w.colliders);w.handInteraction=new HandInteractionBody(w);w.houseRoot.updateMatrixWorld(true);assert.equal(tidy.shoes.length,22);
+ const complete=()=>{for(let frame=0;frame<600&&tidy.animation.active;frame++){w.handInteraction.update(.025);controls.update(.025);w.handInteraction.updateArms();assert.equal(w.handInteraction.lastBlockedPose,null,JSON.stringify(w.handInteraction.lastBlockedPose));}assert.equal(tidy.animation.active,false);};
+ const select=item=>[...r.nodes.values()].filter(n=>Math.hypot(n.x-item.pos.x,n.z-item.pos.z)<1.9).some(n=>{w.camera.position.set(n.x,n.y+1.67,n.z);w.camera.lookAt(item.pos);w.yaw=w.camera.rotation.y;w.pitch=w.camera.rotation.x;return controls.select()===item.id;});
  for(let i=0;i<tidy.shoes.length;i++){
   const entry=tidy.shoes[i],item=controls.items.get('shoe-'+i);assert.ok(select(item),'reachable shoe '+i);
-  item.activate();assert.equal(tidy.held,entry);assert.equal(entry.group.parent,w.camera);assert.ok(!item.available());
-  const rack=controls.items.get('shoe-rack');assert.ok(select(rack),'reachable bench');rack.activate();assert.ok(entry.tidy);assert.equal(tidy.held,null);assert.equal(entry.group.parent,w.lobbyBench);w.houseRoot.updateMatrixWorld(true);
+  assert.equal(item.activate(),true,'pickup starts '+i);complete();assert.equal(tidy.held,entry);assert.ok(!item.available());
+  const rack=controls.items.get('shoe-rack');assert.ok(select(rack),'reachable bench');assert.equal(rack.activate(),true,'placement starts '+i);complete();assert.ok(entry.tidy);assert.equal(tidy.held,null);assert.equal(entry.group.parent,w.lobbyBench);w.houseRoot.updateMatrixWorld(true);
  }
  tidy.reset();assert.ok(tidy.shoes.every(s=>!s.tidy&&s.group.position.equals(s.start)));
 });

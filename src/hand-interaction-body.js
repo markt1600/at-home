@@ -15,6 +15,9 @@ function clearSegment(a,b,obstacles){
 // Never teleport through the island, a chair, or a wall to reach an animation.
 export function handApproachPath(start,target,obstacles=[]){
  if(distance(start,target)>3.5||!inWalkableArea(target.x,target.z,true,obstacles))return null;
+ // Leave a centimetre beyond the walking capsule so sampled corner routes
+ // cannot skim an edge and stall when followed in smaller animation steps.
+ obstacles=obstacles.map(c=>({...c,w:c.w+.02,d:c.d+.02}));
  if(clearSegment(start,target,obstacles))return [target.clone()];
  const step=.16,key=(i,j)=>`${i},${j}`,first={x:start.x,z:start.z,i:0,j:0,parent:null},queue=[first],seen=new Set([key(0,0)]);
  for(let n=0;n<queue.length&&n<1800;n++){
@@ -48,6 +51,7 @@ export class HandInteractionBody{
   this.previousElbows=[null,null];this.lastBlockedPose=null;this.obstacles=(owner.handSolids||[]).map(s=>armBox(s.anchor,...s.bounds,s.name));
   const station=owner.handAnchor.getWorldPosition(new THREE.Vector3());
   for(const c of w.colliders){
+   if(owner.handColliderExclusions?.includes(c))continue;
    if(Math.hypot(c.x-target.x,c.z-target.z)>3+Math.max(c.w,c.d)/2)continue;
    // Replace only the operated furniture's coarse walking footprint with its
    // actual worktop volumes. Neighbouring chairs, speakers and walls still count.
