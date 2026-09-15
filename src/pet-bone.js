@@ -17,6 +17,12 @@ export class PetBone{
  place(p){this.x=p.x;this.z=p.z;this.y=floorHeight(p.x,p.z)+.055;}
  persist(notify=false){if(!this.life)return;this.life.bone={x:this.x,z:this.z};if(notify)this.onChange();}
  canThrow(player){return !!this.life&&['rest','chew'].includes(this.phase)&&distance(this,player)<1.8&&Math.abs(floorHeight(player.x,player.z)-floorHeight(this.x,this.z))<.3;}
+ beginPickup(player){
+  if(!this.canThrow(player))return false;
+  this.pickupFloor={x:this.x,z:this.z};this.phase='pickup';this.time=0;this.idle=60;
+  this.roaming.release('sunny',12);return true;
+ }
+ cancelPickup(){if(this.phase!=='pickup')return;this.place(this.pickupFloor);this.phase='rest';this.idle=45;this.roaming.release('sunny',3);this.persist(true);}
  landing(player,direction){
   const len=Math.hypot(direction.x,direction.z);if(len<.01)return null;
   let p={x:player.x,z:player.z};const dx=direction.x/len*.10,dz=direction.z/len*.10;
@@ -27,11 +33,12 @@ export class PetBone{
   }
   const n=this.roaming.nearest(p.x,p.z);return n&&distance(n,player)>.9&&distance(n,p)<.25?n:null;
  }
- throw(player,direction){
-  if(!this.canThrow(player))return false;const target=this.landing(player,direction);
+ throw(player,direction,launch=null){
+  if(this.phase!=='pickup'&&!this.canThrow(player))return false;const target=this.landing(player,direction);
   if(!target){this.onMessage('Face an open part of the room to throw Leo’s bone.');return false;}
   this.roaming.player=player;if(!this.roaming.command('sunny',target,1.65)){this.roaming.release('sunny');this.onMessage('Leo needs a clear path to the bone.');return false;}
-  this.phase='throw';this.time=0;this.trip=0;this.target=target;this.launch={x:player.x,z:player.z,y:floorHeight(player.x,player.z)+.85};this.idle=60;
+  this.phase='throw';this.time=0;this.trip=0;this.target=target;this.launch=launch?{x:launch.x,y:launch.y,z:launch.z}:{x:player.x,z:player.z,y:floorHeight(player.x,player.z)+.85};this.idle=60;
+  if(launch){this.x=launch.x;this.y=launch.y;this.z=launch.z;}
   this.onMessage('Fetch, Leo!');return true;
  }
  drop(player){
@@ -40,7 +47,7 @@ export class PetBone{
   this.place(moved);this.phase='rest';this.idle=45;this.roaming.release('sunny',8);this.persist(true);this.onMessage('Leo drops his bone at your feet.');
  }
  update(dt,player){
-  if(!this.life||dt<=0||!player)return;dt=Math.min(dt,.1);const p=this.roaming.pets.get('sunny');if(!p)return;
+  if(!this.life||dt<=0||!player||this.phase==='pickup')return;dt=Math.min(dt,.1);const p=this.roaming.pets.get('sunny');if(!p)return;
   this.time+=dt;
   if(this.phase==='throw'){
    const t=Math.min(1,this.time/.75);this.x=this.launch.x+(this.target.x-this.launch.x)*t;this.z=this.launch.z+(this.target.z-this.launch.z)*t;this.y=this.launch.y+(this.target.y+.055-this.launch.y)*t+Math.sin(t*Math.PI)*.65;

@@ -59,8 +59,9 @@ export class HandInteractionBody{
   }
   const y=floorHeight(w.camera.position.x,w.camera.position.z);
   w.feet={x:w.camera.position.x,y,z:w.camera.position.z,vy:0,grounded:true};
-  w.camera.position.y=THREE.MathUtils.damp(w.camera.position.y,y+1.67,9,dt);
-  this.settled=!this.path.length&&Math.abs(w.camera.position.y-y-1.67)<.012;
+  const eye=this.settled?(this.owner.bodyEyeHeight??1.67):1.67;
+  w.camera.position.y=THREE.MathUtils.damp(w.camera.position.y,y+eye,9,dt);
+  this.settled||=!this.path.length&&Math.abs(w.camera.position.y-y-1.67)<.012;
   // The head's yaw and pitch deliberately remain independent of body placement.
  }
  updateArms(){

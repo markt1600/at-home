@@ -32,6 +32,6 @@ test('fetch uses mouth-held carrying views from every angle, retains its pose wh
  }
  await new Promise(setImmediate);d.films.get('carry-overhead').video.readyState=2;
  Object.assign(d,{activity:'idle',vx:0,vz:0});d.update(.1,true,true);assert.equal(d.currentFilm,'carry-overhead');assert.equal(d.films.get('carry-overhead').video.paused,true,'waiting for a path does not play a walking cycle');
- const world={petRoaming:{},scene:new THREE.Scene(),actors:new Map([['sunny',actor]]),houseInteractions:{add(){}}};const bone=installPetBone(world);bone.life={};bone.phase='return';bone.updateModel();assert.equal(bone.mesh.visible,false,'no floating duplicate in front of the filmed mouth');
+ const world={mat:(color,roughness)=>new THREE.MeshStandardMaterial({color,roughness}),petRoaming:{},scene:new THREE.Scene(),actors:new Map([['sunny',actor]]),houseInteractions:{add(){}}};const bone=installPetBone(world);bone.life={};bone.phase='return';bone.updateModel();assert.equal(bone.mesh.visible,false,'no floating duplicate in front of the filmed mouth');
  bone.phase='rest';d.carryingBone=false;d.update(.1,true,true);bone.updateModel();assert.equal(bone.mesh.visible,true);assert.equal(d.currentFilm,'overhead-idle');d.dispose();
 });
