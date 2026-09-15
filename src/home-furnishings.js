@@ -52,7 +52,8 @@ export function buildHomeFurnishings(world,root,m){
  box(console,1.605,.10,.365,.15,.05,0,stone);block(console,2.5,.9,.40);world.keydrop=console;
  buildEntranceIslandDetails(world,console,m);
  // A shallow wooden key bowl and small book remain at the clear end.
- sphere(console,.19,.75,.43,.06,m.oak,1.4,.2,1);box(console,.16,.023,.1,.74,.48,.06,m.black);box(console,.20,.07,.13,.92,.435,-.19,m.cream);
+ // Keep the front-right spot clear for setting down the candle's glass cover.
+ sphere(console,.19,.96,.43,-.20,m.oak,1.4,.2,1);box(console,.16,.023,.1,.95,.48,-.20,m.black);box(console,.20,.07,.13,1.04,.435,-.33,m.cream);
  // Photo-based hollow, patinated metal sculpture on a timber presentation box.
  const sculpture=group('Patinated circle sculpture beside cellar',775,649,.45);
  box(sculpture,.58,.10,.43,0,.05,0,m.oak);

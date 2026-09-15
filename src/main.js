@@ -93,7 +93,7 @@ function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('
 function renderMenu(){
  app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Start or continue your game"><div class="stack" hidden>${hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${hasSavedGame?'':'primary'}" id="new-game" disabled>${hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button></div></section></main>`;
  if(hasSavedGame)$('#continue-game').onclick=()=>enter();
- $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;stopCinema();recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();world.pinballGame.reset();world.kitchenStove.setRunning(false);world.turntable.reset();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
+ $('#new-game').onclick=async()=>{if(playing||!world.artwork.ready)return;stopCinema();recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();world.pinballGame.reset();world.kitchenStove.setRunning(false);world.turntable.reset();world.hallwayCandle.reset();state=newLife();state.personalized=false;world.focus('living');world.hours=state.hours;syncMemories();await enter(true);};
  updateArtworkStatus();
 }
 async function enter(fresh=false){
