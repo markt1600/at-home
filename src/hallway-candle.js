@@ -3,7 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 
 export const CANDLE_WICKS=[[0,0],[-.050,-.050],[.050,-.050],[.050,.050],[-.050,.050]];
-const durations={uncovering:4.1,lighting:4.5,extinguishing:3.8,covering:4.1};
+const durations={uncovering:4.1,lighting:5.3,extinguishing:3.8,covering:4.1};
 const mix=THREE.MathUtils.lerp;
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t);};
 const phase=(t,a,b)=>smooth((t-a)/(b-a));
@@ -24,7 +24,14 @@ function makeHand(world,parent,side){
 export class HallwayCandle{
  constructor(world,candle,cover,m){
   this.world=world;this.cover=cover;this.root=new THREE.Group();this.root.name='Hallway candle flames, hands and smoke';this.root.userData.dynamic=true;candle.add(this.root);cover.userData.dynamic=true;
-  this.handAnchor=candle;this.handStance=[.40,0,.62];
+  this.handAnchor=candle;this.handStance=[0,0,.60];this.handBodyOffset=[0,0,0];
+  this.handSolids=[
+   {anchor:candle,bounds:[[-1.17,-.31,-.60],[1.33,0,.30]],name:'marble worktop'},
+   {anchor:candle,bounds:[[.33,0,-.29],[.57,.37,-.05]],name:'lamp base'},
+   {anchor:candle,bounds:[[.19,.37,-.43],[.71,.65,.09]],name:'lamp shade'},
+   {anchor:candle,bounds:[[-.48,0,-.03],[-.22,.38,.21]],name:'ceramic vase'},
+   {anchor:candle,bounds:[[-.125,0,-.125],[.125,.34,.125]],name:'candle vessel'}
+  ];
   this.park=new THREE.Vector3(.88,0,.05);this.hands=[makeHand(world,this.root,-1),makeHand(world,this.root,1)];
   this.lighter=new THREE.Group();this.lighter.name='Long candle lighter';this.hands[1].add(this.lighter);
   const grip=new THREE.Mesh(new RoundedBoxGeometry(.026,.026,.075,2,.006),m.black);grip.position.set(.006,-.018,-.036);this.lighter.add(grip);
@@ -45,7 +52,7 @@ export class HallwayCandle{
  }
  get busy(){return !['covered','lit'].includes(this.stage);}
  get label(){if(this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return 'Moving into reach…';return {covered:'Light hallway candle',uncovering:'Lifting glass cover…',lighting:'Lighting five wicks…',lit:'Blow out candle',extinguishing:'Candle smoke…',covering:'Replacing glass cover…'}[this.stage];}
- reset(){this.world.handInteraction?.finish(this);this.stage='covered';this.time=0;this.elapsed=0;this.litCount=0;this.cover.position.set(0,0,0);this.cover.rotation.set(0,0,0);this.flames.forEach(f=>f.visible=false);this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.smoke.visible=false;this.glow.material.uniforms.strength.value=0;}
+ reset(){this.world.handInteraction?.finish(this);this.handBodyOffset=[0,0,0];this.stage='covered';this.time=0;this.elapsed=0;this.litCount=0;this.cover.position.set(0,0,0);this.cover.rotation.set(0,0,0);this.flames.forEach(f=>f.visible=false);this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.smoke.visible=false;this.glow.material.uniforms.strength.value=0;}
  cancelHandAction(){this.reset();}
  enter(stage){this.stage=stage;this.time=0;}
  activate(){
@@ -63,7 +70,7 @@ export class HallwayCandle{
  }
  gripCover(t){
   const reach=phase(t,0,.55)*(1-phase(t,3.55,4.1));
-  this.hands.forEach((h,i)=>{const side=i?1:-1;h.visible=true;h.position.set(this.cover.position.x+side*mix(.31,.188,reach),this.cover.position.y+mix(.14,.30,reach),this.cover.position.z+mix(.40,.012,reach));h.rotation.set(0,0,-side*Math.PI/2*reach);});
+  this.hands.forEach((h,i)=>{const side=i?1:-1;h.visible=true;h.position.set(this.cover.position.x+side*mix(.25,.110,reach),this.cover.position.y+mix(.50,.42,reach),this.cover.position.z+mix(.47,.135,reach));h.rotation.set(.55*reach,side*.35*reach,0,'YXZ');});
  }
  updateSmoke(t){
   const p=this.smoke.geometry.attributes.position,size=this.smoke.geometry.attributes.size,opacity=this.smoke.geometry.attributes.opacity;let visible=false;
@@ -77,15 +84,17 @@ export class HallwayCandle{
  update(dt){
   if(dt<=0||this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return;this.time+=dt;this.elapsed+=dt;const t=this.time;this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;
   if(this.stage==='uncovering'||this.stage==='covering'){
-   const reverse=this.stage==='covering';this.cover.position.copy(this.coverPath(reverse?4.1-t:t));this.gripCover(t);
+   const reverse=this.stage==='covering';this.cover.position.copy(this.coverPath(reverse?4.1-t:t));this.handBodyOffset[0]=this.cover.position.x;this.gripCover(t);
    if(t>=4.1){this.cover.position.copy(reverse?new THREE.Vector3():this.park);this.hands.forEach(h=>h.visible=false);this.enter(reverse?'covered':'lighting');}
   }else if(this.stage==='lighting'){
-   const index=Math.min(4,Math.max(0,Math.floor((t-.6)/.62))),within=(t-.6-index*.62)/.62;
-   this.litCount=Math.min(5,Math.max(0,Math.floor((t-.94)/.62)+1));
-   const hand=this.hands[1],previous=CANDLE_WICKS[Math.max(0,index-1)],target=CANDLE_WICKS[index],move=phase(within,0,.35),reach=phase(t,0,.6)*(1-phase(t,3.72,4.5));
-   hand.visible=true;hand.rotation.set(0,0,0);hand.position.set(mix(.34,mix(previous[0],target[0],move)+.10,reach),mix(.18,.466,reach),mix(.52,mix(previous[1],target[1],move)+.20,reach));this.lighter.visible=true;this.lighterFlame.visible=t>.55&&t<3.72;
-   if(t>=4.5){this.litCount=5;this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.enter('lit');}
+   this.handBodyOffset[0]=0;
+   const lightTime=t-.8,index=Math.min(4,Math.max(0,Math.floor((lightTime-.6)/.62))),within=(lightTime-.6-index*.62)/.62;
+   this.litCount=Math.min(5,Math.max(0,Math.floor((lightTime-.94)/.62)+1));
+   const hand=this.hands[1],previous=CANDLE_WICKS[Math.max(0,index-1)],target=CANDLE_WICKS[index],move=phase(within,0,.35),reach=phase(lightTime,0,.6)*(1-phase(lightTime,3.72,4.5));
+   hand.visible=t>=.8;hand.rotation.set(0,0,0);hand.position.set(mix(.25,mix(previous[0],target[0],move)+.10,reach),mix(.50,.466,reach),mix(.52,mix(previous[1],target[1],move)+.20,reach));this.lighter.visible=hand.visible;this.lighterFlame.visible=lightTime>.55&&lightTime<3.72;
+   if(t>=durations.lighting){this.litCount=5;this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.enter('lit');}
   }else if(this.stage==='extinguishing'){
+   this.handBodyOffset[0]=this.park.x*phase(t,2.3,3.6);
    this.litCount=5-CANDLE_WICKS.filter((_,i)=>t>=.35+i*.06).length;this.updateSmoke(t);
    if(t>=durations.extinguishing){this.litCount=0;this.smoke.visible=false;this.enter('covering');}
   }

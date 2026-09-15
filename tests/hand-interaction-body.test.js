@@ -5,6 +5,7 @@ import {createHouseModel} from '../scripts/house-model.mjs';
 import {HandInteractionBody,handApproachPath} from '../src/hand-interaction-body.js';
 import {inWalkableArea} from '../src/navigation.js';
 import {floorHeight,HOUSE_VIEWS} from '../src/house-layout.js';
+import {ARM_LENGTHS,armIntersectsBox} from '../src/hand-arm-pose.js';
 
 const world=createHouseModel({optimize:false});world.handInteraction=new HandInteractionBody(world);
 function front(rig){rig.handAnchor.updateWorldMatrix(true,true);const p=rig.handAnchor.localToWorld(new THREE.Vector3(...rig.handStance));p.y=floorHeight(p.x,p.z);return p;}
@@ -19,17 +20,44 @@ test('both hand stations have reachable standing positions in front of the real 
  assert.equal(handApproachPath(target.clone().add(new THREE.Vector3(10,0,0)),target,world.colliders),null,'distant actions cannot pull the player through the house');
 });
 
-test('candle waits for approach, fixes the body while the head looks freely, then releases it',()=>{
+test('candle controls its working stance while the head looks freely, then releases the body',()=>{
  const rig=world.hallwayCandle;position(rig);const initial=world.camera.position.clone();assert.equal(rig.activate(),true);rig.update(.1);assert.equal(rig.time,0);assert.ok(rig.hands.every(h=>!h.visible));
  advance(rig,.3);assert.ok(world.camera.position.distanceTo(initial)>.05);assert.equal(rig.time,0);
  const paused=world.camera.position.clone();tick(rig,0);assert.deepEqual(world.camera.position,paused);assert.equal(rig.time,0);
  advance(rig,3);assert.ok(world.handInteraction.ready(rig));assert.ok(rig.time>0);const standing=world.camera.position.clone();
  world.yaw=1.9;world.pitch=.6;world.keys={KeyW:true};world.touchMove={x:1,z:1};world.jumpQueued=true;advance(rig,.4);
- assert.ok(Math.hypot(world.camera.position.x-standing.x,world.camera.position.z-standing.z)<.004);assert.equal(world.yaw,1.9);assert.equal(world.pitch,.6);assert.equal(world.jumpQueued,false);
+ const local=rig.handAnchor.worldToLocal(world.camera.position.clone());assert.ok(local.x>=-.004&&local.x<=rig.park.x+.004);assert.ok(Math.abs(local.z-rig.handStance[2])<.004);assert.deepEqual(world.keys,{});assert.deepEqual(world.touchMove,{x:0,z:0});assert.equal(world.yaw,1.9);assert.equal(world.pitch,.6);assert.equal(world.jumpQueued,false);
  assert.ok(world.handInteraction.arms.visible);assert.ok(world.handInteraction.segments.some(m=>m.visible));
  assert.equal(world.turntable.start(),false,'a second hand action cannot take over the body');
  advance(rig,10);assert.equal(rig.stage,'lit');assert.equal(world.handInteraction.active,false);assert.equal(world.handInteraction.arms.visible,false);assert.equal(world.feet.x,world.camera.position.x);
  rig.activate();advance(rig,10);assert.equal(rig.stage,'covered');assert.equal(world.handInteraction.active,false);
+});
+
+test('full candle and record sequences keep joined fixed-length arms outside the furniture',()=>{
+ for(const rig of [world.hallwayCandle,world.turntable]){
+  position(rig,0);world.camera.position.copy(front(rig));world.camera.position.y+=1.67;
+  if(rig===world.turntable){rig.start();rig.ready();}else rig.activate();let second=false,frames=0;
+  for(let i=0;i<1600;i++){
+   tick(rig);const body=world.handInteraction;assert.equal(body.lastBlockedPose,null,JSON.stringify(body.lastBlockedPose));
+   if(body.arms.visible){
+    const torso=new THREE.Box3().setFromObject(body.torso);
+    for(let side=0;side<2;side++)if(rig.hands[side].visible){
+     frames++;const shoulder=body.shoulders[side].position,elbow=body.elbows[side].position,wrist=rig.hands[side].localToWorld(new THREE.Vector3(0,-.006,.096));
+     assert.ok(torso.distanceToPoint(shoulder)<.015,'shoulder joins the shirt');
+     assert.ok(Math.abs(shoulder.distanceTo(elbow)-ARM_LENGTHS[0])<1e-6);assert.ok(Math.abs(elbow.distanceTo(wrist)-ARM_LENGTHS[1])<1e-6);
+     for(const solid of body.obstacles){assert.equal(armIntersectsBox(shoulder,elbow,solid,.045),false,solid.name);assert.equal(armIntersectsBox(elbow,wrist,solid,.038),false,solid.name);}
+     // Check actual palm/finger vertices too, not just the arm centre lines.
+     if(i%4===0)for(const solid of body.obstacles)for(const mesh of rig.hands[side].children.filter(m=>m.isMesh)){
+      mesh.updateWorldMatrix(true,false);const matrix=solid.inverse.clone().multiply(mesh.matrixWorld),p=mesh.geometry.attributes.position,v=new THREE.Vector3();
+      for(let n=0;n<p.count;n++){v.fromBufferAttribute(p,n).applyMatrix4(matrix);assert.equal(['x','y','z'].every(a=>v[a]>solid.min[a]+.001&&v[a]<solid.max[a]-.001),false,`${rig.stage} ${rig.time}: hand inside ${solid.name}`);}
+     }
+     const old=shoulder.clone();world.yaw+=.2;world.pitch-=.1;body.updateArms();assert.deepEqual(body.shoulders[side].position,old,'looking around cannot detach or swivel the shoulders');
+    }
+   }
+   if(!body.active){if(second)break;second=true;if(rig===world.turntable)rig.stop();else rig.activate();}
+  }
+  assert.ok(frames>150);assert.equal(world.handInteraction.active,false);assert.equal(rig.stage,rig===world.turntable?'idle':'covered');
+ }
 });
 
 test('turntable acquires for play and stop; cancellation releases a stalled preparation',async()=>{

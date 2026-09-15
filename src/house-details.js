@@ -149,7 +149,7 @@ export function buildLivingAudioShelf(world,root,m){
  for(const x of [-.11,.11])box(.022,.12,.12,x,.055,.06,'black',lp);
  for(let i=0;i<3;i++)box(.24,.075,.18,.35+i*.26,.76,0,i%2?'cream':'blue',g);
  const ornament=cyl(.11,.025,-.67,.754,0,'steel',g);ornament.scale.z=.7;
- block(374,715,2.9,.37);
+ block(374,715,2.9,.37);world.colliders.at(-1).handTop=1.18;
  // Corner rack with a turntable above two amplifier shelves.
  const rack=at(333,700,0,Math.PI/2);rack.name='Turntable and amplifier rack';
  for(const x of [-.26,.26])for(const z of [-.20,.20])cyl(.017,.81,x,.43,z,'steel',rack);

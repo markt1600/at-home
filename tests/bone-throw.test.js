@@ -8,6 +8,7 @@ import {PetRoaming} from '../src/pet-roaming.js';
 import {PETS,newLife} from '../src/life.js';
 import {floorHeight,HOUSE_VIEWS} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
+import {armBox} from '../src/hand-arm-pose.js';
 
 const w=createHouseModel({optimize:false});w.handInteraction=new HandInteractionBody(w);w.petRoaming=new PetRoaming(w.colliders,()=>.4);w.actors=new Map();
 for(const pet of PETS)w.petRoaming.register(pet.id,pet.plan);
@@ -41,4 +42,10 @@ test('cancelling before or after grasp returns the sole bone to its saved floor 
 test('an unreachable fetch at release restores the bone and finishes the body animation',()=>{
  const saved=setup();until(()=>rig.held);const command=w.petRoaming.command;w.petRoaming.command=()=>false;
  try{until(()=>!rig.active);assert.equal(bone.phase,'rest');assert.deepEqual(bone.life.bone,saved);assert.equal(bone.mesh.parent,w.scene);assert.equal(w.handInteraction.active,false);}finally{w.petRoaming.command=command;}
+});
+
+test('an obstructed arm stops the pickup without clipping or losing the saved bone',()=>{
+ const saved=setup();until(()=>w.handInteraction.settled);
+ w.handInteraction.obstacles.push(armBox(rig.root,[-1,-1,-1],[1,2,2],'blocked pickup space'));tick();
+ assert.ok(w.handInteraction.lastBlockedPose);assert.equal(w.handInteraction.active,false);assert.equal(w.handInteraction.arms.visible,false);assert.equal(rig.active,false);assert.equal(bone.phase,'rest');assert.equal(bone.mesh.parent,w.scene);assert.deepEqual(bone.life.bone,saved);
 });

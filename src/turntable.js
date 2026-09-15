@@ -9,7 +9,8 @@ const durations={opening:1.7,placing:2.4,starting:1.1,cueing:1.8,stopping:1.5};
 // Only the lid, record, tonearm and hands move; the amplifier rack stays batched.
 export class Turntable{
  constructor(world,rack,m){
-  this.world=world;this.handAnchor=rack;this.handStance=[0,0,.64];
+  this.world=world;this.handAnchor=rack;this.handStance=[.10,0,.52];this.bodyEyeHeight=1.58;
+  this.handSolids=[{anchor:rack,bounds:[[-.30,0,-.245],[.30,.824,.245]],name:'turntable and amplifier rack'}];
   this.root=new THREE.Group();this.root.name='Animated turntable';this.root.userData.dynamic=true;rack.add(this.root);
   const material=(color,r=.55,metal=0)=>world.mat(color,r,metal);
   const steel=m.steel,black=m.black,skin=material(0xc99470,.9),nails=material(0xd7ab8a,.88);
@@ -73,7 +74,7 @@ export class Turntable{
  hand(index,x,y,z,rotation=0){const h=this.hands[index];h.visible=true;h.position.set(x,y,z);h.rotation.set(0,rotation,0);return h;}
  armHand(amount){
   const target=new THREE.Vector3(0,.035,.19).applyEuler(this.arm.rotation).add(this.arm.position);
-  return this.hand(1,mix(.29,target.x,amount),mix(.73,target.y,amount),mix(.41,target.z+.052,amount));
+  return this.hand(1,mix(.25,target.x,amount),mix(.90,target.y,amount),mix(.41,target.z+.052,amount));
  }
  update(dt,playing=false){
   if(dt<=0||this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return;this.time+=dt;this.hands.forEach(h=>h.visible=false);
@@ -81,17 +82,18 @@ export class Turntable{
   let motor=['starting','waiting','cueing'].includes(this.stage)||(this.stage==='playing'&&playing);
   if(this.stage==='opening'){
    const lift=phase(t,.35,1.4);this.lid.rotation.x=mix(this.startLid,-1.28,lift);
-   const contact=new THREE.Vector3(.15,.20,.40).applyEuler(this.lid.rotation).add(this.lid.position),reach=phase(t,0,.35)*(1-phase(t,1.4,1.7));
-   this.hand(1,mix(.29,contact.x,reach),mix(.72,contact.y,reach),mix(.40,contact.z+.035,reach));
+   const contact=new THREE.Vector3(.15,.20,.40).applyEuler(this.lid.rotation).add(this.lid.position),reach=phase(t,0,.35)*(1-phase(t,1.08,1.6));
+   this.hand(1,mix(.25,contact.x,reach),mix(.90,contact.y,reach),mix(.40,contact.z+.035,reach));
    if(t>=d)this.enter('placing');
   }else if(this.stage==='placing'){
    const carry=phase(t,0,1.8),release=phase(t,1.8,2.4);
-   this.record.visible=true;this.record.position.set(mix(.02,-.055,carry),mix(1.15,.849,carry),mix(.40,0,carry));this.record.rotation.x=mix(.16,0,carry);
-   for(const [i,side] of [-1,1].entries())this.hand(i,this.record.position.x+side*(.155+release*.08),this.record.position.y+.025-release*.13,this.record.position.z+.06+release*.3,side*.28);
+   this.record.visible=true;this.record.position.set(mix(.02,-.055,carry),mix(1.05,.849,carry),mix(.20,0,carry));this.record.rotation.x=mix(.16,0,carry);
+   // Support the front rim; the left edge sits beside the display cabinet.
+   for(const [i,side] of [-1,1].entries())this.hand(i,this.record.position.x+side*(.09+release*(i?.06:0)),this.record.position.y+.025+release*.05,this.record.position.z+.105+release*.3);
    if(carry===1)this.recordPresent=true;
    if(t>=d)this.enter('starting');
   }else if(this.stage==='starting'){
-   const reach=phase(t,0,.45)*(1-phase(t,.68,1.1));this.hand(1,mix(.31,.207,reach),mix(.70,.86,reach),mix(.38,.235,reach));
+   const reach=phase(t,0,.45)*(1-phase(t,.68,1.1));this.hand(1,mix(.25,.207,reach),mix(.90,.86,reach),mix(.38,.235,reach));
    this.button.position.y=.829-.003*phase(t,.4,.55)*(1-phase(t,.65,.8));
    motor=t>.5;if(t>=d)this.enter('waiting');
   }else if(this.stage==='waiting'){

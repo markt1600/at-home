@@ -60,9 +60,9 @@ export class BoneThrow{
   const pickup=new THREE.Vector3(0,.083,.065);
   if(t<1.45){right.position.set(.20,.95,this.handStance[2]-.06).lerp(pickup,phase(t,.20,1.22));right.rotation.set(0,0,0);}
   else if(t<2.35){right.position.copy(pickup).lerp(new THREE.Vector3(.20,.80,this.handStance[2]-.08),rise);right.rotation.x=mix(0,-.25,rise);}
-  else if(t<2.7){const p=phase(t,2.35,2.7);right.position.set(mix(.20,.25,p),mix(.80,.70,p),mix(this.handStance[2]-.08,this.handStance[2]+.10,p));right.rotation.x=-.25;}
-  else if(t<3.25){const p=phase(t,2.7,3.25);right.position.set(mix(.25,.10,p),mix(.70,1.05,p),mix(this.handStance[2]+.10,-.32,p));right.rotation.x=mix(-.25,.12,p);}
-  else {right.position.set(.10,1.05,-.32).lerp(new THREE.Vector3(.23,1.00,this.handStance[2]+.15),withdraw);right.rotation.x=mix(.12,0,withdraw);}
+  else if(t<2.7){const p=phase(t,2.35,2.7);right.position.set(mix(.20,.25,p),mix(.80,.86,p),mix(this.handStance[2]-.08,this.handStance[2]+.10,p));right.rotation.x=-.25;}
+  else if(t<3.25){const p=phase(t,2.7,3.25);right.position.set(mix(.25,.10,p),mix(.86,1.16,p),mix(this.handStance[2]+.10,-.08,p));right.rotation.x=mix(-.25,.12,p);}
+  else {right.position.set(.10,1.16,-.08).lerp(new THREE.Vector3(.23,1.00,this.handStance[2]+.15),withdraw);right.rotation.x=mix(.12,0,withdraw);}
   const grip=phase(t,1.17,1.35)*(1-phase(t,3.04,3.13));right.userData.grip(grip);
   if(t>=1.35&&!this.held&&!this.released)this.takeBone();
   if(this.held){const p=phase(t,1.35,1.65);this.bone.mesh.position.copy(this.gripPosition).lerp(new THREE.Vector3(0,-.028,-.065),p);this.bone.mesh.quaternion.copy(this.gripRotation).slerp(new THREE.Quaternion(),p);}
