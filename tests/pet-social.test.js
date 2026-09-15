@@ -10,7 +10,7 @@ import {floorHeight} from '../src/house-layout.js';
 
 const w=createHouseModel();
 function setup(){
- let seed=17;const random=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32),r=new PetRoaming([...w.colliders],random);PETS.forEach(p=>r.register(p.id,p.plan));
+ let seed=17;const random=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32),r=new PetRoaming([...w.colliders],random);PETS.filter(p=>!p.stationary).forEach(p=>r.register(p.id,p.plan));
  for(const [id,x] of [['sunny',-11.8],['miso',-9]]){const p=r.pets.get(id),n=r.nearest(x,-2.6);Object.assign(p,{x:n.x,y:n.y,z:n.z,wait:10});}
  const s=new PetSocial(r,{random}),player={x:-6.5,y:2.12,z:-2.93};r.player=player;return {r,s,player};
 }

@@ -1,0 +1,131 @@
+{
+  "pet": "Mops, stationary grey Casio Moflin, 20 cm long on master bed",
+  "appearanceReference": "https://www.casio.com/us/moflin/product.PE-M10SR/",
+  "imageGuides": {
+    "tool": "Built-in image_gen, derived from Casio product reference",
+    "prompt": "A photorealistic silver-grey Casio Moflin matching the reference, no legs, ears, mouth, nose or tail; tiny black bead eyes, grey-tipped silver plush fur. Single subject centered at 65% width on flat RGB255,0,255 magenta, no shadows or props. Fixed three-quarter 40-degree view and matching direct overhead view, head left, rump right; landscape 3:2."
+  },
+  "videoModel": "Local MiniMax H3 fl2va",
+  "settings": {
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "resolution": [
+      576,
+      384
+    ],
+    "firstLastFrameGuide": true
+  },
+  "runtime": "512px H264 faststart, individual WebP still fallback; one active film near player; original synthesized chirps, not recorded Casio audio",
+  "clips": [
+    {
+      "file": "art/mops/idle-overhead.mp4",
+      "bytes": 204764,
+      "posterBytes": 17924,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic idle response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and overhead framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "At 0 to 1 seconds rest calmly. At 1 to 2.8 seconds slowly turn and tilt the fluffy head a few degrees, almost like a small contented shiver; the body does not translate or rotate. At 2.8 to 5.17 seconds return the head to the exact initial pose. Quiet relaxed robot movements, not breathing as a live animal. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "9f2bd4d3-7cf0-40cb-a081-1fd2ece56805"
+    },
+    {
+      "file": "art/mops/idle-side.mp4",
+      "bytes": 181231,
+      "posterBytes": 15878,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic idle response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and side framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "At 0 to 1 seconds rest calmly. At 1 to 2.8 seconds slowly turn and tilt the fluffy head a few degrees, almost like a small contented shiver; the body does not translate or rotate. At 2.8 to 5.17 seconds return the head to the exact initial pose. Quiet relaxed robot movements, not breathing as a live animal. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "098e1171-c6ae-49a1-a7a0-8e15fa041f8b"
+    },
+    {
+      "file": "art/mops/pet-overhead.mp4",
+      "bytes": 276716,
+      "posterBytes": 17998,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic pet response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and overhead framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "React happily to an unseen gentle touch. At 0 to 1 seconds the fluffy head tilts upwards very slightly. At 1 to 3.5 seconds make two tiny contented head nuzzles and a short soft body wiggle without displacement. At 3.5 to 5.17 seconds settle into the exact first-frame pose. The touching hand stays completely offscreen and is NEVER rendered. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "98e8c920-568b-4a7b-b63c-e44e43951809"
+    },
+    {
+      "file": "art/mops/pet-side.mp4",
+      "bytes": 247735,
+      "posterBytes": 15632,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic pet response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and side framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "React happily to an unseen gentle touch. At 0 to 1 seconds the fluffy head tilts upwards very slightly. At 1 to 3.5 seconds make two tiny contented head nuzzles and a short soft body wiggle without displacement. At 3.5 to 5.17 seconds settle into the exact first-frame pose. The touching hand stays completely offscreen and is NEVER rendered. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "12e1cd1a-dba5-4026-9db6-5745624bf8a2"
+    },
+    {
+      "file": "art/mops/talk-overhead.mp4",
+      "bytes": 242690,
+      "posterBytes": 17424,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic talk response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and overhead framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "React attentively to a friendly voice. At 0 to 1.5 seconds tilt the head curiously sideways by about eight degrees. At 1.5 to 3.5 seconds make three small eager head nods, like answering with little chirps, while the rump stays completely planted. At 3.5 to 5.17 seconds return to the exact initial pose. No visible mouth or lips at any time. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "19bbccf0-8529-495f-82d3-53349173cdf9"
+    },
+    {
+      "file": "art/mops/talk-side.mp4",
+      "bytes": 201054,
+      "posterBytes": 15928,
+      "frames": 124,
+      "fps": 24,
+      "prompt": {
+        "subject_definitions": {
+          "Mops": "The exact silver-grey Casio Moflin robot in the guide: a small 20 cm long oval of plush grey-tipped silver fur with two tiny black bead eyes. No ears, legs, nose, mouth, tail or collar. This is a limbless stationary robot, not a guinea pig or hamster."
+        },
+        "summary": "A fixed-camera photorealistic talk response loop for Mops on a perfectly flat magenta background.",
+        "retention_analysis": "The first and last frame anchor exact identity, proportions, size and side framing. Keep the same head direction and planted underside. Pure RGB 255,0,255 magenta floor and background in every frame, without shadows or gradients.",
+        "detailed_description": "React attentively to a friendly voice. At 0 to 1.5 seconds tilt the head curiously sideways by about eight degrees. At 1.5 to 3.5 seconds make three small eager head nods, like answering with little chirps, while the rump stays completely planted. At 3.5 to 5.17 seconds return to the exact initial pose. No visible mouth or lips at any time. Only the neck joint rotates and tilts gently. Preserve the silhouette, fine fur, eyes and overall scale. Camera absolutely fixed; no zoom, orbit, pan or translation. Entire furry outline stays well inside the frame. No other subject, hand, furniture, text or props. End matching the first frame.",
+        "overall_soundscape": "Silent. Sounds are created interactively by the game.",
+        "non_diegetic_music": "None."
+      },
+      "job": "f052b723-8d1b-4716-ae34-6823be50b8b2"
+    }
+  ]
+}

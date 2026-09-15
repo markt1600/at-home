@@ -93,3 +93,5 @@ html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:no
 .scene-photo-preview{display:block;width:100%;max-height:50dvh;object-fit:contain;border-radius:10px;background:#1c2420}
 .photo-panel [hidden]{display:none}.photo-panel button:disabled{opacity:.5;cursor:wait}
 @media(max-height:500px){.panel.photo-panel{padding:22px}.photo-panel h2{font-size:26px}.photo-panel .panel-intro{margin:8px 0}.photo-panel .stack{margin-top:12px}}
+
+.panel.moflin-panel::backdrop{backdrop-filter:none;background:#17291d12}.moflin-panel input{width:100%;padding:12px;border:1px solid #43563b35;border-radius:10px;background:#fffdf5;color:inherit;font:inherit}

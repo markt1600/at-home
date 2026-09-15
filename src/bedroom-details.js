@@ -29,7 +29,9 @@ export function buildBedroomDetails(world,root,m){
   if(i){box(robot,joints,.102,.075,.009,0,.219,.070);for(let j=0;j<6;j++)box(robot,m.steel,.092,.003,.006,0,.188+j*.011,.076);soft(robot,joints,.040,.025,.045,0,.299,0,.007);}
   else{soft(robot,color,.135,.045,.125,0,.302,-.012,.008);box(robot,joints,.072,.044,.012,0,.235,-.073);for(const side of [-1,1]){world.cyl(.018,.018,.055,side*.093,.221,.035,m.steel,robot,12).rotation.z=Math.PI/2;}}
  }
- for(let i=0;i<11;i++){const duck=group('Tiny glass sill figure',714+i*1.43,209.3,1.464),glass=new THREE.MeshStandardMaterial({color:[0xe5eadc,0xd9e6de,0xe8b0a0,0xeea441,0xe8c01a][Math.min(4,Math.floor(i/2.3))],roughness:.12,metalness:.15,transparent:true,opacity:.82});world.sphere(.012,0,.011,0,glass,duck,1,.7,1.2);world.sphere(.008,0,.026,-.004,glass,duck);box(duck,m.walnut,.008,.004,.006,0,.025,-.011);}
+ // Repeated glass colours share a material so the static figures can batch.
+ const sillGlass=[0xe5eadc,0xd9e6de,0xe8b0a0,0xeea441,0xe8c01a].map(color=>new THREE.MeshStandardMaterial({color,roughness:.12,metalness:.15,transparent:true,opacity:.82}));
+ for(let i=0;i<11;i++){const duck=group('Tiny glass sill figure',714+i*1.43,209.3,1.464),glass=sillGlass[Math.min(4,Math.floor(i/2.3))];world.sphere(.012,0,.011,0,glass,duck,1,.7,1.2);world.sphere(.008,0,.026,-.004,glass,duck);box(duck,m.walnut,.008,.004,.006,0,.025,-.011);}
 }
 
 export function buildSageDrawing(world,root,m){

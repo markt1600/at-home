@@ -16,6 +16,7 @@ export class HomeSound {
   this.water.gain.setTargetAtTime(Math.min(.16,Math.max(0,volume)),this.ctx.currentTime,.2);
  }
  tone(frequency,duration=.3,volume=.08,delay=0,end=frequency){if(!this.ctx)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type='sine';o.frequency.setValueAtTime(frequency,t);o.frequency.exponentialRampToValueAtTime(end,t+duration);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(volume,t+.025);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+duration+.03);o.onended=()=>{o.disconnect();g.disconnect();};}
+ moflin(action='idle'){const notes=action==='talk'?[820,1050,920,1220]:action==='pet'?[680,880,1020]:[820,970];for(const [i,note] of notes.entries()){this.tone(note,.20,.025,i*.19,note*(i%2?.82:1.22));this.tone(note*.5,.24,.011,i*.19,note*.56);}}
  care(){this.tone(523,.35,.04);this.tone(784,.5,.035,.12);}
  step(){this.tone(90,.07,.018,0,58);}
  update(dt,hours,balcony=false){if(!this.ctx||this.volume<=0)return;this.elapsed+=dt;const h=hours%24,day=h>=6&&h<19;this.breeze.gain.setTargetAtTime(balcony?.18:.07,this.ctx.currentTime,.8);

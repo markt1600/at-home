@@ -11,7 +11,7 @@ import {inWalkableArea} from '../src/navigation.js';
 import {armBox} from '../src/hand-arm-pose.js';
 
 const w=createHouseModel({optimize:false});w.handInteraction=new HandInteractionBody(w);w.petRoaming=new PetRoaming(w.colliders,()=>.4);w.actors=new Map();
-for(const pet of PETS)w.petRoaming.register(pet.id,pet.plan);
+for(const pet of PETS.filter(p=>!p.stationary))w.petRoaming.register(pet.id,pet.plan);
 const bone=installPetBone(w),rig=w.boneThrow;
 function setup(){
  w.handInteraction.cancel();bone.bind(newLife());w.focus('living');const [x,,z]=HOUSE_VIEWS.living;

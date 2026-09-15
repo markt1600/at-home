@@ -7,7 +7,7 @@ import {PETS,newLife,restoreLife} from '../src/life.js';
 import {floorHeight,HOUSE_VIEWS} from '../src/house-layout.js';
 import {inWalkableArea} from '../src/navigation.js';
 
-function setup(){let seed=19;const random=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32),w=createHouseModel(),r=new PetRoaming(w.colliders,random);for(const spec of PETS)r.register(spec.id,spec.plan);const state=newLife(),messages=[],bone=new PetBone(r,{random,onMessage:m=>messages.push(m)});bone.bind(state);return {w,r,state,bone,messages};}
+function setup(){let seed=19;const random=()=>((seed=(seed*1664525+1013904223)>>>0)/2**32),w=createHouseModel(),r=new PetRoaming(w.colliders,random);for(const spec of PETS.filter(p=>!p.stationary))r.register(spec.id,spec.plan);const state=newLife(),messages=[],bone=new PetBone(r,{random,onMessage:m=>messages.push(m)});bone.bind(state);return {w,r,state,bone,messages};}
 function tick(s,player,seconds){for(let i=0;i<seconds*10;i++){s.r.update(.1,{player});s.bone.update(.1,player);const p=s.r.pets.get('sunny');assert.ok(inWalkableArea(p.x,p.z,true,s.w.colliders),'Leo crossed an obstacle');}}
 function openThrow(s){const [x,y,z]=HOUSE_VIEWS.living,player={x,y,z};s.bone.place(player);for(const direction of [{x:1,z:0},{x:-1,z:0},{x:0,z:1},{x:0,z:-1}])if(s.bone.landing(player,direction))return {player,direction};throw Error('No open throw');}
 

@@ -26,7 +26,7 @@ test('pet-linked photo albums survive editing without creating fixed floor trigg
  assert.equal(record.petId,'miso');assert.equal(record.media.length,2);assert.deepEqual(floorMemories([record]),[]);assert.deepEqual(memoriesForPet([record],'miso'),[record]);assert.throws(()=>validateRecord({...input,petId:'unknown'}),/Choose a pet/);
 });
 test('pets can depart from a nearby player and route around another pet instead of repeatedly blocking',()=>{
- const world=createHouseModel(),r=new PetRoaming(world.colliders,()=>.43);for(const p of PETS)r.register(p.id,p.plan);
+ const world=createHouseModel(),r=new PetRoaming(world.colliders,()=>.43);for(const p of PETS.filter(p=>!p.stationary))r.register(p.id,p.plan);
  const a=r.pets.get('sunny'),b=r.pets.get('miso');const roomNodes=[...r.nodes.values()].filter(n=>n.y===0&&n.links.length===4);
  const center=roomNodes.find(n=>roomNodes.some(o=>Math.abs(o.x-n.x-.8)<.001&&Math.abs(o.z-n.z)<.001));
  Object.assign(a,{x:center.x,y:0,z:center.z,wait:0,path:[]});Object.assign(b,{x:center.x+.8,y:0,z:center.z,wait:0,path:[]});
