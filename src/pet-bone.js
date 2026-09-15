@@ -76,7 +76,7 @@ export class PetBone{
    this.idle-=dt;if(this.idle<=0){
     this.idle=40+this.random()*35;
     if(!inWalkableArea(this.x,this.z,true,this.roaming.obstacles)){this.place(this.roaming.nearest(this.x,this.z));this.persist(true);}
-    if(!p.greeting&&!p.command&&distance(p,this)<8&&this.roaming.command('sunny',this,1)){this.phase='seek';this.trip=0;}
+    if(!p.greeting&&!p.command&&!p.social&&distance(p,this)<8&&this.roaming.command('sunny',this,1)){this.phase='seek';this.trip=0;}
    }
   }
  }

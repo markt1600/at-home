@@ -4,6 +4,26 @@ import * as THREE from 'three';
 import {createActor} from '../src/actors.js';
 import {installPetBone} from '../src/pet-bone-model.js';
 
+test('paired play faces the other pet from every camera angle and joins the shared clock only when decoded',async t=>{
+ const doc=globalThis.document,load=THREE.TextureLoader.prototype.load;
+ class Video extends EventTarget{constructor(){super();this.readyState=0;this.paused=true;this.currentTime=0;this.duration=124/24;this.ended=false;}load(){}play(){this.paused=false;return Promise.resolve();}pause(){this.paused=true;}removeAttribute(){}}
+ globalThis.document={hidden:false,createElement:()=>new Video()};THREE.TextureLoader.prototype.load=()=>{const tex=new THREE.Texture();tex.image={width:512,height:342};return tex;};
+ t.after(()=>{globalThis.document=doc;THREE.TextureLoader.prototype.load=load;});
+ for(const id of ['sunny','miso']){
+  const actor=createActor(id,.4,{width:768,height:512,bodyHeight:400,bottom:50}),d=actor.userData;Object.assign(d,{activity:'play',heading:0,vx:0,vz:0,socialTime:-1});
+  for(const [x,z,y,expected] of [[0,2,.6,'play-front'],[2,0,.6,'play'],[0,-2,.6,'play-back'],[0,.1,2,'play-overhead']]){
+   Object.assign(d,{cameraX:x,cameraZ:z,cameraY:y});d.update(.1,true,true);await new Promise(setImmediate);
+   assert.equal(d.currentFilm,expected);assert.equal(d.playReady,false);assert.equal(actor.children[0].material.map,d.films.get(expected).poster);
+   const video=d.films.get(expected).video;video.readyState=2;video.currentTime=1;d.update(.1,true,true);assert.equal(d.playReady,true);assert.equal(video.currentTime,0);assert.equal(video.paused,true);
+   d.socialTime=2.5;d.update(.1,true,true);await new Promise(setImmediate);assert.equal(video.currentTime,2.5);assert.equal(video.paused,false);
+   assert.ok([...d.films.values()].filter(f=>!f.video.paused).length<=1,'only the current view runs a decoder');d.update(0,true,true);assert.equal(video.paused,true);d.socialTime=-1;
+  }
+  Object.assign(d,{heading:Math.PI/2,cameraX:0,cameraZ:2,cameraY:.6});d.update(.1,true,true);const first=actor.children[0].scale.x;
+  d.cameraZ=-2;d.update(.1,true,true);assert.ok(first*actor.children[0].scale.x<0,'side view turns toward the partner from either side');
+  Object.assign(d,{activity:'walk',socialTime:null,vx:0,vz:.4,cameraX:0,cameraZ:2});d.films.get('walk-front').video.readyState=2;d.update(.1,true,true);assert.equal(d.currentFilm,'walk-front');assert.equal(d.playReady,false);d.dispose();
+ }
+});
+
 test('activities select matching front and overhead films with an image while decoding, then resume walking',async()=>{
  const doc=globalThis.document,load=THREE.TextureLoader.prototype.load;
  class Video extends EventTarget{constructor(){super();this.readyState=0;this.paused=true;this.currentTime=0;this.ended=false;}load(){}play(){this.paused=false;return Promise.resolve();}pause(){this.paused=true;}removeAttribute(){}}

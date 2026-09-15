@@ -33,13 +33,13 @@ export function createActor(id,height,f,motionFraming={}){
  g.userData.films=films;
  g.userData.update=(dt,enabled,near)=>{
   gait+=dt;const play=dt>0&&enabled&&near&&!document.hidden;
-  const walking=g.userData.activity==='walk',sleeping=g.userData.activity==='sleep'&&films.has('sleep');
-  const direction=petDirection(g.userData.vx||0,g.userData.vz||0,g.userData.cameraX||0,g.userData.cameraZ||0,view);view=direction.view;
+  const walking=g.userData.activity==='walk',sleeping=g.userData.activity==='sleep'&&films.has('sleep'),paired=g.userData.activity==='play'&&films.has('play');
+  const direction=petDirection(paired?Math.sin(g.userData.heading||0):g.userData.vx||0,paired?Math.cos(g.userData.heading||0):g.userData.vz||0,g.userData.cameraX||0,g.userData.cameraZ||0,view);view=direction.view;
   const horizontal=Math.hypot(g.userData.cameraX||0,g.userData.cameraZ||0);
   overhead=Math.atan2(g.userData.cameraY||0,horizontal)>(overhead?.78:.94);
   const activity=!walking&&petActivityFilms[id]?.includes(g.userData.activity)?g.userData.activity:null;
   const carrying=id==='sunny'&&g.userData.carryingBone;
-  const wanted=carrying?(overhead?'carry-overhead':view==='side'?'carry':`carry-${view}`):activity?activity+(overhead?'-overhead':''):overhead?(walking?'overhead':'overhead-idle'):sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
+  const wanted=carrying?(overhead?'carry-overhead':view==='side'?'carry':`carry-${view}`):paired?(overhead?'play-overhead':view==='side'?'play':`play-${view}`):activity?activity+(overhead?'-overhead':''):overhead?(walking?'overhead':'overhead-idle'):sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
   // Prime just the requested film. iOS may not decode preload=auto until play().
   const candidate=films.get(wanted);
   if(play&&(!candidate.failed||gait>=candidate.retryAt)){
@@ -52,9 +52,13 @@ export function createActor(id,height,f,motionFraming={}){
   const displayedView=current.endsWith('-front')?'front':current.endsWith('-back')?'back':'side';
   if(displayedView==='side'&&view==='side'&&direction.side){const original=id==='sunny'?1:-1;flip=Math.sign(direction.side)*original;}else if(displayedView!=='side')flip=1;
   const fromAbove=current.includes('overhead'),walkingFilm=current.startsWith('walk')||current==='overhead'||current.startsWith('carry'),activityFilm=petActivityFilms[id]?.includes(current);
-  if(activityFilm)flip=1;
+  if(activityFilm&&!current.startsWith('play'))flip=1;
   body.visible=true;g.userData.volumetric=false;g.userData.overhead=fromAbove;
-  const animateFilm=play&&(!walkingFilm||walking);
+  g.userData.playReady=paired&&current===wanted&&!film.failed&&video.readyState>=2;
+  // Both pets start together. A newly decoded viewing angle joins the same
+  // point in the shared gesture instead of restarting one animal's response.
+  if(paired&&current===wanted&&video.readyState>=2&&Number.isFinite(video.duration)&&video.duration>0){const t=Math.max(0,g.userData.socialTime||0)%video.duration;if(Math.abs(video.currentTime-t)>.25)video.currentTime=t;}
+  const animateFilm=play&&(!walkingFilm||walking)&&(!paired||g.userData.socialTime>=0);
   video.playbackRate=walkingFilm?THREE.MathUtils.clamp((g.userData.speed||.1)/(id==='pebble'?.075:id==='sunny'?.42:.34),.65,1.5):1;
   if(animateFilm&&film.loaded&&!film.failed&&video.paused&&!video.ended&&!film.pending){film.pending=true;video.play().catch(()=>{}).finally(()=>film.pending=false);}else if(!animateFilm&&film!==priming&&!video.paused)video.pause();
   g.userData.view=displayedView;g.userData.waitingForFilm=video!==candidate.video&&candidate.video.readyState<2;g.userData.currentFilm=current;

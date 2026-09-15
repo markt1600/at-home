@@ -18,6 +18,7 @@ import {createActor} from './actors.js';
 import {createMemoryMarker} from './memory-marker.js';
 import {PETS} from './life.js';
 import {PetRoaming} from './pet-roaming.js';
+import {PetSocial} from './pet-social.js';
 import {AssetReadiness} from './asset-readiness.js';
 import {Telescope} from './telescope.js';
 import {petPose} from './pet-locomotion.js';
@@ -37,7 +38,7 @@ export class House{
   Object.assign(this,{materials:{},colliders:[],targets:[],keys:{},actors:new Map(),mode:'menu',paused:false,motion:true,yaw:0,pitch:0,elapsed:0,hours:7.25,room:'living',walking:false});
   this.handInteraction=new HandInteractionBody(this);
   buildHouse(this);this.targets=[];optimizeHouse(this);this.cinema.installRoomDimming();this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
-  this.petRoaming=new PetRoaming(this.colliders);this.petBone=installPetBone(this);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
+  this.petRoaming=new PetRoaming(this.colliders);this.petBone=installPetBone(this);this.petSocial=new PetSocial(this.petRoaming,{canStart:()=>this.petBone.phase==='rest',ready:id=>this.actors.get(id)?.userData.playReady});this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   this.viewportDirty=true;for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,()=>{this.viewportDirty=true;});
   window.visualViewport?.addEventListener('resize',()=>{this.viewportDirty=true;});
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.keys={};this.touchMove={x:0,z:0};});
@@ -75,7 +76,7 @@ export class House{
   tasks.push({id:'pets',load:async()=>{const responses=await Promise.all(['/art/friends/framing.json','/art/motion/framing.json'].map(url=>fetch(url,{cache:'no-cache',signal:AbortSignal.timeout(20000)})));if(responses.some(r=>!r.ok))throw new Error('Pet information unavailable');[this.framing,this.motionFraming]=await Promise.all(responses.map(r=>r.json()));this.syncPets(this.life);}});
   this.artwork=new AssetReadiness(tasks,{onChange:status=>this.onArtworkStatus?.(status),prepare:()=>prepareHouseRenderer(this)});return this.artwork.run();
  }
- syncPets(s){this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
+ syncPets(s){if(this.life!==s)this.petSocial.reset();this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
   const ids=new Set(specs.map(p=>p.id));for(const [id,g] of this.actors)if(!ids.has(id)){this.scene.remove(g);g.userData.dispose();this.actors.delete(id);}
   for(const spec of specs){if(!this.framing[spec.id])continue;let g=this.actors.get(spec.id);if(!g){g=createActor(spec.id,spec.height,this.framing[spec.id],this.motionFraming);this.actors.set(spec.id,g);this.scene.add(g);const p=this.petRoaming.register(spec.id,spec.plan);g.position.set(p.x,p.y,p.z);}}
   this.petBone.bind(s);this.petBone.updateModel();if(!this.petActivitiesWarming){this.petActivitiesWarming=true;setTimeout(async()=>{for(const id of ['sunny','miso'])await preloadPetActivities(id);},5000);}
@@ -112,7 +113,7 @@ export class House{
    }
    this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.onTick(dt);this.room=HOUSE_ROOMS.find(r=>pointInPolygon(this.camera.position.x,this.camera.position.z,r.polygon))?.id||this.room;
   }
-  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});this.petBone.update(active&&this.motion?dt:0,this.camera.position);for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.carryingBone=id==='sunny'&&this.petBone.phase==='return';actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)p.heading=Math.atan2(p.vx,p.vz);actor.userData.heading=p.heading||0;actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
+  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});this.petBone.update(active&&this.motion?dt:0,this.camera.position);this.petSocial.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.socialTime=p.socialTime;actor.userData.carryingBone=id==='sunny'&&this.petBone.phase==='return';actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)p.heading=Math.atan2(p.vx,p.vz);actor.userData.heading=p.heading||0;actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
   this.houseInteractions.update(active?dt:0);
   this.clawGame.update(this.clawGame.active?dt:0);this.pinballGame.update(this.pinballGame.active?dt:0);this.cinema.update(dt);
   this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());

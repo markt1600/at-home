@@ -1,0 +1,227 @@
+[
+  {
+    "file": "art/motion/compact/leo-play.mp4",
+    "bytes": 155736,
+    "posterBytes": 11134,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "leo-play-wide reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the guide. Very long low body, short legs, cream feathered ears, black nose, dark eyes and fluffy wagging tail."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed side view: body points to image right. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals. Retain the smaller body and generous framing from the new wide guide. Every tail hair remains comfortably inside the frame. The background remains precisely magenta.",
+      "detailed_description": "At 0 to 1 seconds Leo turns only his muzzle toward an unseen friend directly ahead of his body. At 1 to 2.3 seconds he makes a cheerful play bow: front elbows bend, chest lowers and front paws stretch a little forwards while his rear paws remain planted. His fluffy tail wags throughout. At 2.3 to 3.9 seconds he raises his head and chest again with a light playful bob in reaction to the friend, then at 4 to 5.17 seconds returns to his exact initial stance. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame. The tail wags with a comfortable small amplitude, remaining inside its reserved magenta margin. Keep the long body and hind paws stationary while the forequarters bow. Look to image right towards the offscreen friend.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "2e2dd73f-ba24-4d0f-850e-06fc3aa27fc5",
+    "referenceNote": "Existing Leo identity reframed with image generation to keep the wagging tail within view; original side take rejected for tail clipping."
+  },
+  {
+    "file": "art/motion/compact/leo-play-front.mp4",
+    "bytes": 168419,
+    "posterBytes": 8914,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "leo-play-front reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the guide. Very long low body, short legs, cream feathered ears, black nose, dark eyes and fluffy wagging tail."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed front view: body and muzzle face directly toward the camera. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 1 seconds Leo turns only his muzzle toward an unseen friend directly ahead of his body. At 1 to 2.3 seconds he makes a cheerful play bow: front elbows bend, chest lowers and front paws stretch a little forwards while his rear paws remain planted. His fluffy tail wags throughout. At 2.3 to 3.9 seconds he raises his head and chest again with a light playful bob in reaction to the friend, then at 4 to 5.17 seconds returns to his exact initial stance. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "bb8cd14d-75fc-42fe-a06b-0e078c4ced14"
+  },
+  {
+    "file": "art/motion/compact/leo-play-back.mp4",
+    "bytes": 166168,
+    "posterBytes": 9054,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "leo-play-back reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the guide. Very long low body, short legs, cream feathered ears, black nose, dark eyes and fluffy wagging tail."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed back view: body points directly away from the camera; do not turn to face the camera. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 1 seconds Leo turns only his muzzle toward an unseen friend directly ahead of his body. At 1 to 2.3 seconds he makes a cheerful play bow: front elbows bend, chest lowers and front paws stretch a little forwards while his rear paws remain planted. His fluffy tail wags throughout. At 2.3 to 3.9 seconds he raises his head and chest again with a light playful bob in reaction to the friend, then at 4 to 5.17 seconds returns to his exact initial stance. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "7455b9ae-f43c-4d46-9736-4c467378c957"
+  },
+  {
+    "file": "art/motion/compact/leo-play-overhead.mp4",
+    "bytes": 123886,
+    "posterBytes": 5646,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "leo-play-overhead reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the guide. Very long low body, short legs, cream feathered ears, black nose, dark eyes and fluffy wagging tail."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed overhead view: camera directly above, the head remains at the bottom of the image and tail at the top. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 1 seconds Leo turns only his muzzle toward an unseen friend directly ahead of his body. At 1 to 2.3 seconds he makes a cheerful play bow: front elbows bend, chest lowers and front paws stretch a little forwards while his rear paws remain planted. His fluffy tail wags throughout. At 2.3 to 3.9 seconds he raises his head and chest again with a light playful bob in reaction to the friend, then at 4 to 5.17 seconds returns to his exact initial stance. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "7bba8f00-45bc-4eb4-a6a9-c4c7bb2b88f7"
+  },
+  {
+    "file": "art/motion/compact/miso-play.mp4",
+    "bytes": 203813,
+    "posterBytes": 18202,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "miso-play reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the guide. Huge broad barrel body and low hanging orange belly, short legs, green eyes, pointed ears, dark tail tip, navy collar. All orange fur, no white patches. Retain his enormous weight."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed side view: body points to image left. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 2.3 seconds Cyrus watches an unseen friend directly ahead of his body, gently flicking his tail and tilting his head. At 2.3 to 3.9 seconds he raises a single front paw, makes two gentle playful forward air taps toward the friend, then sets that same paw down. Other three paws remain planted; his enormous belly shifts naturally but retains its size. At 4 to 5.17 seconds return to the exact initial stance. Friendly, relaxed, claws retracted, no hissing or fighting. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "d0bc3c02-1626-46cf-9f3c-a1f2a393122c"
+  },
+  {
+    "file": "art/motion/compact/miso-play-front.mp4",
+    "bytes": 176246,
+    "posterBytes": 14496,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "miso-play-front reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the guide. Huge broad barrel body and low hanging orange belly, short legs, green eyes, pointed ears, dark tail tip, navy collar. All orange fur, no white patches. Retain his enormous weight."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed front view: body and muzzle face directly toward the camera. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 2.3 seconds Cyrus watches an unseen friend directly ahead of his body, gently flicking his tail and tilting his head. At 2.3 to 3.9 seconds he raises a single front paw, makes two gentle playful forward air taps toward the friend, then sets that same paw down. Other three paws remain planted; his enormous belly shifts naturally but retains its size. At 4 to 5.17 seconds return to the exact initial stance. Friendly, relaxed, claws retracted, no hissing or fighting. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "8380bd98-5448-402a-978e-5792a8864336"
+  },
+  {
+    "file": "art/motion/compact/miso-play-back.mp4",
+    "bytes": 185337,
+    "posterBytes": 12668,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "miso-play-back reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the guide. Huge broad barrel body and low hanging orange belly, short legs, green eyes, pointed ears, dark tail tip, navy collar. All orange fur, no white patches. Retain his enormous weight."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed back view: body points directly away from the camera; do not turn to face the camera. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 2.3 seconds Cyrus watches an unseen friend directly ahead of his body, gently flicking his tail and tilting his head. At 2.3 to 3.9 seconds he raises a single front paw, makes two gentle playful forward air taps toward the friend, then sets that same paw down. Other three paws remain planted; his enormous belly shifts naturally but retains its size. At 4 to 5.17 seconds return to the exact initial stance. Friendly, relaxed, claws retracted, no hissing or fighting. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "5737da81-c71c-4614-9e78-0ee4a6e86fe6"
+  },
+  {
+    "file": "art/motion/compact/miso-play-overhead.mp4",
+    "bytes": 179874,
+    "posterBytes": 13342,
+    "model": "MiniMax H3 fl2va local",
+    "resolution": [
+      768,
+      512
+    ],
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "fps": 24,
+    "firstAndLastGuide": "miso-play-overhead reference image",
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the guide. Huge broad barrel body and low hanging orange belly, short legs, green eyes, pointed ears, dark tail tip, navy collar. All orange fur, no white patches. Retain his enormous weight."
+      },
+      "summary": "A photorealistic friendly pet play gesture loop for a game. Only one animal in this shot.",
+      "retention_analysis": "The first and last frames define exact animal identity, scale and framing. Fixed overhead view: camera directly above, the head remains at the bottom of the image and tail at the top. Pure flat uniform RGB 255,0,255 magenta background and ground on every frame, no shadows, gradients, scenery, props or other animals.",
+      "detailed_description": "At 0 to 2.3 seconds Cyrus watches an unseen friend directly ahead of his body, gently flicking his tail and tilting his head. At 2.3 to 3.9 seconds he raises a single front paw, makes two gentle playful forward air taps toward the friend, then sets that same paw down. Other three paws remain planted; his enormous belly shifts naturally but retains its size. At 4 to 5.17 seconds return to the exact initial stance. Friendly, relaxed, claws retracted, no hissing or fighting. No running or translation. The friend remains completely offscreen and is never rendered. Keep camera fixed, entire pet and paws and wagging tail inside frame with margin. Preserve four legs and natural anatomy. The body keeps the same orientation and floor position. No zoom, rotation, morphing, color change or new objects. End exactly as the first frame.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "f76847f1-75cc-4bbe-94f9-834cfe777e0b"
+  }
+]

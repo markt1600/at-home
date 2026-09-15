@@ -1,6 +1,7 @@
 const files={sunny:['leo','leo-walk','leo-walk-front','leo-walk-back','leo-sleep','leo-overhead','leo-overhead-idle'],miso:['miso-orange','miso-walk','miso-walk-front','miso-walk-back','miso-sleep','miso-overhead','miso-overhead-idle'],pebble:['pebble','pebble-walk','pebble-walk-front','pebble-walk-back','pebble-overhead','pebble-overhead-idle']};
 const urls=new Map();
-export const petActivityFilms={sunny:['chew','chew-overhead'],miso:['groom','groom-overhead','lounge','lounge-overhead'],pebble:[]};
+export const petPlayFilms=['play','play-front','play-back','play-overhead'];
+export const petActivityFilms={sunny:['chew','chew-overhead',...petPlayFilms],miso:['groom','groom-overhead','lounge','lounge-overhead',...petPlayFilms],pebble:[]};
 export const petCarryFilms=['carry','carry-front','carry-back','carry-overhead'];
 export const petFilmUrl=name=>urls.get(name)||`/art/motion/compact/${name}.mp4`;
 // Three small sequential queues warm all orientations before entering the house.

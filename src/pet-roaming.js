@@ -16,7 +16,7 @@ export class PetRoaming{
  nearest(x,z){let found,distance=Infinity;for(const n of this.nodes.values()){const d=(n.x-x)**2+(n.z-z)**2;if(d<distance&&!this.dynamicObstacles.some(c=>intersectsFootprint(n.x,n.z,c))){distance=d;found=n;}}return found;}
  restingSpot(n){return n.resting??=(n.links.length>=3&&!INTERIOR_WALLS.some(w=>w.openings?.some(o=>['door','front','sliding'].includes(o.kind)&&Math.hypot(n.x-planPoint(...o.center)[0],n.z-planPoint(...o.center)[1])<.85)));}
  register(id,plan){if(this.pets.has(id))return this.pets.get(id);const [x,z]=planPoint(...plan),n=this.nearest(x,z);const p={id,x:n.x,z:n.z,y:n.y,home:n.key,path:[],wait:1+this.random()*4,moving:false,activity:'idle',distance:0,vx:0,vz:0,speed:id==='pebble'?.075:id==='sunny'?.42:.34};this.pets.set(id,p);return p;}
- interact(id){const p=this.pets.get(id);if(p&&!p.command){p.greeting=null;p.path=[];p.loungeTarget=null;p.wait=15;p.moving=false;p.activity='idle';}}
+ interact(id){const p=this.pets.get(id);if(p?.social)this.social?.cancel();if(p&&!p.command){p.greeting=null;p.path=[];p.loungeTarget=null;p.wait=15;p.moving=false;p.activity='idle';}}
  wallRest(n){
   if(n.wallRest!==undefined)return n.wallRest;
   n.wallRest=null;if(!this.restingSpot(n))return null;
@@ -29,9 +29,10 @@ export class PetRoaming{
    if(nx||nz){n.wallRest={heading:Math.atan2(nx*co+nz*si,-nx*si+nz*co),wall:c.wall};break;}
   }return n.wallRest;
  }
- command(id,target,speed=1){const p=this.pets.get(id);if(!p)return false;p.command={x:target.x,z:target.z,y:floorHeight(target.x,target.z),speed};p.greeting=null;p.loungeTarget=null;p.path=[];p.wait=0;p.activity='idle';p.arrived=false;return this.route(p);}
- release(id,wait=4){const p=this.pets.get(id);if(!p)return;p.command=null;p.arrived=false;p.path=[];p.wait=wait;p.activity='idle';p.moving=false;p.vx=p.vz=0;}
+ command(id,target,speed=1){const p=this.pets.get(id);if(!p)return false;if(p.social)this.social?.cancel();p.command={x:target.x,z:target.z,y:floorHeight(target.x,target.z),speed};p.greeting=null;p.loungeTarget=null;p.path=[];p.wait=0;p.activity='idle';p.arrived=false;return this.route(p);}
+ release(id,wait=4,keepSocial=false){const p=this.pets.get(id);if(!p)return;if(p.social&&!keepSocial)this.social?.cancel();p.command=null;p.arrived=false;p.path=[];p.wait=wait;p.activity='idle';p.moving=false;p.vx=p.vz=0;}
  greet(player,yaw=0){
+  this.social?.reset();
   for(const [i,id] of ['sunny','miso'].entries()){
    const p=this.pets.get(id);if(!p)continue;const home=this.nodes.get(p.home);Object.assign(p,{x:home.x,y:home.y,z:home.z,path:[],wait:i*.7,blocked:0,moving:false,activity:'idle',command:null,loungeTarget:null});
    p.greeting={remaining:60,side:i?1:-1,yaw,player:{x:player.x,z:player.z}};this.route(p);
