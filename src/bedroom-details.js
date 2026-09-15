@@ -18,7 +18,7 @@ export function buildBedroomDetails(world,root,m){
  for(let i=0;i<=16;i++){const x=-1.81+i*3.62/16;for(const y of [1.675,3.315])box(head,metal,.013,.23,.12,x,y,.005);}
  for(const y of [1.55,3.41])box(head,metal,3.65,.017,.12,0,y,.005);
  for(const x of [-1.81,1.81]){box(head,metal,.014,1.86,.12,x,2.48,.005);for(let y=1.81;y<3.16;y+=.23)box(head,metal,.23,.014,.12,x<0?-1.69:1.69,y,.005);}
- for(const x of [-1.35,1.35]){box(head,m.walnut,.17,.09,.02,x,1.24,.097);for(let i=0;i<3;i++)box(head,m.steel,.033,.05,.007,x-.047+i*.047,1.24,.111);}
+ for(const x of [-1.35,1.35]){box(head,m.walnut,.17,.09,.02,x,1.42,.097);for(let i=0;i<3;i++)box(head,m.steel,.033,.05,.007,x-.047+i*.047,1.42,.111);}
  // The deep black window sill carries the two rose-colored robot figures.
  const ledge=group('Bedroom window ledge',690,212,1.445);box(ledge,m.black,4.48,.03,.28,0,0,0);
  const rose=world.mat(0x9b5260,.6),red=world.mat(0x98403e,.5),joints=world.mat(0x363b38,.7);

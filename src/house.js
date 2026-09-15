@@ -20,6 +20,7 @@ import {buildEntranceNook} from './entrance-nook.js';
 import {buildKitchenDetails} from './kitchen-details.js';
 import {buildPinballMachine} from './pinball-machine.js';
 import {buildMassageChair} from './massage-chair.js';
+import {buildBedsideTables} from './bedside-tables.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -183,6 +184,7 @@ export function buildHouse(world){
  // Main bedroom: headboard to the west, a genuinely open divider and sofa facing east.
  const [bx,bz]=P(579,331);soft(2.08,.23,2.13,bx,.98,bz,'walnut');soft(2,.23,2,bx,1.19,bz,'blue');soft(.48,.14,1.55,bx-.65,1.38,bz,'cream');block(bx,bz,2.12,2.17,0,1.42);
  buildBedroomDetails(world,root,materials);
+ buildBedsideTables(world,root,materials);
  buildBedroomStorage(world,root,materials);S(680,330,2.3,Math.PI/2,'cream',.75);
  const [mx,mz,my]=MIRROR_POSITION;painting(mx,my,mz,.87,2.08,0x7a8480,MIRROR_YAW);T('board',570,390,2.23,'Look behind the bedroom mirror');
  C(778,335,2.35,.45,.42,'walnut',-Math.PI/2,.75);paint(780,331,2.24,1.89,1.06,0x101917,-Math.PI/2);T('staff',685,405,1.5,'Read the note beside the bed');
