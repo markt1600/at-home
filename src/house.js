@@ -19,6 +19,7 @@ import {MovableFurniture} from './movable-furniture.js';
 import {buildEntranceNook} from './entrance-nook.js';
 import {buildKitchenDetails} from './kitchen-details.js';
 import {buildPinballMachine} from './pinball-machine.js';
+import {buildMassageChair} from './massage-chair.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -189,8 +190,7 @@ export function buildHouse(world){
  buildMasterVanity(world,root,materials);C(807,281,.9,2.4,.4,'walnut',Math.PI,.75);
   // Main bathroom and meditation bay.
  buildMasterBathroom(world,root,materials);
- // The built room contains a beige massage chair, rather than the proposed round cushion.
- const [medx,medz]=P(561,178);soft(.88,.35,1.3,medx,1.03,medz,'cream');soft(.83,1.28,.4,medx,1.65,medz-.4,'cream').rotation.x=-.12;soft(.7,.5,.3,medx,2.22,medz-.38,'cream');for(const x of [-.44,.44])soft(.21,.55,1.12,medx+x,1.39,medz,'cream');soft(.68,.55,.52,medx,1.03,medz+.67,'cream');block(medx,medz,1.12,1.96);
+ buildMassageChair(world,root,materials);
  // Supplied bedroom photos supersede the proposed furniture arrangement.
  buildSecondBedroom(world,root,materials);
  buildGuestBathroom(world,root,materials);
