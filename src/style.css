@@ -18,6 +18,11 @@ kbd{font:11px 'DM Sans',sans-serif}.choice-key{display:inline-grid;place-items:c
 
 /* Memory albums, date ranges and immediate return to wandering. */
 #scene.free-wander{cursor:none}.welcome-card .dream-return{color:var(--green)}
+/* Passive in-world prompts must not expose a button cursor or intercept mouse
+   presses while pointer lock is recovering. Clicks still use the centre dot. */
+html:not(.touch-device) .wandering:not(.panel-open) #memory-proximity,
+html:not(.touch-device) .wandering:not(.panel-open) #memory-proximity *,
+html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:none;cursor:none}
 #scene,#app{inset:auto;top:var(--view-top,0px);left:var(--view-left,0px);width:var(--view-width,100vw);height:var(--view-height,100dvh)}
 .wandering::after{top:calc(var(--view-top,0px) + var(--view-height,100dvh)/2);left:calc(var(--view-left,0px) + var(--view-width,100vw)/2)}
 .touch-device #app .touch-walk,.touch-device #app .touch-actions{position:absolute}

@@ -1,5 +1,6 @@
 export const MAX_MEMORY_ITEMS=30;
 export const memoryMedia=m=>m.media?.length?m.media:[{id:'original',type:m.type,src:m.src,poster:m.poster}];
+export const memoryHasAudio=m=>!!m&&(!!m.soundtrack?.src||memoryMedia(m).some(a=>a.type==='video'));
 export const memoryAppearance=m=>memoryMedia(m).some(a=>a.type==='video')
  ?{kind:'video',label:'Video memory',symbol:'▷',color:0xc58a35,css:'#c58a35'}
  :{kind:'image',label:memoryMedia(m).length>1?'Photo slideshow':'Photo memory',symbol:'▧',color:0x4d97c5,css:'#4d97c5'};

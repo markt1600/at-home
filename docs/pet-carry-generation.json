@@ -1,0 +1,94 @@
+[
+  {
+    "file": "art/motion/compact/leo-carry.mp4",
+    "bytes": 175013,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the supplied image. Same very short legs, elongated low body, feathered ears, cream fur and fluffy tail.",
+        "prop": "ONE ivory dog chew bone held crosswise at its middle between Leo's closed jaws. It is attached to his mouth throughout, not a separate floating object."
+      },
+      "summary": "A photoreal seamless in-place walking loop of Leo carrying his bone home, isolated against a perfectly uniform magenta background.",
+      "retention_analysis": "First and last image anchor exact dog identity, bone position, framing, camera, scale and endpoint. Retain all four paws and tail, and generous border clearance. All background and ground remain pure RGB255,0,255 on every frame. No lighting change, color cycling or shadows.",
+      "detailed_description": "Locked camera: side profile, head towards RIGHT and tail towards LEFT. Leo walks steadily IN PLACE with natural alternating front and rear paw steps, bending each leg and lifting then planting each paw. Slight body bob, feathered ears bounce lightly, tail wags gently. His body never translates or turns in the frame. The bone stays clamped in the same place between his jaws and bobs exactly with his muzzle, never shifting independently. No chewing, dropping, extra bones or tongues. Keep tail inside the frame. No camera movement, zoom or scale changes. All background and ground stay perfectly flat magenta. Finish in the identical starting pose for a clean loop.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "006fba41-9bd5-49d9-b982-99e1bc2e95b8",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/leo-carry-front.mp4",
+    "bytes": 207256,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the supplied image. Same very short legs, elongated low body, feathered ears, cream fur and fluffy tail.",
+        "prop": "ONE ivory dog chew bone held crosswise at its middle between Leo's closed jaws. It is attached to his mouth throughout, not a separate floating object."
+      },
+      "summary": "A photoreal seamless in-place walking loop of Leo carrying his bone home, isolated against a perfectly uniform magenta background.",
+      "retention_analysis": "First and last image anchor exact dog identity, bone position, framing, camera, scale and endpoint. Retain all four paws and tail, and generous border clearance. All background and ground remain pure RGB255,0,255 on every frame. No lighting change, color cycling or shadows.",
+      "detailed_description": "Locked camera: straight front view, head facing camera. Leo walks steadily IN PLACE with natural alternating front and rear paw steps, bending each leg and lifting then planting each paw. Slight body bob, feathered ears bounce lightly, tail wags gently. His body never translates or turns in the frame. The bone stays clamped in the same place between his jaws and bobs exactly with his muzzle, never shifting independently. No chewing, dropping, extra bones or tongues. Keep tail inside the frame. No camera movement, zoom or scale changes. All background and ground stay perfectly flat magenta. Finish in the identical starting pose for a clean loop.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "161abfbb-68b5-4619-bee8-00a4186b5c32",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/leo-carry-back.mp4",
+    "bytes": 237037,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the supplied image. Same very short legs, elongated low body, feathered ears, cream fur and fluffy tail.",
+        "prop": "ONE ivory dog chew bone held crosswise at its middle between Leo's closed jaws. It is attached to his mouth throughout, not a separate floating object."
+      },
+      "summary": "A photoreal seamless in-place walking loop of Leo carrying his bone home, isolated against a perfectly uniform magenta background.",
+      "retention_analysis": "First and last image anchor exact dog identity, bone position, framing, camera, scale and endpoint. Retain all four paws and tail, and generous border clearance. All background and ground remain pure RGB255,0,255 on every frame. No lighting change, color cycling or shadows.",
+      "detailed_description": "Locked camera: straight rear view, tail nearest camera, head facing away. Leo walks steadily IN PLACE with natural alternating front and rear paw steps, bending each leg and lifting then planting each paw. Slight body bob, feathered ears bounce lightly, tail wags gently. His body never translates or turns in the frame. The bone stays clamped in the same place between his jaws and bobs exactly with his muzzle, never shifting independently. No chewing, dropping, extra bones or tongues. Keep tail inside the frame. No camera movement, zoom or scale changes. All background and ground stay perfectly flat magenta. Finish in the identical starting pose for a clean loop.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "5486db7c-52c1-4d84-8336-b7f127fdb883",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/leo-carry-overhead.mp4",
+    "bytes": 191707,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the supplied image. Same very short legs, elongated low body, feathered ears, cream fur and fluffy tail.",
+        "prop": "ONE ivory dog chew bone held crosswise at its middle between Leo's closed jaws. It is attached to his mouth throughout, not a separate floating object."
+      },
+      "summary": "A photoreal seamless in-place walking loop of Leo carrying his bone home, isolated against a perfectly uniform magenta background.",
+      "retention_analysis": "First and last image anchor exact dog identity, bone position, framing, camera, scale and endpoint. Retain all four paws and tail, and generous border clearance. All background and ground remain pure RGB255,0,255 on every frame. No lighting change, color cycling or shadows.",
+      "detailed_description": "Locked camera: straight overhead, head towards the BOTTOM and tail towards the TOP. Leo walks steadily IN PLACE with natural alternating front and rear paw steps, bending each leg and lifting then planting each paw. Slight body bob, feathered ears bounce lightly, tail wags gently. His body never translates or turns in the frame. The bone stays clamped in the same place between his jaws and bobs exactly with his muzzle, never shifting independently. No chewing, dropping, extra bones or tongues. Keep tail inside the frame. No camera movement, zoom or scale changes. All background and ground stay perfectly flat magenta. Finish in the identical starting pose for a clean loop.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "400a884e-2523-45e5-ab50-2289e7fedc13",
+    "normalization": false
+  }
+]

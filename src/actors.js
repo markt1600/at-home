@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {petFilmUrl,petActivityFilms} from './pet-media.js';
+import {petFilmUrl,petActivityFilms,petCarryFilms} from './pet-media.js';
 import {petDirection} from './pet-direction.js';
 
 // Each action shares a reference animal. Foot calibration anchors paws to treads.
@@ -22,10 +22,10 @@ export function createActor(id,height,f,motionFraming={}){
  const body=new THREE.Mesh(geometry,mat);g.add(body);
  const contact=new THREE.Mesh(new THREE.CircleGeometry(height*.33,32),new THREE.MeshBasicMaterial({color:0x354439,transparent:true,opacity:.14,depthWrite:false}));contact.rotation.x=-Math.PI/2;contact.scale.y=.48;contact.position.y=.002;g.add(contact);
  const films=new Map();let current='idle',gait=0,flip=1,view='front',overhead=false,priming=null;
- for(const mode of ['idle','walk','walk-front','walk-back','overhead','overhead-idle',...(id==='pebble'?[]:['sleep']),...(petActivityFilms[id]||[])]){
+ for(const mode of ['idle','walk','walk-front','walk-back','overhead','overhead-idle',...(id==='pebble'?[]:['sleep']),...(petActivityFilms[id]||[]),...(id==='sunny'?petCarryFilms:[])]){
   const name=mode==='idle'?asset:`${actionAsset}-${mode}`,video=document.createElement('video');
   video.loop=mode!=='sleep';video.muted=true;video.playsInline=true;video.preload='metadata';
-  const still=mode.includes('overhead')||petActivityFilms[id]?.includes(mode)?new THREE.TextureLoader().load(`/art/motion/compact/${name}.webp`):null;if(still)still.colorSpace=THREE.SRGBColorSpace;
+  const still=mode.includes('overhead')||mode.startsWith('carry')||petActivityFilms[id]?.includes(mode)?new THREE.TextureLoader().load(`/art/motion/compact/${name}.webp`):null;if(still)still.colorSpace=THREE.SRGBColorSpace;
   const film={video,name,loaded:false,pending:false,failed:false,retryAt:0,texture:null,poster:still};films.set(mode,film);
   video.addEventListener('error',()=>{film.failed=true;film.retryAt=gait+15;});
  }
@@ -38,7 +38,8 @@ export function createActor(id,height,f,motionFraming={}){
   const horizontal=Math.hypot(g.userData.cameraX||0,g.userData.cameraZ||0);
   overhead=Math.atan2(g.userData.cameraY||0,horizontal)>(overhead?.78:.94);
   const activity=!walking&&petActivityFilms[id]?.includes(g.userData.activity)?g.userData.activity:null;
-  const wanted=activity?activity+(overhead?'-overhead':''):overhead?(walking?'overhead':'overhead-idle'):sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
+  const carrying=id==='sunny'&&g.userData.carryingBone;
+  const wanted=carrying?(overhead?'carry-overhead':view==='side'?'carry':`carry-${view}`):activity?activity+(overhead?'-overhead':''):overhead?(walking?'overhead':'overhead-idle'):sleeping?'sleep':view==='side'?(walking?'walk':'idle'):`walk-${view}`;
   // Prime just the requested film. iOS may not decode preload=auto until play().
   const candidate=films.get(wanted);
   if(play&&(!candidate.failed||gait>=candidate.retryAt)){
@@ -48,9 +49,9 @@ export function createActor(id,height,f,motionFraming={}){
   if(wanted!==current&&(candidate.video.readyState>=2||candidate.poster?.image)){films.get(current).video.pause();current=wanted;if(current==='sleep')films.get(current).video.currentTime=0;}
   const film=films.get(current),video=film.video;
   for(const other of films.values())if(other!==film&&other!==priming&&!other.video.paused)other.video.pause();
-  const displayedView=current==='walk-front'?'front':current==='walk-back'?'back':'side';
+  const displayedView=current.endsWith('-front')?'front':current.endsWith('-back')?'back':'side';
   if(displayedView==='side'&&view==='side'&&direction.side){const original=id==='sunny'?1:-1;flip=Math.sign(direction.side)*original;}else if(displayedView!=='side')flip=1;
-  const fromAbove=current.includes('overhead'),walkingFilm=current.startsWith('walk')||current==='overhead',activityFilm=petActivityFilms[id]?.includes(current);
+  const fromAbove=current.includes('overhead'),walkingFilm=current.startsWith('walk')||current==='overhead'||current.startsWith('carry'),activityFilm=petActivityFilms[id]?.includes(current);
   if(activityFilm)flip=1;
   body.visible=true;g.userData.volumetric=false;g.userData.overhead=fromAbove;
   const animateFilm=play&&(!walkingFilm||walking);

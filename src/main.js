@@ -10,7 +10,7 @@ import './style.css';
 import {House} from './scene.js';
 import {PANEL_SHORTCUTS,isTyping,prepareDialog,navigateDialog} from './keyboard.js';
 import {formatMemoryDate} from './memory-metadata.js';
-import {memoryMedia,memoryAppearance,releaseMemoryUrls} from './memory-media.js';
+import {memoryMedia,memoryAppearance,memoryHasAudio,releaseMemoryUrls} from './memory-media.js';
 import {RecordPlayer} from './record-player.js';
 import {mountMemoryPlayer} from './memory-player.js';
 import {cleanMemoryFilter,filterMemories} from './memory-filter.js';
@@ -32,7 +32,7 @@ let state;try{state=restoreLife(localStorage.getItem(SAVE_KEY));}catch{}let hasS
 let playing=false,panel=null,selectedPet='miso',voiceStatus='Disconnected',transcript=[],timer=0,savedAt=0,lastContext=0,lastSpoken=0,toastTimer;
 const recordPlayer=new RecordPlayer(sound,{onChange:spinning=>{world.recordPlaying=spinning;updateLookHint(world.lookTarget);},onMessage:toast,onStart:()=>world.turntable.start(),beforePlay:()=>world.turntable.ready(),onStop:()=>world.turntable.stop()});
 let moviePlayer=null;
-let memories=[],selectedMemory=null,memoryVolume=null,memoryMutedMic=false,memoryPlayer=null;
+let memories=[],selectedMemory=null,memoryVolume=null,memoryMutedMic=false,memoryPlayer=null,memoryTakesAudio=false;
 const activeMemories=()=>filterMemories(memories,state.memoryFilter);
 const memoryVisit=createMemoryVisit();let visitMemories=[];
 const syncMemories=()=>{visitMemories=memoryVisit.select(memories,state.memoryFilter);world.setMemories(visitMemories);};
@@ -45,6 +45,7 @@ world.onInteract=interact;
 world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};
 world.onHouseMessage=toast;
+world.onAudioTick=dt=>{if(!world.paused||panel==='memory'&&!memoryTakesAudio)sound.update(dt,state.hours,world.room.includes('balcony'));};
 world.onBoneChange=save;
 world.onClawPlay=()=>openPanel('claw');world.onPinballPlay=()=>openPanel('pinball');
 world.onCinemaPlay=()=>{if(world.cinema.active){stopCinema();return;}const choices=cinemaVideos(activeMemories());if(!choices.length){toast('No video memories in this date range. Add a video in the memory editor, or choose another time period.');return;}startCinema(choices[Math.floor(Math.random()*choices.length)]);};
@@ -119,13 +120,14 @@ function openPanel(type){
  if(type==='pinball'){world.pinballGame.enter(world);disposePinballControls=mountPinballControls(document.querySelector('#panel-content'),world.pinballGame);}
  if(type==='claw'){world.clawGame.enter(world);disposeClawControls=mountClawControls($('#panel-content'),world.clawGame);}
  if(type==='memory'){
+  const m=memories.find(m=>m.id===selectedMemory);memoryTakesAudio=memoryHasAudio(m);
   if(world.cinema.video)world.cinema.video.muted=true;
-  speech.stop();recordPlayer.suspend();memoryVolume=sound.volume;sound.setVolume(0);
+  speech.stop();memoryVolume=sound.volume;if(memoryTakesAudio){recordPlayer.suspend();sound.setVolume(0);}
   if(companion.session&&!companion.muted){companion.mute();memoryMutedMic=true;}companion.setVolume(0);
-  const m=memories.find(m=>m.id===selectedMemory);if(m)memoryPlayer=mountMemoryPlayer($('#panel-content'),m,{volume:memoryVolume,onError:message=>{const el=$('#memory-error');if(el)el.textContent=message;}});
+  if(m)memoryPlayer=mountMemoryPlayer($('#panel-content'),m,{volume:memoryVolume,onError:message=>{const el=$('#memory-error');if(el)el.textContent=message;}});
  }
 }
-function releaseMemory(){memoryPlayer?.dispose();memoryPlayer=null;if(memoryVolume!==null){sound.setVolume(memoryVolume);companion.setVolume(memoryVolume);memoryVolume=null;}if(memoryMutedMic&&companion.session&&companion.muted)companion.mute();memoryMutedMic=false;if(world.cinema.video)world.cinema.video.muted=false;if(!world.cinema.active)recordPlayer.resume();}
+function releaseMemory(){memoryPlayer?.dispose();memoryPlayer=null;memoryTakesAudio=false;if(memoryVolume!==null){sound.setVolume(memoryVolume);companion.setVolume(memoryVolume);memoryVolume=null;}if(memoryMutedMic&&companion.session&&companion.muted)companion.mute();memoryMutedMic=false;if(world.cinema.video)world.cinema.video.muted=false;if(!world.cinema.active)recordPlayer.resume();}
 function closePanel(resume=true){if(!panel)return;const wasMemory=panel==='memory';if(wasMemory)releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}if(panel==='pinball'){disposePinballControls();world.pinballGame.leave();}$('#panel').close();document.body.classList.remove('panel-open');panel=null;world.paused=false;world.previewAnimation=false;speech.stop();save();if(resume||wasMemory)world.resumeWandering();}
 const heading=(eyebrow,title,text='')=>`<p class="eyebrow">${eyebrow}</p><h2>${title}</h2>${text?`<p class="panel-intro">${text}</p>`:''}`;
 function panelHTML(type){
@@ -194,7 +196,7 @@ document.addEventListener('keydown',e=>{
  if(e.code!=='KeyE')return;e.preventDefault();
  interact();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if(panel!=='memory'&&!world.cinema.active)recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if((panel!=='memory'||!memoryTakesAudio)&&!world.cinema.active)recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
 window.addEventListener('pagehide',save);
 function currentMemorySelection(){
  const p=world.camera.position,d=world.camera.getWorldDirection(p.clone()),all=visitMemories,hovered=lookedAtMemory(all,p,d,{visible:m=>world.memoryVisible(m)});
@@ -211,7 +213,7 @@ if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySel
  world.memoryMarkers?.children.forEach(g=>{const selected=g.userData.memoryId===m?.id;g.children.forEach(mesh=>mesh.material.opacity=selected?1:.6);});
 }
  sound.setWater([...world.houseInteractions.items.values()].reduce((level,item)=>item.water&&item.running?Math.max(level,.12*Math.max(0,1-item.pos.distanceTo(world.camera.position)/5)):level,0));
- advanceLife(state,dt);world.hours=state.hours;sound.update(dt,state.hours,world.room.includes('balcony'));
+ advanceLife(state,dt);world.hours=state.hours;
  if(timer-savedAt>5){savedAt=timer;save();}if(timer-lastContext>10){lastContext=timer;companion.update(contextForVoice(state,world.room));}updateHUD();
  if(state.personalized&&!companion.session&&!speech.speaking&&timer-lastSpoken>180){lastSpoken=timer;speech.play({kind:'home',cue:1+Math.floor(Math.random()*3),name:state.name},{isCurrent:()=>playing&&!panel});}
 }

@@ -14,7 +14,8 @@ export function installPetBone(world){
   if(bone.phase==='throw'){group.rotation.z=bone.time*8;group.rotation.y=bone.time*3;}
   if(bone.phase==='return')group.rotation.y=bone.heading||0;
   const film=world.actors.get('sunny')?.userData.currentFilm;
-  // The chewing film already contains this bone between Leo's paws.
-  group.visible=!!bone.life&&!(bone.phase==='chew'&&film?.includes('chew'));
+  // Carrying views hold the bone between his jaws. The floor object reappears
+  // only when he drops it; a separate 3D prop would float ahead of the sprite.
+  group.visible=!!bone.life&&bone.phase!=='return'&&!(bone.phase==='chew'&&film?.includes('chew'));
  };return bone;
 }
