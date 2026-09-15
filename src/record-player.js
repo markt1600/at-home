@@ -20,14 +20,22 @@ export function waitForMusicBuffer(audio,signal){
 }
 
 export class RecordPlayer{
- constructor(sound,{onChange=()=>{},onMessage=()=>{},onStart=()=>{},beforePlay=async()=>true,onStop=()=>{},audio=new Audio(),load=async()=>{const r=await fetch('/api/music');if(!r.ok)return [];const data=await r.json();return Array.isArray(data)?data:[];}}={}){
-  Object.assign(this,{sound,onChange,onMessage,onStart,beforePlay,onStop,audio,load,enabled:false,suspended:false,tracks:[],index:0,version:0});audio.preload='auto';this.setVolume(sound.volume??.65);
+ constructor(sound,{onChange=()=>{},onMessage=()=>{},onStart=()=>{},beforePlay=async()=>true,onStop=()=>{},audio=new Audio(),random=Math.random,load=async()=>{const r=await fetch('/api/music');if(!r.ok)return [];const data=await r.json();return Array.isArray(data)?data:[];}}={}){
+  Object.assign(this,{sound,onChange,onMessage,onStart,beforePlay,onStop,audio,random,load,enabled:false,suspended:false,tracks:[],index:0,version:0});audio.preload='auto';this.setVolume(sound.volume??.65);
   for(const event of ['playing','pause','waiting','ended'])audio.addEventListener(event,()=>this.changed());
-  audio.addEventListener('ended',()=>{if(this.enabled&&!this.suspended&&!this.loading)this.playTrack((this.index+1)%this.tracks.length);});
+  audio.addEventListener('ended',()=>{if(this.enabled&&!this.suspended&&!this.loading&&this.tracks.length){let next=this.index+1;if(next===this.tracks.length){this.tracks=this.shuffle(this.tracks);next=0;}this.playTrack(next);}});
   audio.addEventListener('error',()=>{if(this.enabled){this.stop();this.onMessage('This track could not play. You can try the turntable again.');}});
  }
  get spinning(){return this.enabled&&!this.suspended&&!this.loading&&(this.tracks.length?!this.audio.paused&&!this.audio.ended&&this.audio.readyState>=3:this.sound.music);}
  changed(){this.onChange(this.spinning);}
+ shuffle(tracks){
+  // Every song gets a turn before a fresh shuffle. Avoid an immediate repeat
+  // across a playlist boundary or a new start when another song is available.
+  const shuffled=[...tracks];
+  for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(this.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
+  if(shuffled.length>1&&shuffled[0].src===this.lastPlayedSrc){const j=1+Math.floor(this.random()*(shuffled.length-1));[shuffled[0],shuffled[j]]=[shuffled[j],shuffled[0]];}
+  return shuffled;
+ }
  async toggle(){if(this.enabled){this.stop();this.onMessage('The needle lifts and the record comes to rest.');return;}await this.start();}
  async start(){
   const version=++this.version;this.abort?.abort();this.abort=new AbortController();
@@ -35,7 +43,7 @@ export class RecordPlayer{
   try{
    // Both requests begin during the gesture, before any animation wait.
    const tracksPromise=this.load().catch(()=>[]);await this.sound.start();const tracks=await tracksPromise;
-   if(version!==this.version)return;this.tracks=tracks;
+   if(version!==this.version)return;this.tracks=this.shuffle(tracks);
    if(tracks.length&&!await this.loadTrack(0))return;
    if(version!==this.version||!this.enabled)return;
    if(await this.beforePlay()===false||version!==this.version||!this.enabled)return;
@@ -51,7 +59,7 @@ export class RecordPlayer{
   if(!this.tracks.length){this.sound.music=true;this.changed();this.onMessage('A gentle house melody fills the room.');return;}
   try{
    await this.audio.play();if(version!==this.version)return;if(this.suspended||!this.enabled){this.audio.pause();return;}
-   this.changed();this.onMessage(`On the turntable: ${this.tracks[this.index].title}`);
+   this.lastPlayedSrc=this.tracks[this.index].src;this.changed();this.onMessage(`On the turntable: ${this.tracks[this.index].title}`);
   }catch{if(version===this.version&&!this.suspended){this.stop();this.onMessage('Music could not start. Try the turntable again.');}}
  }
  async playTrack(index){

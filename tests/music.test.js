@@ -17,11 +17,46 @@ test('an unreachable hand interaction leaves the record off without downloading 
  await player.start();assert.equal(loads,0);assert.equal(player.enabled,false);assert.equal(player.loading,false);assert.equal(player.spinning,false);assert.equal(audio.paused,true);
 });
 test('record rotation follows real playback, playlist endings, memory suspension and stop',async()=>{
- const audio=new FakeAudio(),s=sound(),r=new RecordPlayer(s,{audio,load:async()=>[{src:'a.wav',title:'One'},{src:'b.flac',title:'Two'}]});
+ const audio=new FakeAudio(),s=sound(),r=new RecordPlayer(s,{audio,random:()=>.99,load:async()=>[{src:'a.wav',title:'One'},{src:'b.flac',title:'Two'}]});
  assert.equal(r.spinning,false);await r.start();assert.equal(r.spinning,true);assert.equal(audio.src,'a.wav');assert.equal(s.music,false);
  r.suspend();assert.equal(r.spinning,false);assert.equal(audio.paused,true);r.resume();await Promise.resolve();assert.equal(r.spinning,true);
  audio.ended=true;audio.dispatchEvent(new Event('ended'));await new Promise(setImmediate);assert.equal(audio.src,'b.flac');assert.equal(r.spinning,true);
  r.stop();assert.equal(audio.paused,true);assert.equal(r.spinning,false);r.resume();assert.equal(audio.paused,true);
+});
+test('starting the record uses a shuffled first song without changing the library order',async()=>{
+ const tracks=[{src:'a.mp3',title:'One'},{src:'b.m4a',title:'Two'},{src:'c.flac',title:'Three'}],starts=[];
+ for(const random of [()=>0,()=>.99]){
+  const audio=new FakeAudio(),r=new RecordPlayer(sound(),{audio,random,load:async()=>tracks});
+  await r.start();starts.push(audio.src);assert.equal(r.spinning,true);r.stop();
+ }
+ assert.notEqual(starts[0],starts[1]);assert.deepEqual(tracks.map(t=>t.src),['a.mp3','b.m4a','c.flac']);
+});
+test('playlist endings reshuffle and repeat every song without immediate repeats; memory resume keeps its place',async()=>{
+ for(const count of [2,5]){
+  const tracks=Array.from({length:count},(_,i)=>({src:`${i}.mp3`,title:`Song ${i}`})),audio=new FakeAudio();let draws=0;
+  const r=new RecordPlayer(sound(),{audio,random:()=>{draws++;return 0;},load:async()=>tracks}),played=[];
+  await r.start();
+  for(let i=0;i<count*4;i++){
+   if(i){audio.ended=true;audio.dispatchEvent(new Event('ended'));await new Promise(setImmediate);}
+   played.push(audio.src);assert.equal(r.spinning,true);
+   if(i){assert.notEqual(played[i],played[i-1],'no immediate repeat, including reshuffle boundaries');}
+   const before=draws,queue=r.tracks.map(t=>t.src),src=audio.src;audio.currentTime=12;
+   r.suspend();r.resume();await new Promise(setImmediate);
+   assert.equal(audio.src,src);assert.equal(audio.currentTime,12);assert.equal(draws,before);assert.deepEqual(r.tracks.map(t=>t.src),queue);
+  }
+  for(let i=0;i<played.length;i+=count)assert.deepEqual(played.slice(i,i+count).sort(),tracks.map(t=>t.src).sort(),'each cycle includes every song once');
+  assert.ok(draws>=4*(count-1),'a new shuffle is drawn for every cycle');
+  const previous=audio.src;r.stop();await r.start();assert.notEqual(audio.src,previous,'a fresh start avoids the last played song');r.stop();
+ }
+});
+test('a single uploaded song repeats, and an empty library still uses the house melody',async()=>{
+ for(const tracks of [[],[{src:'only.ogg',title:'Only song'}]]){
+  const audio=new FakeAudio(),s=sound(),r=new RecordPlayer(s,{audio,load:async()=>tracks});await r.start();
+  for(let i=0;i<3;i++){audio.ended=true;audio.dispatchEvent(new Event('ended'));await new Promise(setImmediate);}
+  if(tracks.length){assert.equal(audio.src,'only.ogg');assert.equal(r.spinning,true);assert.equal(s.music,false);}
+  else{assert.equal(audio.src,undefined);assert.equal(s.music,true);assert.equal(r.spinning,true);}
+  r.stop();assert.equal(r.spinning,false);
+ }
 });
 test('stopping while a playlist loads cannot restart sound or the vinyl later',async()=>{
  let resolve;const r=new RecordPlayer(sound(),{audio:new FakeAudio(),load:()=>new Promise(r=>resolve=r)});const pending=r.start();await Promise.resolve();r.stop();resolve([{src:'late.mp3',title:'Late'}]);await pending;assert.equal(r.enabled,false);assert.equal(r.spinning,false);assert.equal(r.audio.paused,true);
