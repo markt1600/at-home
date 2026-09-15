@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {HOUSE_ROOMS,PLAN_SCALE,planPoint,pointInPolygon,FRONT_DOOR,BALCONY_DOORS} from './house-layout.js';
+import {buildGlassBlockWall,glassBlockMaterial} from './glass-block-wall.js';
 
 // One continuous wall run per partition; apertures cut the run and retain its lintel.
 // Positions are in the same private-reference drawing grid as house-layout.js.
@@ -9,7 +10,9 @@ export const INTERIOR_WALLS=[
  {id:'theatre-entry',a:[331,397],b:[523,397],openings:[opening('theatre',[468,397],1.9,2.15)]},
  {id:'powder-east',a:[415,397],b:[415,482],openings:[opening('powder',[415,433],.9)]},
  {id:'powder-south',a:[299,482],b:[415,482]},
- {id:'meditation-entry',a:[523,249],b:[602,249],material:'glassblock',openings:[opening('meditation',[583,249],.8,2.54)]},
+ // The bedside wall is uninterrupted glass blocks; GD06 is on the east return.
+ {id:'meditation-glass-blocks',a:[523,249],b:[602,249],material:'glassblock'},
+ {id:'meditation-side-entry',a:[602,208],b:[602,249],openings:[opening('meditation',[602,228.5],.90,2.54)]},
  {id:'master-south',a:[523,415],b:[783,415],openings:[opening('bedroom',[766,415],.9)]},
  {id:'cabinet-end-return',a:[523,415],b:[523,482]},
  {id:'master-east',a:[783,208],b:[783,415],openings:[opening('vanity',[783,250],.9,2.15)]},
@@ -104,7 +107,7 @@ export function wallApertures(wall,openings=wall.openings||[]){
 
 export function buildArchitecture(world,root,materials){
  const top=4.1,bottom=-.12;
- materials.glassblock=new THREE.MeshStandardMaterial({color:0xaebdb6,roughness:.35,metalness:.1,transparent:true,opacity:.7});
+ materials.glassblock=glassBlockMaterial();
  materials.frostedOfficeGlass=new THREE.MeshStandardMaterial({color:0xacc3c9,roughness:.8,metalness:.05,emissive:0x91afbb,emissiveIntensity:.15});
  const solid=(wall,lo,hi,base,height,material='plaster',collision=false,depth=.16)=>{
   if(hi-lo<1e-6||height<1e-6)return;
@@ -125,6 +128,12 @@ export function buildArchitecture(world,root,materials){
  world.architectureWalls=[];
  for(const wall of [...envelopeSegments().map(w=>({...w,openings:EXTERIOR_OPENINGS,exterior:true})),...INTERIOR_WALLS]){
   const length=Math.hypot(wall.b[0]-wall.a[0],wall.b[1]-wall.a[1])/PLAN_SCALE,apertures=wallApertures(wall);let cursor=0;
+  if(wall.material==='glassblock'){
+   buildGlassBlockWall(world,root,wall,materials);
+   solid(wall,0,length,bottom,.75-bottom,'plaster',true);
+   solid(wall,0,length,3.41,top-3.41,'plaster',true);
+   world.architectureWalls.push({...wall,length,apertures:[]});continue;
+  }
   const balcony=wall.exterior&&HOUSE_ROOMS.find(r=>r.balcony&&pointInPolygon(...planPoint((wall.a[0]+wall.b[0])/2,(wall.a[1]+wall.b[1])/2),r.polygon));
   if(balcony){
    // Covered outdoor balconies: low parapets and handrails, open air above.
@@ -137,7 +146,7 @@ export function buildArchitecture(world,root,materials){
    solid(wall,cursor,a.lo,bottom,top-bottom,wall.material||'plaster',true);
    solid(wall,a.lo,a.hi,bottom,a.base-bottom-([0,.45,.75].some(y=>Math.abs(y-a.base)<.001)?.004:0),wall.material||'plaster',a.kind==='window');
    solid(wall,a.lo,a.hi,a.base+a.height,top-a.base-a.height);
-   const frame=a.kind==='sliding'||(a.id.startsWith('theatre-window')||a.id.startsWith('office-window'))?'black':a.kind==='door'&&!['wine','theatre','meditation'].includes(a.id)?'white':'steel';
+   const frame=a.kind==='sliding'||(a.id.startsWith('theatre-window')||a.id.startsWith('office-window'))?'black':a.kind==='door'&&!['wine','theatre'].includes(a.id)?'white':'steel';
    for(const end of [a.lo,a.hi])solid(wall,end-.022,end+.022,a.base,a.height-.025,frame,false,.19);
    solid(wall,a.lo,a.hi,a.base+a.height-.025,.05,frame,false,.19);
    if(['window','closed'].includes(a.kind)){

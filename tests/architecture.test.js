@@ -25,6 +25,23 @@ test('master bedroom wardrobe is entered from the vanity, not through the bed-si
  assert.ok(inWalkableArea(...planPoint(783,250),true,world.colliders));
  assert.ok(inWalkableArea(...planPoint(850,273),true,world.colliders));
 });
+test('the bedside alcove partition is private glass blocks, with access only around its east return',()=>{
+ const wall=world.architectureWalls.find(w=>w.id==='meditation-glass-blocks');
+ assert.equal(wall.apertures.length,0);
+ for(const px of [531,550,571,583,594]){
+  const [x,z]=planPoint(px,249);
+  assert.equal(inWalkableArea(x,z,true,world.colliders),false,'no doorway through the bed-side partition');
+  for(const side of [-1,1])for(const y of [1.02,1.71,2.42,3.22]){
+   const ray=new THREE.Raycaster(new THREE.Vector3(x,y,z+side*.3),new THREE.Vector3(0,0,-side),0,.6);
+   const [hit]=ray.intersectObject(world.houseRoot,true);
+   assert.ok(hit,'the partition has a visible surface from either room');
+   assert.equal(hit.object.material.transparent,false,'privacy blocks do not show the chair through a clear pane');
+  }
+ }
+ assert.ok(inWalkableArea(...planPoint(602,228.5),true,world.colliders),'the window-side door remains clear');
+ assert.equal(world.houseMaterials.glassblock.opacity,1);
+ assert.ok(world.houseMaterials.glassblock.bumpMap,'ribbed blocks keep their surface relief after batching');
+});
 test('every intended door aperture has a complete header in the rendered mesh',()=>{
  const ray=new THREE.Raycaster();
  for(const wall of world.architectureWalls)for(const aperture of wall.apertures){
