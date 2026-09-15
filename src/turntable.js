@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {createInteractionHand} from './interaction-hand.js';
 
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t);};
 const mix=THREE.MathUtils.lerp;
@@ -13,11 +13,10 @@ export class Turntable{
   this.handSolids=[{anchor:rack,bounds:[[-.30,0,-.245],[.30,.824,.245]],name:'turntable and amplifier rack'}];
   this.root=new THREE.Group();this.root.name='Animated turntable';this.root.userData.dynamic=true;rack.add(this.root);
   const material=(color,r=.55,metal=0)=>world.mat(color,r,metal);
-  const steel=m.steel,black=m.black,skin=material(0xc99470,.9),nails=material(0xd7ab8a,.88);
+  const steel=m.steel,black=m.black;
   const mesh=(geo,mat,x,y,z,parent=this.root)=>{const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.castShadow=!mat.transparent;o.receiveShadow=true;parent.add(o);return o;};
   const box=(w,h,d,x,y,z,mat,parent=this.root)=>mesh(new THREE.BoxGeometry(w,h,d),mat,x,y,z,parent);
   const cylinder=(r,h,x,y,z,mat,parent=this.root)=>mesh(new THREE.CylinderGeometry(r,r,h,48),mat,x,y,z,parent);
-  const soft=(w,h,d,x,y,z,mat,parent)=>mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(w,h,d)*.32),mat,x,y,z,parent);
   this.platter=cylinder(.132,.022,-.055,.835,0,steel);
   this.record=new THREE.Group();this.record.name='Spinning vinyl';this.root.add(this.record);world.vinyl=this.record;
   cylinder(.121,.005,0,0,0,black,this.record);cylinder(.027,.006,0,.004,0,material(0xa59770),this.record);
@@ -37,19 +36,7 @@ export class Turntable{
   for(const x of [-.257,.257])box(.006,.18,.39,x,.09,.195,glass,this.lid);
   for(const z of [0,.39])box(.52,.18,.006,0,.09,z,glass,this.lid);
   for(const x of [-.19,.19])box(.037,.014,.018,x,.823,-.195,steel);
-  this.hands=[-1,1].map(side=>{
-   const hand=new THREE.Group();hand.name=side<0?'Left hand placing record':'Right hand operating turntable';this.root.add(hand);
-   soft(.065,.025,.081,0,0,0,skin,hand);
-   // Separate rounded fingers, knuckles and thumbnail read as hands from above.
-   for(let i=0;i<4;i++){
-    const x=(i-1.5)*.015,length=[.046,.058,.055,.043][i];
-    soft(.012,.015,length,x,-.001,-.038-length/2,skin,hand);
-    soft(.008,.002,.012,x,.007,-.032-length,nails,hand);
-   }
-   const thumb=soft(.018,.019,.052,-side*.041,-.002,-.009,skin,hand);thumb.rotation.y=-side*.52;
-   soft(.039,.028,.07,0,-.003,.067,skin,hand);
-   return hand;
-  });
+  this.hands=[-1,1].map(side=>createInteractionHand(world,this.root,side,{name:side<0?'Left hand placing record':'Right hand operating turntable'}));
   this.reset();
  }
  reset(){this.world.handInteraction?.finish(this);this.resolve?.(false);this.resolve=null;this.stage='idle';this.time=0;this.speed=0;this.recordPresent=false;this.buffered=false;this.lid.rotation.x=0;this.arm.rotation.set(-.10,.05,0);this.record.position.set(-.055,.849,0);this.record.rotation.set(0,0,0);this.record.visible=false;this.hands.forEach(h=>h.visible=false);}

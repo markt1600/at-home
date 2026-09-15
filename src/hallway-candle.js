@@ -1,25 +1,12 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
-import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
+import {createInteractionHand} from './interaction-hand.js';
 
 export const CANDLE_WICKS=[[0,0],[-.050,-.050],[.050,-.050],[.050,.050],[-.050,.050]];
 const durations={uncovering:4.1,lighting:5.3,extinguishing:3.8,covering:4.1};
 const mix=THREE.MathUtils.lerp;
 const smooth=t=>{t=THREE.MathUtils.clamp(t,0,1);return t*t*(3-2*t);};
 const phase=(t,a,b)=>smooth((t-a)/(b-a));
-
-function makeHand(world,parent,side){
- const hand=new THREE.Group();hand.name=side<0?'Left hand lifting candle cover':'Right hand lighting candle';parent.add(hand);
- const skin=world.mat(0xc99470,.9),nails=world.mat(0xd7ab8a,.88);
- const soft=(w,h,d,x,y,z,material)=>{const o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(w,h,d)*.32),material);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;hand.add(o);return o;};
- soft(.065,.025,.081,0,0,0,skin);
- for(let i=0;i<4;i++){const x=(i-1.5)*.015,length=[.046,.058,.055,.043][i];soft(.012,.015,length,x,-.002,-.038-length/2,skin);const tip=soft(.012,.019,.018,x,-.007,-.040-length,skin);tip.rotation.x=-.35;soft(.008,.002,.010,x,.004,-.036-length,nails);}
- soft(.018,.019,.050,-side*.038,-.007,-.025,skin).rotation.y=-side*.65;
- soft(.039,.028,.070,0,-.003,.067,skin);
- // Fingers move with the palm; sleeves are supplied by the player's arm rig.
- for(const material of [skin,nails]){const parts=hand.children.filter(o=>o.material===material),geometries=parts.map(o=>{o.updateMatrix();return o.geometry.clone().applyMatrix4(o.matrix);});const joined=new THREE.Mesh(mergeGeometries(geometries),material);joined.castShadow=joined.receiveShadow=true;for(const o of parts){o.removeFromParent();o.geometry.dispose();}for(const geometry of geometries)geometry.dispose();hand.add(joined);}
- return hand;
-}
 
 export class HallwayCandle{
  constructor(world,candle,cover,m){
@@ -32,7 +19,7 @@ export class HallwayCandle{
    {anchor:candle,bounds:[[-.48,0,-.03],[-.22,.38,.21]],name:'ceramic vase'},
    {anchor:candle,bounds:[[-.125,0,-.125],[.125,.34,.125]],name:'candle vessel'}
   ];
-  this.park=new THREE.Vector3(.88,0,.05);this.hands=[makeHand(world,this.root,-1),makeHand(world,this.root,1)];
+  this.park=new THREE.Vector3(.88,0,.05);this.hands=[-1,1].map(side=>createInteractionHand(world,this.root,side,{name:side<0?'Left hand lifting candle cover':'Right hand lighting candle'}));
   this.lighter=new THREE.Group();this.lighter.name='Long candle lighter';this.hands[1].add(this.lighter);
   const grip=new THREE.Mesh(new RoundedBoxGeometry(.026,.026,.075,2,.006),m.black);grip.position.set(.006,-.018,-.036);this.lighter.add(grip);
   const path=new THREE.LineCurve3(new THREE.Vector3(.006,-.02,-.075),new THREE.Vector3(-.10,-.10,-.20));
