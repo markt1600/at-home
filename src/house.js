@@ -21,6 +21,7 @@ import {buildKitchenDetails} from './kitchen-details.js';
 import {buildPinballMachine} from './pinball-machine.js';
 import {buildMassageChair} from './massage-chair.js';
 import {buildBedsideTables} from './bedside-tables.js';
+import {buildUtilityYard} from './utility-yard.js';
 
 // Authored game geometry based on the supplied contract plan and walkthrough.
 export function buildHouse(world){
@@ -175,12 +176,7 @@ export function buildHouse(world){
  buildKitchenDetails(world,root,materials,upper);
  // Service passage separates the bathroom, store, small bedroom and L-shaped yard.
  shelf(...P(712,746),1.05,2.1,Math.PI/2,.45);B(750,741,.5,.7,.5,.8,'black');
- const [servx,servz]=P(754,816);soft(1.9,.22,.91,servx,.77,servz,'walnut');soft(1.88,.17,.89,servx,.96,servz,'cream');block(servx,servz,1.93,.94,0,1.045);
- C(772,866,2.2,.86,.375,'white',0,.45);
- // Laundry cabinetry remains; bicycles omitted at the owner's request.
- for(let j=0;j<2;j++){B(706,936,.6,.83,.6,.865+j*.83,'white');const [x,z]=P(706,924);cyl(.22,.22,.04,x,.865+j*.83,z,'black').rotation.x=Math.PI/2;}
- C(761,936,1.2,.8,.6,'white',Math.PI,.45);B(769,936,.45,.025,.42,1.27,'steel');
- B(738,899,1.24,.08,.5,2.6,'white');for(let i=0;i<5;i++)B(738,891+i*4,1.2,.014,.018,2.4,'steel');
+ buildUtilityYard(world,root,materials);
  // Main bedroom: headboard to the west, a genuinely open divider and sofa facing east.
  const [bx,bz]=P(579,331);soft(2.08,.23,2.13,bx,.98,bz,'walnut');soft(2,.23,2,bx,1.19,bz,'blue');soft(.48,.14,1.55,bx-.65,1.38,bz,'cream');block(bx,bz,2.12,2.17,0,1.42);
  buildBedroomDetails(world,root,materials);
