@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import {planPoint,HOUSE_ROOMS} from './house-layout.js';
 import {memoryMedia} from './memory-media.js';
 
+// The existing generated sky film keeps the screen usable without personal media.
+export const EXPLORATION_MOVIE={id:'house-galaxy-film',title:'A little closer to the stars',type:'video',src:'/art/telescope/galaxy.mp4'};
+
 export const cinemaVideos=memories=>memories.flatMap(memory=>memoryMedia(memory).filter(item=>item.type==='video'&&item.src).map(item=>({...memory,type:'video',media:[item],src:item.src,soundtrack:null})));
 
 export class Cinema{
@@ -19,7 +22,7 @@ export class Cinema{
    for(const side of [-1,1]){const mesh=new THREE.Mesh(geo,cloth);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh);this.curtains.push({mesh,width,side});}
   }
   this.paintCurtains();screen.updateWorldMatrix(true,true);
-  world.houseInteractions.add({id:'cinema-screen',pos:screen.localToWorld(new THREE.Vector3(0,0,.09)),range:5.8,touchObjects:[this.face],surfaceOffset:.12,label:()=>this.active?'Stop the movie':'Play a movie memory',activate:()=>world.onCinemaPlay?.()});
+  world.houseInteractions.add({id:'cinema-screen',pos:screen.localToWorld(new THREE.Vector3(0,0,.09)),range:5.8,touchObjects:[this.face],surfaceOffset:.12,label:()=>this.active?'Stop the movie':this.memoryMode===false?'Play a movie':'Play a movie memory',activate:()=>world.onCinemaPlay?.()});
  }
  enter(){
   if(this.active)return;this.active=true;this.ready=false;this.face.material.color.set(0x050607);
