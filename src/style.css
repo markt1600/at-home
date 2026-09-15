@@ -88,3 +88,8 @@ html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:no
 @media(max-width:600px){#cinema-player{top:calc(132px + env(safe-area-inset-top));bottom:auto;width:calc(100% - 28px);padding:9px 12px}.cinema-controls>strong{font-size:15px}}
 @media(max-height:500px){#cinema-player{bottom:10px;width:calc(100% - 330px);padding:8px 12px}.cinema-controls>strong{font-size:14px}}
 .panel.pinball-panel{width:min(440px,calc(100vw - 24px));margin:auto 12px 12px auto;padding:20px;background:#faf8f0f2;max-height:35dvh}.pinball-panel::backdrop{background:transparent;backdrop-filter:none}.pinball-panel h2{font-size:24px;margin:0 26px 8px 0}.pinball-panel p{margin:6px 0;font-size:13px}.pinball-panel .fine{font-size:11px}.pinball-controls{display:flex;gap:8px;margin-top:12px}.pinball-controls button{flex:1;min-height:48px;padding:10px;touch-action:none;user-select:none}.pinball-controls button:active{background:#dec4a1}@media(max-width:600px){.panel.pinball-panel{margin:auto auto 8px;padding:14px;max-height:32dvh}.pinball-panel p{font-size:11px}.pinball-panel h2{font-size:21px}.pinball-controls{margin-top:6px}}@media(max-height:500px){.panel.pinball-panel{width:290px;max-height:65dvh;padding:12px}.pinball-panel .fine{font-size:10px}}
+
+.panel.photo-panel{margin:auto;max-height:calc(100dvh - 32px)}
+.scene-photo-preview{display:block;width:100%;max-height:50dvh;object-fit:contain;border-radius:10px;background:#1c2420}
+.photo-panel [hidden]{display:none}.photo-panel button:disabled{opacity:.5;cursor:wait}
+@media(max-height:500px){.panel.photo-panel{padding:22px}.photo-panel h2{font-size:26px}.photo-panel .panel-intro{margin:8px 0}.photo-panel .stack{margin-top:12px}}
