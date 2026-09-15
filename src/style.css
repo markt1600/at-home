@@ -95,3 +95,6 @@ html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:no
 @media(max-height:500px){.panel.photo-panel{padding:22px}.photo-panel h2{font-size:26px}.photo-panel .panel-intro{margin:8px 0}.photo-panel .stack{margin-top:12px}}
 
 .panel.moflin-panel::backdrop{backdrop-filter:none;background:#17291d12}.moflin-panel input{width:100%;padding:12px;border:1px solid #43563b35;border-radius:10px;background:#fffdf5;color:inherit;font:inherit}
+.massage-controls{position:fixed;z-index:12;bottom:max(22px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);width:min(390px,calc(100vw - 32px));padding:18px 24px;background:#f7f5e9eb;color:#314836;border-radius:20px;text-align:center;box-shadow:0 5px 24px #10201824}
+.massage-controls p{margin:8px 0 12px;font-size:14px}.massage-controls button{min-height:44px;width:100%}
+.having-massage .touch-walk,.having-massage .touch-actions,.having-massage #look-hint,.having-massage #controls,.having-massage #memory-proximity,.having-massage #toast{visibility:hidden}

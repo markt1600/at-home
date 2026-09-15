@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js';
+import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {planPoint,floorHeight} from './house-layout.js';
 
 // OSIM OS-8258: 1500 L x 825 W x 1450 H mm, canopy retracted.
@@ -82,6 +83,14 @@ export function buildMassageChair(world,root,m){
  letter([[-.027,.009],[-.034,.007],[-.034,-.006],[-.027,-.009],[-.021,-.006],[-.021,.006],[-.027,.009]]);
  letter([[-.006,.008],[-.016,.008],[-.016,.001],[-.006,-.001],[-.006,-.008],[-.016,-.008]]);
  letter([[.002,.009],[.002,-.009]]);letter([[.011,-.009],[.011,.009],[.019,0],[.027,.009],[.027,-.009]]);
- world.colliders.push({x,z:z+.04,w:.825,d:1.50,angle:0});
+ const collider={x,z:z+.04,w:.825,d:1.50,angle:0};world.colliders.push(collider);
+ // Recline the chair above its fixed plinth. Keep the many upholstered parts
+ // batched by material, including while the cradle is moving.
+ const cradle=new THREE.Group();cradle.name='Reclining massage cradle';cradle.position.y=.43;cradle.userData.dynamic=true;
+ g.updateWorldMatrix(true,true);const inverse=g.matrixWorld.clone().invert(),groups=new Map(),originals=[];
+ g.traverse(o=>{if(!o.isMesh||o.name==='Recessed plinth')return;const geometry=o.geometry.index?o.geometry.toNonIndexed():o.geometry.clone();geometry.applyMatrix4(inverse.clone().multiply(o.matrixWorld));geometry.translate(0,-.43,0);const list=groups.get(o.material)||[];list.push(geometry);groups.set(o.material,list);originals.push(o);});
+ for(const o of originals){o.removeFromParent();o.geometry.dispose();}
+ for(const [material,parts] of groups){const mesh=new THREE.Mesh(mergeGeometries(parts),material);mesh.castShadow=mesh.receiveShadow=true;cradle.add(mesh);parts.forEach(p=>p.dispose());}g.add(cradle);
+ world.massageChair={group:g,cradle,collider};
  return g;
 }

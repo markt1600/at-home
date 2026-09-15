@@ -10,6 +10,7 @@ import './style.css';
 import {House} from './scene.js';
 import {scenePhotoHTML,mountScenePhoto} from './scene-photo.js';
 import {mountMoflinConversation} from './moflin-conversation.js';
+import {SpaMusic} from './spa-music.js';
 import {HomeSession} from './home-session.js';
 import {PANEL_SHORTCUTS,isTyping,prepareDialog,navigateDialog} from './keyboard.js';
 import {formatMemoryDate} from './memory-metadata.js';
@@ -30,7 +31,7 @@ installGameViewport();
 const touchMode=()=>hasTouchInput()||document.documentElement.classList.contains('touch-device');
 let disposeTouchControls=()=>{},disposeClawControls=()=>{},disposePinballControls=()=>{},lastTouchMode=null;
 const controlHelp=()=>touchMode()?'Left thumb to walk · Drag the view to look · Tap Interact or a nearby object':'WASD · Mouse to look · Click or E to interact · Space to jump · H for keys';
-const app=$('#app'),sound=new HomeSound(),speech=new RenderedVoice(sound);
+const app=$('#app'),sound=new HomeSound(),speech=new RenderedVoice(sound),spaMusic=new SpaMusic(sound);
 let savedState;try{savedState=restoreLife(localStorage.getItem(SAVE_KEY));}catch{}
 const session=new HomeSession(savedState);let state=session.state;
 let playing=false,panel=null,selectedPet='miso',voiceStatus='Disconnected',transcript=[],timer=0,savedAt=0,lastContext=0,lastSpoken=0,toastTimer;
@@ -46,12 +47,28 @@ await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resol
 const world=new House($('#scene'),id=>{updateLookHint(id);},tick);
 world.onUnlock=()=>openPanel('settings');
 world.onInteract=interact;
-world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active)return;if(world.handInteraction.active&&world.handInteraction.owner!==world.turntable)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(world.handInteraction.active)return;if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
+world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active||world.massage.active)return;if(world.handInteraction.active&&world.handInteraction.owner!==world.turntable)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(world.handInteraction.active)return;if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};
 world.onHouseMessage=toast;
 world.onMopsSound=action=>{if(sound.volume>0)sound.moflin(action);};
 world.onMopsCare=action=>{careForPet(state,'mops',action);save();};
 world.onHandRecordCancel=()=>recordPlayer.stop();
+let massageMutedMic=false,massageAudioOwned=false,massageCinemaMuted=false;
+world.onMassageAudio=active=>{
+ if(active){massageAudioOwned=true;speech.stop();recordPlayer.suspend();massageCinemaMuted=world.cinema.video?.muted||false;if(world.cinema.video)world.cinema.video.muted=true;massageMutedMic=!!companion.session&&!companion.muted;if(massageMutedMic)companion.mute();companion.setVolume(0);spaMusic.prepare().catch(()=>{});}
+ else spaMusic.stop();
+};
+world.onMassageMusic=()=>spaMusic.play();
+world.onMassageFinished=()=>{
+ if(massageAudioOwned){massageAudioOwned=false;if(massageMutedMic&&companion.session&&companion.muted)companion.mute();massageMutedMic=false;companion.setVolume(sound.volume);if(world.cinema.video)world.cinema.video.muted=massageCinemaMuted;if(!world.cinema.active&&!document.hidden)recordPlayer.resume();}
+ world.resumeWandering();
+};
+world.onMassageChange=stage=>{
+ document.body.classList.toggle('having-massage',stage!=='idle');$('#massage-controls')?.remove();if(stage==='idle')return;
+ const card=document.createElement('section');card.id='massage-controls';card.className='massage-controls';card.setAttribute('aria-label','Massage chair');card.innerHTML='<strong>A little time to unwind</strong><p role="status" id="massage-status"></p><button data-action="cancel-massage">Finish and step out</button>';app.append(card);updateMassageStatus();
+};
+function updateMassageStatus(){const m=world.massage,el=$('#massage-status');if(!el)return;const text=m.stage==='massage'?`Relaxing massage · ${m.remaining} seconds remaining`:({approach:'Walking to the chair…',enter:'Settling into the chair…',recline:'Reclining…',upright:'Returning upright…',exit:'Stepping out…'}[m.stage]||'');if(el.textContent!==text)el.textContent=text;const button=$('[data-action="cancel-massage"]');if(button&&button.disabled!==m.exiting)button.disabled=m.exiting;}
+
 world.onAudioTick=dt=>{if(!world.paused||panel==='memory'&&!memoryTakesAudio)sound.update(dt,state.hours,world.room.includes('balcony'));};
 world.onBoneChange=save;
 world.onClawPlay=()=>openPanel('claw');world.onPinballPlay=()=>openPanel('pinball');
@@ -127,7 +144,7 @@ function renderHUD(){disposeTouchControls();app.innerHTML=`<header class="hud-to
 function updateHUD(){if(!playing)return;const mobile=touchMode();if(lastTouchMode!==mobile){lastTouchMode=mobile;$('#controls').textContent=controlHelp();updateLookHint(world.lookTarget);}for(const [id,text] of [['clock',`Day ${dayNumber(state.hours)} · ${clockLabel(state.hours)}`],['phase',dayPhase(state.hours)],['place',roomNames[world.room]||'At home']]){const el=$('#'+id);if(el.textContent!==text)el.textContent=text;}
 }
 function openPanel(type){
- if(!playing||session.exploring&&['memory','memories'].includes(type))return;disposeMopsConversation();sound.setWater(0);document.body.classList.add('panel-open');if(world.telescope.active)world.telescope.leave();if(panel==='photo')disposeScenePhoto();if(panel==='memory')releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}if(panel==='pinball'){disposePinballControls();world.pinballGame.leave();}world.paused=true;world.unlock();world.previewAnimation=type==='pets'||type==='claw'||type==='pinball';panel=type;
+ if(!playing||session.exploring&&['memory','memories'].includes(type))return;if(world.massage.active){world.massage.cancel();return;}disposeMopsConversation();sound.setWater(0);document.body.classList.add('panel-open');if(world.telescope.active)world.telescope.leave();if(panel==='photo')disposeScenePhoto();if(panel==='memory')releaseMemory();if(panel==='claw'){disposeClawControls();world.clawGame.leave();}if(panel==='pinball'){disposePinballControls();world.pinballGame.leave();}world.paused=true;world.unlock();world.previewAnimation=type==='pets'||type==='claw'||type==='pinball';panel=type;
  const dialog=$('#panel');dialog.classList.toggle('wide',type==='rooms'||type==='photo');dialog.classList.toggle('photo-panel',type==='photo');dialog.classList.toggle('memory-panel',type==='memory');dialog.classList.toggle('moflin-panel',type==='pets'&&selectedPet==='mops');dialog.classList.toggle('claw-panel',type==='claw');dialog.classList.toggle('pinball-panel',type==='pinball');$('#panel-content').innerHTML=panelHTML(type);if(!dialog.open)dialog.showModal();
  if(type==='voice')updateTranscript();prepareDialog(dialog,type);
  if(type==='pets'&&selectedPet==='mops'){const mutedForMops=companion.session&&!companion.muted;if(mutedForMops)companion.mute();const dispose=mountMoflinConversation($('#panel-content'),{reply:()=>{world.mops.react('talk');world.onMopsCare('talk');},startAudio:()=>{speech.stop();return sound.start();},audioContext:()=>sound.ctx});disposeMopsConversation=()=>{dispose();if(mutedForMops&&companion.session&&companion.muted)companion.mute();disposeMopsConversation=()=>{};};}
@@ -180,7 +197,8 @@ app.addEventListener('click',async e=>{
   case 'interact':interact();break;
   case 'jump':if(playing&&!panel&&!world.telescope.active)world.jumpQueued=true;break;
   case 'admin':window.open('/admin','_blank','noopener');break;
-  case 'sound':try{await sound.start();sound.setVolume(sound.volume>0?0:.65);companion.setVolume(sound.volume);recordPlayer.setVolume(sound.volume);if(!sound.volume)speech.stop();$('#sound-button').textContent=sound.volume?'Sound on':'Sound off';}catch{toast('Sound is unavailable in this browser.');}break;
+  case 'sound':try{await sound.start();sound.setVolume(sound.volume>0?0:.65);companion.setVolume(world.massage.active?0:sound.volume);recordPlayer.setVolume(sound.volume);if(!sound.volume)speech.stop();$('#sound-button').textContent=sound.volume?'Sound on':'Sound off';}catch{toast('Sound is unavailable in this browser.');}break;
+  case 'cancel-massage':world.massage.cancel();break;
   case 'pet-mops':closePanel();world.mops.pet();break;
   case 'view-pet':world.lookAtPet(selectedPet);closePanel();toast(`Enjoy a moment with ${PETS.find(p=>p.id===selectedPet).name}. ${touchMode()?'Tap Interact':'Click or press E'} to care for them.`);break;
   case 'resume':closePanel();break;
@@ -192,6 +210,7 @@ app.addEventListener('click',async e=>{
  }
 });
 function activateTarget(id,ray=null){
+ if(world.massage.active){world.massage.cancel();return;}
  if(world.handInteraction.active&&!(id==='turntable'&&world.handInteraction.owner===world.turntable))return;
  if(world.houseInteractions.items.has(id)){world.houseInteractions.activate(id,ray);return;}
  if(id==='telescope'){world.telescope.enter(state.hours);return;}
@@ -199,6 +218,7 @@ function activateTarget(id,ray=null){
  if(PETS.some(p=>p.id===id)){selectedPet=id;world.lookAtPet(id);openPanel('pets');}
 }
 function interact(){if(!playing||panel||world.paused||world.telescope.active)return;
+ if(world.massage.active){world.massage.cancel();return;}
  if(world.handInteraction.active){if(world.lookTarget==='turntable'&&world.handInteraction.owner===world.turntable)toggleRecord();return;}
  const selection=currentMemorySelection();if(selection.hovered&&!selection.memory)return;if(selection.aimed){selectedMemory=selection.memory.id;openPanel('memory');return;}
  if(world.lookTarget){activateTarget(world.lookTarget);return;}
@@ -206,6 +226,7 @@ function interact(){if(!playing||panel||world.paused||world.telescope.active)ret
 }
 document.addEventListener('keydown',e=>{
  if(!playing||e.repeat||e.altKey||e.ctrlKey||e.metaKey||isTyping(e.target))return;
+ if(world.massage.active){if(['Escape','KeyE'].includes(e.code)){e.preventDefault();world.massage.cancel();}return;}
  if(world.telescope.active){e.preventDefault();if(['Escape','KeyE'].includes(e.code))leaveTelescope();else if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.code))world.telescope.pan(e.code==='ArrowLeft'?-65:e.code==='ArrowRight'?65:0,e.code==='ArrowUp'?-65:e.code==='ArrowDown'?65:0);return;}
  if(panel){
   if(e.code==='Escape'){e.preventDefault();closePanel();return;}
@@ -218,10 +239,10 @@ document.addEventListener('keydown',e=>{
  if(e.code!=='KeyE')return;e.preventDefault();
  interact();
 });
-document.addEventListener('visibilitychange',()=>{if(document.hidden){recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if((panel!=='memory'||!memoryTakesAudio)&&!world.cinema.active)recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){if(world.massage.active)world.massage.cancel();recordPlayer.suspend();world.unlock();speech.stop();save();if(companion.session&&!companion.muted)companion.mute();}else {if((panel!=='memory'||!memoryTakesAudio)&&!world.cinema.active&&!world.massage.active)recordPlayer.resume();if(playing&&!panel)world.resumeWandering();}});
 window.addEventListener('pagehide',save);
 function currentMemorySelection(){
- if(session.exploring||world.handInteraction.active)return {memory:null,hovered:null,aimed:false};
+ if(session.exploring||world.handInteraction.active||world.massage.active)return {memory:null,hovered:null,aimed:false};
  const p=world.camera.position,d=world.camera.getWorldDirection(p.clone()),all=visitMemories,hovered=lookedAtMemory(all,p,d,{visible:m=>world.memoryVisible(m)});
  const nearby=all.filter(m=>Math.hypot(m.position[0]-p.x,m.position[2]-p.z)<=1.25&&world.memoryVisible(m));
  const selection=selectMemory(nearby,p,d,floorHeight(p.x,p.z));
@@ -229,7 +250,7 @@ function currentMemorySelection(){
  return {...(hovered&&selection.memory?.id!==hovered.id?{memory:null,aimed:false}:selection),hovered};
 }
 let lastAimUpdate=-1;
-function tick(dt){if(!playing)return;timer+=dt;world.cinema.volume=sound.volume;
+function tick(dt){if(!playing)return;updateMassageStatus();timer+=dt;world.cinema.volume=sound.volume;
 if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySelection(),m=selection.hovered||selection.memory,available=selection.memory?.id===m?.id,prompt=$('#memory-proximity'),key=m?m.id+':'+available+':'+!!selection.hovered+':'+m.title+':'+m.date+':'+touchMode():'';
  if(prompt&&prompt.dataset.ids!==key){prompt.dataset.ids=key;prompt.classList.toggle('in-memory-zone',!!available&&!!m);const date=m&&formatMemoryDate(m.date),content=m?`<small style="color:${memoryAppearance(m).css}">${available?'Memory zone · ':''}${memoryAppearance(m).symbol} ${memoryAppearance(m).label}</small><strong>${escape(m.title)}</strong>${date?`<time class="memory-date" datetime="${escape(m.date)}">${escape(date)}</time>`:''}${available&&m.description?`<p class="zone-description">${escape(m.description)}</p>`:''}<span class="zone-instruction">${available?`${touchMode()?'Tap':'Click or press E'} to relive this moment`:'Walk closer to relive'}</span>`:'';prompt.innerHTML=m?(available?`<button data-memory="${escape(m.id)}">${content}</button>`:`<div class="memory-aim-label">${content}</div>`):'';}
  const hint=$('#look-hint');if(hint)hint.hidden=!!m||(world.cinema.active&&world.lookTarget==='cinema-screen');
@@ -238,7 +259,7 @@ if(timer-lastAimUpdate>=.1){lastAimUpdate=timer;const selection=currentMemorySel
  sound.setWater([...world.houseInteractions.items.values()].reduce((level,item)=>item.water&&item.running?Math.max(level,.12*Math.max(0,1-item.pos.distanceTo(world.camera.position)/5)):level,0));
  advanceLife(state,dt);world.hours=state.hours;
  if(timer-savedAt>5){savedAt=timer;save();}if(timer-lastContext>10){lastContext=timer;companion.update(contextForVoice(state,world.room));}updateHUD();
- if(state.personalized&&!companion.session&&!speech.speaking&&timer-lastSpoken>180){lastSpoken=timer;speech.play({kind:'home',cue:1+Math.floor(Math.random()*3),name:state.name},{isCurrent:()=>playing&&!panel});}
+ if(state.personalized&&!world.massage.active&&!companion.session&&!speech.speaking&&timer-lastSpoken>180){lastSpoken=timer;speech.play({kind:'home',cue:1+Math.floor(Math.random()*3),name:state.name},{isCurrent:()=>playing&&!panel});}
 }
 renderMenu();
 // Available only in local development for camera, lighting and state verification.
