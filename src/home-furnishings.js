@@ -3,6 +3,7 @@ import {RoundedBoxGeometry} from 'three/addons/geometries/RoundedBoxGeometry.js'
 import {planPoint} from './house-layout.js';
 import {buildOliveTree} from './olive-tree.js';
 import {buildBalconyWallDetails} from './balcony-wall-details.js';
+import {buildEntranceIslandDetails} from './entrance-island-details.js';
 
 export const FEEDER_PLAN=[278,679];
 export function buildHomeFurnishings(world,root,m){
@@ -49,12 +50,8 @@ export function buildHomeFurnishings(world,root,m){
  const positions=geo.attributes.position,uv=geo.attributes.uv,normals=geo.attributes.normal;for(let i=0;i<positions.count;i++){const xx=positions.getX(i),yy=positions.getY(i),zz=positions.getZ(i);uv.setXY(i,Math.abs(normals.getX(i))>.9?(zz+.45)/.9:(xx+1.25)/2.5,(zz+.45+.3-yy)/1.5);}uv.needsUpdate=true;
  const solid=new THREE.Mesh(geo,stone);solid.position.y=.10;solid.castShadow=solid.receiveShadow=true;console.add(solid);
  box(console,1.605,.10,.365,.15,.05,0,stone);block(console,2.5,.9,.40);world.keydrop=console;
- // Green glass lamp, ceramic vessels, a shallow wooden key bowl and small book.
- const green=world.mat(0x316052,.3,.1);sphere(console,.13,-.25,.60,-.1,green,.82,1.5,.82);
- const shade=new THREE.Mesh(new THREE.SphereGeometry(.25,32,16,0,Math.PI*2,0,Math.PI/2),green);shade.position.set(-.25,.72,-.1);console.add(shade);
- for(let i=0;i<20;i++){const a=i*Math.PI/10;rod(console,[-.25,.97,-.1],[-.25+Math.sin(a)*.245,.735,-.1+Math.cos(a)*.245],.0028,m.black);}
- for(const y of [.76,.82,.88]){const ring=new THREE.Mesh(new THREE.TorusGeometry(Math.sqrt(.25**2-(y-.72)**2),.0025,5,32),m.black);ring.rotation.x=Math.PI/2;ring.position.set(-.25,y,-.1);console.add(ring);}
- world.cyl(.085,.075,.29,-.65,.545,-.08,m.white,console,24);world.cyl(.09,.08,.26,.08,.53,-.11,m.black,console,24);
+ buildEntranceIslandDetails(world,console,m);
+ // A shallow wooden key bowl and small book remain at the clear end.
  sphere(console,.19,.75,.43,.06,m.oak,1.4,.2,1);box(console,.16,.023,.1,.74,.48,.06,m.black);box(console,.20,.07,.13,.92,.435,-.19,m.cream);
  // Photo-based hollow, patinated metal sculpture on a timber presentation box.
  const sculpture=group('Patinated circle sculpture beside cellar',775,649,.45);
