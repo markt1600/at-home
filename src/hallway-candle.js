@@ -10,20 +10,21 @@ const phase=(t,a,b)=>smooth((t-a)/(b-a));
 
 function makeHand(world,parent,side){
  const hand=new THREE.Group();hand.name=side<0?'Left hand lifting candle cover':'Right hand lighting candle';parent.add(hand);
- const skin=world.mat(0xc99470,.9),nails=world.mat(0xd7ab8a,.88),sleeve=world.mat(0xd8d5cc,.96);
+ const skin=world.mat(0xc99470,.9),nails=world.mat(0xd7ab8a,.88);
  const soft=(w,h,d,x,y,z,material)=>{const o=new THREE.Mesh(new RoundedBoxGeometry(w,h,d,2,Math.min(w,h,d)*.32),material);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;hand.add(o);return o;};
  soft(.065,.025,.081,0,0,0,skin);
  for(let i=0;i<4;i++){const x=(i-1.5)*.015,length=[.046,.058,.055,.043][i];soft(.012,.015,length,x,-.002,-.038-length/2,skin);const tip=soft(.012,.019,.018,x,-.007,-.040-length,skin);tip.rotation.x=-.35;soft(.008,.002,.010,x,.004,-.036-length,nails);}
  soft(.018,.019,.050,-side*.038,-.007,-.025,skin).rotation.y=-side*.65;
- soft(.039,.028,.070,0,-.003,.067,skin);soft(.055,.045,.16,0,-.006,.165,sleeve);
- // Fingers move with the palm, so each hand needs only three material draws.
- for(const material of [skin,nails,sleeve]){const parts=hand.children.filter(o=>o.material===material),geometries=parts.map(o=>{o.updateMatrix();return o.geometry.clone().applyMatrix4(o.matrix);});const joined=new THREE.Mesh(mergeGeometries(geometries),material);joined.castShadow=joined.receiveShadow=true;for(const o of parts){o.removeFromParent();o.geometry.dispose();}for(const geometry of geometries)geometry.dispose();hand.add(joined);}
+ soft(.039,.028,.070,0,-.003,.067,skin);
+ // Fingers move with the palm; sleeves are supplied by the player's arm rig.
+ for(const material of [skin,nails]){const parts=hand.children.filter(o=>o.material===material),geometries=parts.map(o=>{o.updateMatrix();return o.geometry.clone().applyMatrix4(o.matrix);});const joined=new THREE.Mesh(mergeGeometries(geometries),material);joined.castShadow=joined.receiveShadow=true;for(const o of parts){o.removeFromParent();o.geometry.dispose();}for(const geometry of geometries)geometry.dispose();hand.add(joined);}
  return hand;
 }
 
 export class HallwayCandle{
  constructor(world,candle,cover,m){
   this.world=world;this.cover=cover;this.root=new THREE.Group();this.root.name='Hallway candle flames, hands and smoke';this.root.userData.dynamic=true;candle.add(this.root);cover.userData.dynamic=true;
+  this.handAnchor=candle;this.handStance=[.40,0,.62];
   this.park=new THREE.Vector3(.88,0,.05);this.hands=[makeHand(world,this.root,-1),makeHand(world,this.root,1)];
   this.lighter=new THREE.Group();this.lighter.name='Long candle lighter';this.hands[1].add(this.lighter);
   const grip=new THREE.Mesh(new RoundedBoxGeometry(.026,.026,.075,2,.006),m.black);grip.position.set(.006,-.018,-.036);this.lighter.add(grip);
@@ -43,11 +44,13 @@ export class HallwayCandle{
   this.reset();
  }
  get busy(){return !['covered','lit'].includes(this.stage);}
- get label(){return {covered:'Light hallway candle',uncovering:'Lifting glass cover…',lighting:'Lighting five wicks…',lit:'Blow out candle',extinguishing:'Candle smoke…',covering:'Replacing glass cover…'}[this.stage];}
- reset(){this.stage='covered';this.time=0;this.elapsed=0;this.litCount=0;this.cover.position.set(0,0,0);this.cover.rotation.set(0,0,0);this.flames.forEach(f=>f.visible=false);this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.smoke.visible=false;this.glow.material.uniforms.strength.value=0;}
+ get label(){if(this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return 'Moving into reach…';return {covered:'Light hallway candle',uncovering:'Lifting glass cover…',lighting:'Lighting five wicks…',lit:'Blow out candle',extinguishing:'Candle smoke…',covering:'Replacing glass cover…'}[this.stage];}
+ reset(){this.world.handInteraction?.finish(this);this.stage='covered';this.time=0;this.elapsed=0;this.litCount=0;this.cover.position.set(0,0,0);this.cover.rotation.set(0,0,0);this.flames.forEach(f=>f.visible=false);this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;this.smoke.visible=false;this.glow.material.uniforms.strength.value=0;}
+ cancelHandAction(){this.reset();}
  enter(stage){this.stage=stage;this.time=0;}
  activate(){
   if(this.busy)return false;
+  if(this.world.handInteraction&&!this.world.handInteraction.begin(this))return false;
   if(this.stage==='covered'){this.enter('uncovering');return true;}
   const camera=this.root.worldToLocal(this.world.camera.position.clone());this.breath.set(-camera.x,0,-camera.z).normalize();this.enter('extinguishing');return true;
  }
@@ -72,7 +75,7 @@ export class HallwayCandle{
   p.needsUpdate=size.needsUpdate=opacity.needsUpdate=true;this.smoke.visible=visible;
  }
  update(dt){
-  if(dt<=0)return;this.time+=dt;this.elapsed+=dt;const t=this.time;this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;
+  if(dt<=0||this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return;this.time+=dt;this.elapsed+=dt;const t=this.time;this.hands.forEach(h=>h.visible=false);this.lighter.visible=false;
   if(this.stage==='uncovering'||this.stage==='covering'){
    const reverse=this.stage==='covering';this.cover.position.copy(this.coverPath(reverse?4.1-t:t));this.gripCover(t);
    if(t>=4.1){this.cover.position.copy(reverse?new THREE.Vector3():this.park);this.hands.forEach(h=>h.visible=false);this.enter(reverse?'covered':'lighting');}
@@ -89,5 +92,6 @@ export class HallwayCandle{
   const blowing=this.stage==='extinguishing'?phase(t,.05,.34):0;
   this.flames.forEach((f,i)=>{f.visible=this.stage==='extinguishing'?t<.35+i*.06:i<this.litCount;f.scale.set(1,1+Math.sin(this.elapsed*9+i*1.9)*.11+Math.sin(this.elapsed*17+i)*.045,1);f.rotation.set(this.breath.z*blowing*.65+Math.sin(this.elapsed*5+i)*.06,0,-this.breath.x*blowing*.65);});
   this.glow.material.uniforms.strength.value=this.litCount/5*(.94+Math.sin(this.elapsed*9)*.06);
+  if(!this.busy)this.world.handInteraction?.finish(this);
  }
 }

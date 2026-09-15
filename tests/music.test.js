@@ -12,6 +12,10 @@ class FakeAudio extends EventTarget{
  pause(){this.paused=true;this.dispatchEvent(new Event('pause'));}
 }
 const sound=()=>({volume:.65,music:false,async start(){}});
+test('an unreachable hand interaction leaves the record off without downloading music',async()=>{
+ let loads=0;const audio=new FakeAudio(),s=sound(),player=new RecordPlayer(s,{audio,onStart:()=>false,load:async()=>{loads++;return [];}});
+ await player.start();assert.equal(loads,0);assert.equal(player.enabled,false);assert.equal(player.loading,false);assert.equal(player.spinning,false);assert.equal(audio.paused,true);
+});
 test('record rotation follows real playback, playlist endings, memory suspension and stop',async()=>{
  const audio=new FakeAudio(),s=sound(),r=new RecordPlayer(s,{audio,load:async()=>[{src:'a.wav',title:'One'},{src:'b.flac',title:'Two'}]});
  assert.equal(r.spinning,false);await r.start();assert.equal(r.spinning,true);assert.equal(audio.src,'a.wav');assert.equal(s.music,false);

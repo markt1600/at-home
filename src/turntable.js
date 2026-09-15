@@ -9,9 +9,10 @@ const durations={opening:1.7,placing:2.4,starting:1.1,cueing:1.8,stopping:1.5};
 // Only the lid, record, tonearm and hands move; the amplifier rack stays batched.
 export class Turntable{
  constructor(world,rack,m){
+  this.world=world;this.handAnchor=rack;this.handStance=[0,0,.64];
   this.root=new THREE.Group();this.root.name='Animated turntable';this.root.userData.dynamic=true;rack.add(this.root);
   const material=(color,r=.55,metal=0)=>world.mat(color,r,metal);
-  const steel=m.steel,black=m.black,skin=material(0xc99470,.9),nails=material(0xd7ab8a,.88),sleeve=material(0xd8d5cc,.96);
+  const steel=m.steel,black=m.black,skin=material(0xc99470,.9),nails=material(0xd7ab8a,.88);
   const mesh=(geo,mat,x,y,z,parent=this.root)=>{const o=new THREE.Mesh(geo,mat);o.position.set(x,y,z);o.castShadow=!mat.transparent;o.receiveShadow=true;parent.add(o);return o;};
   const box=(w,h,d,x,y,z,mat,parent=this.root)=>mesh(new THREE.BoxGeometry(w,h,d),mat,x,y,z,parent);
   const cylinder=(r,h,x,y,z,mat,parent=this.root)=>mesh(new THREE.CylinderGeometry(r,r,h,48),mat,x,y,z,parent);
@@ -45,33 +46,37 @@ export class Turntable{
     soft(.008,.002,.012,x,.007,-.032-length,nails,hand);
    }
    const thumb=soft(.018,.019,.052,-side*.041,-.002,-.009,skin,hand);thumb.rotation.y=-side*.52;
-   soft(.039,.028,.07,0,-.003,.067,skin,hand);soft(.055,.045,.14,0,-.006,.164,sleeve,hand);
+   soft(.039,.028,.07,0,-.003,.067,skin,hand);
    return hand;
   });
   this.reset();
  }
- reset(){this.resolve?.(false);this.resolve=null;this.stage='idle';this.time=0;this.speed=0;this.recordPresent=false;this.buffered=false;this.lid.rotation.x=0;this.arm.rotation.set(-.10,.05,0);this.record.position.set(-.055,.849,0);this.record.rotation.set(0,0,0);this.record.visible=false;this.hands.forEach(h=>h.visible=false);}
+ reset(){this.world.handInteraction?.finish(this);this.resolve?.(false);this.resolve=null;this.stage='idle';this.time=0;this.speed=0;this.recordPresent=false;this.buffered=false;this.lid.rotation.x=0;this.arm.rotation.set(-.10,.05,0);this.record.position.set(-.055,.849,0);this.record.rotation.set(0,0,0);this.record.visible=false;this.hands.forEach(h=>h.visible=false);}
+ cancelHandAction(){this.reset();this.world.onHandRecordCancel?.();}
  start(){
+  if(this.world.handInteraction&&!this.world.handInteraction.begin(this))return false;
   this.resolve?.(false);this.completion=new Promise(resolve=>{this.resolve=resolve;});this.buffered=false;
   this.startLid=this.lid.rotation.x;this.enter(this.recordPresent?'starting':'opening');
+  return true;
  }
  ready(){this.buffered=true;return this.completion;}
  stop(){
   this.resolve?.(false);this.resolve=null;this.buffered=false;
   if(this.stage==='idle')return;
+  if(this.world.handInteraction&&!this.world.handInteraction.begin(this)){this.reset();return;}
   this.stopArm={x:this.arm.rotation.x,y:this.arm.rotation.y};this.enter('stopping');
   if(!this.recordPresent)this.record.visible=false;
  }
  enter(stage){this.stage=stage;this.time=0;}
  get busy(){return !['idle','playing'].includes(this.stage);}
- get label(){return this.stage==='waiting'?'Waiting for music · Stop record':this.busy&&this.stage!=='stopping'?'Preparing record · Stop':'Play the record';}
+ get label(){if(this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return 'Moving into reach…';return this.stage==='waiting'?'Waiting for music · Stop record':this.busy&&this.stage!=='stopping'?'Preparing record · Stop':'Play the record';}
  hand(index,x,y,z,rotation=0){const h=this.hands[index];h.visible=true;h.position.set(x,y,z);h.rotation.set(0,rotation,0);return h;}
  armHand(amount){
   const target=new THREE.Vector3(0,.035,.19).applyEuler(this.arm.rotation).add(this.arm.position);
   return this.hand(1,mix(.29,target.x,amount),mix(.73,target.y,amount),mix(.41,target.z+.052,amount));
  }
  update(dt,playing=false){
-  if(dt<=0)return;this.time+=dt;this.hands.forEach(h=>h.visible=false);
+  if(dt<=0||this.busy&&this.world.handInteraction&&!this.world.handInteraction.ready(this))return;this.time+=dt;this.hands.forEach(h=>h.visible=false);
   const t=this.time,d=durations[this.stage];
   let motor=['starting','waiting','cueing'].includes(this.stage)||(this.stage==='playing'&&playing);
   if(this.stage==='opening'){
@@ -103,5 +108,6 @@ export class Turntable{
   this.speed=THREE.MathUtils.damp(this.speed,motor?1:0,4,dt);
   if(this.recordPresent)this.record.rotation.y-=dt*this.speed*Math.PI*2*(33+1/3)/60;
   this.platter.rotation.y=this.record.rotation.y;this.light.material.emissive.setHex(motor?0x69975b:0x000000);
+  if(!this.busy){this.hands.forEach(h=>h.visible=false);this.world.handInteraction?.finish(this);}
  }
 }

@@ -31,7 +31,7 @@ export class RecordPlayer{
  async toggle(){if(this.enabled){this.stop();this.onMessage('The needle lifts and the record comes to rest.');return;}await this.start();}
  async start(){
   const version=++this.version;this.abort?.abort();this.abort=new AbortController();
-  this.enabled=true;this.suspended=false;this.loading=true;this.trackLoaded=false;this.sound.music=false;this.onStart();this.changed();
+  this.enabled=true;this.suspended=false;this.loading=true;this.trackLoaded=false;this.sound.music=false;if(this.onStart()===false){this.enabled=false;this.loading=false;this.changed();return;}this.changed();
   try{
    // Both requests begin during the gesture, before any animation wait.
    const tracksPromise=this.load().catch(()=>[]);await this.sound.start();const tracks=await tracksPromise;
