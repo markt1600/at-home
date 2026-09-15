@@ -1,13 +1,14 @@
 import {cleanMemoryFilter} from './memory-filter.js';
+import {cleanBone} from './pet-bone.js';
 export const SAVE_KEY='at-home-save-v1';
 export const cleanName=value=>String(value||'').normalize('NFKC').replace(/[\p{C}<>]/gu,'').trim().slice(0,28)||'Friend';
 export const PETS=[{id:'miso',name:'Cyrus',kind:'Cat',food:'a bowl of cat food',play:'a feather toy',height:.40,plan:[429,678],carePlan:[570,764]}, {id:'sunny',name:'Leo',kind:'English cream dachshund',food:'a bowl of dog food',play:'a favorite soft ball',height:.40,plan:[472,681],carePlan:[570,800]}, {id:'pebble',name:'Pebble',kind:'Tortoise',food:'fresh leafy greens',play:'a gentle enrichment moment',height:.20,plan:[350,851]}];
 export const ACTIVITIES={tea:{title:'Make a cup of tea',room:'kitchen',text:'The kettle settles. You take a slow sip of warm tea.'},record:{title:'Put on a record',room:'living',text:'A gentle melody fills the living room.'},plants:{title:'Tend the plants',room:'balcony',text:'You check the leaves and water the plants that need it.'},book:{title:'Read a few pages',room:'bedroom',text:'You settle into a story and let the world wait for a moment.'},view:{title:'Watch the sky',room:'balcony',text:'You pause by the balcony and watch the changing light.'}};
-export const newLife=(name='')=>({version:1,name:cleanName(name),hours:7.25,pace:1,personalized:true,memoryFilter:{from:'',to:'',includeUndated:false},journal:[],pets:Object.fromEntries(PETS.map(p=>[p.id,{food:80,water:85,affection:75}]))});
+export const newLife=(name='')=>({version:1,name:cleanName(name),hours:7.25,pace:1,personalized:true,bone:null,memoryFilter:{from:'',to:'',includeUndated:false},journal:[],pets:Object.fromEntries(PETS.map(p=>[p.id,{food:80,water:85,affection:75}]))});
 const bounded=(n,min,max,fallback)=>Number.isFinite(n)?Math.max(min,Math.min(max,n)):fallback;
 export function restoreLife(raw){
  try{const s=typeof raw==='string'?JSON.parse(raw):raw;if(!s||s.version!==1)return null;const n=newLife(s.name);n.hours=bounded(s.hours,0,240000,7.25);n.pace=[0,.5,1,2].includes(s.pace)?s.pace:1;n.personalized=s.personalized!==false;try{n.memoryFilter=cleanMemoryFilter(s.memoryFilter);}catch{}
- n.journal=Array.isArray(s.journal)?s.journal.filter(x=>typeof x.text==='string'&&Number.isFinite(x.hours)).slice(-60):[];
+ n.bone=cleanBone(s.bone);n.journal=Array.isArray(s.journal)?s.journal.filter(x=>typeof x.text==='string'&&Number.isFinite(x.hours)).slice(-60):[];
  for(const p of PETS)for(const key of ['food','water','affection'])n.pets[p.id][key]=bounded(s.pets?.[p.id]?.[key],20,100,n.pets[p.id][key]);return n;}catch{return null;}
 }
 export const timeOfDay=hours=>((hours%24)+24)%24;

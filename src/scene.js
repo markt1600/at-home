@@ -13,7 +13,7 @@ import {BalconyLife} from './balcony-life.js';
 import {applyHomeDetails} from './home-furnishings.js';
 import {applyDiningArt} from './dining-details.js';
 import {applyBalconyWallArt} from './balcony-wall-details.js';
-import {preloadPetFilms} from './pet-media.js';
+import {preloadPetFilms,preloadPetActivities} from './pet-media.js';
 import {createActor} from './actors.js';
 import {createMemoryMarker} from './memory-marker.js';
 import {PETS} from './life.js';
@@ -26,6 +26,7 @@ import {installTouchLook} from './touch-controls.js';
 import {installDesktopInteraction} from './desktop-controls.js';
 import {optimizeLocalLights} from './render-lighting.js';
 import {AdaptiveResolution} from './render-quality.js';
+import {installPetBone} from './pet-bone-model.js';
 export class House{
  constructor(canvas,onLook=()=>{},onTick=()=>{}){
   this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
@@ -33,7 +34,7 @@ export class House{
   this.renderQuality=new AdaptiveResolution(this.renderer.getPixelRatio());
   Object.assign(this,{materials:{},colliders:[],targets:[],keys:{},actors:new Map(),mode:'menu',paused:false,motion:true,yaw:0,pitch:0,elapsed:0,hours:7.25,room:'living',walking:false});
   buildHouse(this);this.targets=[];optimizeHouse(this);this.cinema.installRoomDimming();this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
-  this.petRoaming=new PetRoaming(this.colliders);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
+  this.petRoaming=new PetRoaming(this.colliders);this.petBone=installPetBone(this);this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   this.viewportDirty=true;for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,()=>{this.viewportDirty=true;});
   window.visualViewport?.addEventListener('resize',()=>{this.viewportDirty=true;});
   canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();this.contextLost=true;this.keys={};this.touchMove={x:0,z:0};});
@@ -74,6 +75,7 @@ export class House{
  syncPets(s){this.life=s;if(!s||!this.framing)return;const specs=PETS.map(p=>({...p,position:planPoint(...p.plan)}));
   const ids=new Set(specs.map(p=>p.id));for(const [id,g] of this.actors)if(!ids.has(id)){this.scene.remove(g);g.userData.dispose();this.actors.delete(id);}
   for(const spec of specs){if(!this.framing[spec.id])continue;let g=this.actors.get(spec.id);if(!g){g=createActor(spec.id,spec.height,this.framing[spec.id],this.motionFraming);this.actors.set(spec.id,g);this.scene.add(g);const p=this.petRoaming.register(spec.id,spec.plan);g.position.set(p.x,p.y,p.z);}}
+  this.petBone.bind(s);this.petBone.updateModel();if(!this.petActivitiesWarming){this.petActivitiesWarming=true;setTimeout(async()=>{for(const id of ['sunny','miso'])await preloadPetActivities(id);},5000);}
  }
  greetPlayer(){this.petRoaming.greet(this.camera.position,this.yaw);}
  focus(id){const p=HOUSE_VIEWS[id]||HOUSE_VIEWS.living;this.camera.position.set(...p.slice(0,3));this.yaw=p[3];this.pitch=p[4];this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.room=id;this.keys={};this.eyeHeight=1.67;this.feet={x:this.camera.position.x,y:floorHeight(this.camera.position.x,this.camera.position.z),z:this.camera.position.z,vy:0,grounded:true};this.jumpQueued=false;}
@@ -101,14 +103,14 @@ export class House{
    this.camera.position.y=step.grounded?THREE.MathUtils.lerp(this.camera.position.y,eye,1-Math.exp(-18*dt)):eye;
    this.camera.rotation.set(this.pitch,this.yaw,0,'YXZ');this.onTick(dt);this.room=HOUSE_ROOMS.find(r=>pointInPolygon(this.camera.position.x,this.camera.position.z,r.polygon))?.id||this.room;
   }
-  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)actor.userData.heading=Math.atan2(p.vx,p.vz);actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
+  this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});this.petBone.update(active&&this.motion?dt:0,this.camera.position);for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)p.heading=Math.atan2(p.vx,p.vz);actor.userData.heading=p.heading||0;actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
   this.houseInteractions.update(active?dt:0);
   this.clawGame.update(this.clawGame.active?dt:0);this.pinballGame.update(this.pinballGame.active?dt:0);this.cinema.update(dt);
   this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());
   this.memoryMarkers?.children.forEach(g=>g.visible=g.position.distanceTo(this.camera.position)<6);
   const animated=!document.hidden&&(this.mode==='menu'||this.mode==='play'&&(!this.paused||this.previewAnimation));
   let petAim=0;for(const [id,g] of this.actors){const distance=g.position.distanceTo(this.camera.position);g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);g.userData.update(animated?dt:0,this.motion,distance<9);const d=g.position.clone().add(new THREE.Vector3(0,PETS.find(p=>p.id===id)?.height/2||1.3,0)).sub(this.camera.position),aim=forward.dot(d.clone().normalize());if(checkAim&&distance<3.3&&aim>.85&&aim>petAim){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.08);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent)){nearest=id;petAim=aim;}}}
-  for(const corner of this.petCorners.values()){corner.care=Math.max(0,corner.care-(animated?dt:0));for(const content of corner.contents){content.scale.setScalar(corner.care>0?1+Math.sin(corner.care*7)*.05:1);}}
+  this.petBone.updateModel();for(const corner of this.petCorners.values()){corner.care=Math.max(0,corner.care-(animated?dt:0));for(const content of corner.contents){content.scale.setScalar(corner.care>0?1+Math.sin(corner.care*7)*.05:1);}}
   if(checkAim&&this.turntablePosition){const d=this.turntablePosition.clone().sub(this.camera.position);if(d.length()<2.3&&forward.dot(d.clone().normalize())>.72){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.30);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='turntable';}}
   if(checkAim&&this.windowLounge?.telescope){const d=this.windowLounge.telescope.position.clone().add(new THREE.Vector3(0,1.49,.54)).sub(this.camera.position);if(d.length()<2.5&&forward.dot(d.clone().normalize())>.68){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,Math.max(.05,d.length()-.25));if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent))nearest='telescope';}}
   if(checkAim){const fixture=this.houseInteractions.select();if(fixture)nearest=fixture;}

@@ -1,0 +1,134 @@
+[
+  {
+    "file": "art/motion/compact/leo-chew.mp4",
+    "bytes": 115862,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the first frame, same long low body, feathered ears and fluffy tail."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Leo remains lying in place, both front paws holding the single ivory chew bone. His jaw makes small repeated chewing and licking motions on its end, ears shift gently and his fluffy tail gives slow relaxed wags. The paws retain the bone the entire time. No extra bones. Camera remains fixed in the supplied front/three-quarter view. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "6df96820-da6a-45d3-89dc-821f75e8e883",
+    "normalization": true
+  },
+  {
+    "file": "art/motion/compact/miso-groom.mp4",
+    "bytes": 181756,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the first frame. Same huge rounded belly and broad torso, green eyes, dark tail tip. Entirely orange fur without white patches. No weight loss."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Cyrus remains seated in this exact pose and rhythmically licks his raised front paw, then gently wipes the same paw across his cheek and ear, returning it to his mouth. His enormous belly softly moves with breathing. No props. Camera remains fixed in the supplied front/three-quarter view. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "a33adb55-cea0-43d7-92b6-f0b8413e2a1a",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/miso-lounge.mp4",
+    "bytes": 102881,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the first frame. Same huge rounded belly and broad torso, green eyes, dark tail tip. Entirely orange fur without white patches. No weight loss."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Cyrus remains in the exact upright reclined sitting pose, leaning back against an invisible support. His hind legs spread forward, relaxed front paws dangle at the sides of his enormous belly spilling over his lap. He blinks slowly, turns his head a little, breathes gently and flicks the tip of his tail. Never stands up or becomes thinner. No props. Camera remains fixed in the supplied front/three-quarter view. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "ab9fe962-3f30-4717-9774-ceb05fc7e4fc",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/leo-chew-overhead.mp4",
+    "bytes": 107245,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Leo, the exact English cream long-haired dachshund in the first frame, same long low body, feathered ears and fluffy tail."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Leo remains lying in place, both front paws holding the single ivory chew bone. His jaw makes small repeated chewing and licking motions on its end, ears shift gently and his fluffy tail gives slow relaxed wags. The paws retain the bone the entire time. No extra bones. Camera is locked directly overhead, looking vertically down at the back. Head remains towards the top of the image. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. The tail remains comfortably inside the image. The background stays the exact same vivid magenta on EVERY frame: absolutely no color cycling, blue, green, gradient or lighting change. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "0c456416-3297-4167-9335-69b3d80a1150",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/miso-groom-overhead.mp4",
+    "bytes": 132170,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the first frame. Same huge rounded belly and broad torso, green eyes, dark tail tip. Entirely orange fur without white patches. No weight loss."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Cyrus remains seated in this exact pose and rhythmically licks his raised front paw, then gently wipes the same paw across his cheek and ear, returning it to his mouth. His enormous belly softly moves with breathing. No props. Camera is locked directly overhead, looking vertically down at the back. Head remains towards the top of the image. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. The tail remains comfortably inside the image. The background stays the exact same vivid magenta on EVERY frame: absolutely no color cycling, blue, green, gradient or lighting change. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "f8493d8e-d12b-4502-9690-1417dbbe774a",
+    "normalization": false
+  },
+  {
+    "file": "art/motion/compact/miso-lounge-overhead.mp4",
+    "bytes": 157491,
+    "model": "MiniMax H3 fl2va local",
+    "steps": 32,
+    "sampler": "res_multistep",
+    "scheduler": "simple",
+    "denoise": 1,
+    "frames": 124,
+    "prompt": {
+      "subject_definitions": {
+        "pet": "Cyrus, the exact immensely overweight cinnamon-orange cat in the first frame. Same huge rounded belly and broad torso, green eyes, dark tail tip. Entirely orange fur without white patches. No weight loss."
+      },
+      "summary": "A seamless photoreal pet activity loop for a game on a pure flat magenta background.",
+      "retention_analysis": "The supplied first and last frames fix the exact animal identity, composition, scale, pose and camera. Keep the entire animal, feet, ears and tail in the image. Flat RGB 255,0,255 background and ground, no shadows or scenery.",
+      "detailed_description": "Cyrus remains in the exact upright reclined sitting pose, leaning back against an invisible support. His hind legs spread forward, relaxed front paws dangle at the sides of his enormous belly spilling over his lap. He blinks slowly, turns his head a little, breathes gently and flicks the tip of his tail. Never stands up or becomes thinner. No props. Camera is locked directly overhead, looking vertically down at the back. Head remains towards the top of the image. Keep body centered, paws planted, framing unchanged, no camera motion, sliding or extra limbs. End in exactly the initial pose.",
+      "overall_soundscape": "Silent.",
+      "non_diegetic_music": "None."
+    },
+    "job": "fcb4d54c-cc7a-41cb-9362-1c4027872819",
+    "normalization": false
+  }
+]

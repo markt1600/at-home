@@ -45,6 +45,7 @@ world.onInteract=interact;
 world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
 world.onLiftArrival=()=>{sound.tone(660,.4,.035);sound.tone(880,.5,.035,.22);};
 world.onHouseMessage=toast;
+world.onBoneChange=save;
 world.onClawPlay=()=>openPanel('claw');world.onPinballPlay=()=>openPanel('pinball');
 world.onCinemaPlay=()=>{if(world.cinema.active){stopCinema();return;}const choices=cinemaVideos(activeMemories());if(!choices.length){toast('No video memories in this date range. Add a video in the memory editor, or choose another time period.');return;}startCinema(choices[Math.floor(Math.random()*choices.length)]);};
 world.onStep=()=>sound.step();world.hours=state.hours;world.syncPets(state);
