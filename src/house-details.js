@@ -19,7 +19,7 @@ export function buildSecondBedroom(world,root,m){
  const {box,soft,at,block,cyl}=helpers(world,root,m);
  // Enter eastwards, with the mirror on the north (left) wall. The room opens
  // north of the closet; the bed is on its west side and piano/desk on the east.
- const bed=at(954,339);bed.name='Second bedroom bed';
+ const bed=at(954,339);bed.name='Penny’s Room bed';
  soft(2.08,.28,2.12,0,.23,0,'cream',bed);soft(2,.24,2.06,0,.47,0,'cream',bed);
  soft(.12,1.16,2.17,-1.01,.63,0,'cream',bed);
  for(const z of [-.53,.53]){const pillow=soft(.45,.16,.73,-.7,.66,z,'white',bed);pillow.rotation.z=-.1;}
@@ -44,7 +44,7 @@ export function buildSecondBedroom(world,root,m){
  world.guestClosets={entryStorage,closet};
  const [mx,mz,my]=GUEST_MIRROR_POSITION;box(.92,2.22,.055,mx,my,mz,'oak');box(.80,2.1,.061,mx,my,mz+.012,0x84928b);
  // Upright piano faces the bed. Its keyboard and pedals remain below the lid.
- const piano=at(1040,385,.75,-Math.PI/2);piano.name='Second bedroom piano';
+ const piano=at(1040,385,.75,-Math.PI/2);piano.name='Penny’s Room piano';
  box(1.48,1.16,.4,0,.58,-.08,'black',piano);box(1.51,.08,.6,0,.77,0,'black',piano);
  for(let i=0;i<35;i++){const x=-.7+i*.04;box(.038,.022,.19,x,.827,.17,'white',piano);if(![2,6].includes(i%7))box(.022,.026,.11,x+.021,.852,.125,'black',piano);}
  for(const x of [-.65,.65])box(.055,.73,.06,x,.365,.25,'black',piano);

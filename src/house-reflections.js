@@ -10,7 +10,7 @@ export function reflectionSurfaces(){
  return [
   {id:'bedroom-mirror',label:'bedroom mirror',position:[MIRROR_POSITION[0],MIRROR_POSITION[2],MIRROR_POSITION[1]],width:.87,height:2.08,yaw:MIRROR_YAW,offset:.045},
   pane('bedroom-side-mirror','mirror beside bedside cupboard',[619,398],2.015,.45,2.36,Math.PI,false,.041),
-  {id:'guest-mirror',label:'second bedroom mirror',position:[GUEST_MIRROR_POSITION[0],GUEST_MIRROR_POSITION[2],GUEST_MIRROR_POSITION[1]],width:.8,height:2.1,yaw:0,offset:.048},
+  {id:'guest-mirror',label:'Penny’s Room mirror',position:[GUEST_MIRROR_POSITION[0],GUEST_MIRROR_POSITION[2],GUEST_MIRROR_POSITION[1]],width:.8,height:2.1,yaw:0,offset:.048},
   pane('vanity-mirror','main bathroom vanity mirror',MASTER_VANITY.mirror,MASTER_VANITY.mirrorY,MASTER_VANITY.mirrorWidth,MASTER_VANITY.mirrorHeight,0,false,.027),
   pane('guest-bath-mirror','second bathroom mirror',GUEST_BATH_MIRROR.plan,GUEST_BATH_MIRROR.y,GUEST_BATH_MIRROR.width,GUEST_BATH_MIRROR.height,GUEST_BATH_MIRROR.yaw,false,.027),
   pane('powder-mirror','powder room mirror',POWDER_MIRROR.plan,POWDER_MIRROR.y,POWDER_MIRROR.width,POWDER_MIRROR.height,POWDER_MIRROR.yaw,false,.027),
