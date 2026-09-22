@@ -14,7 +14,7 @@ import {memoryStorageLabel,formatFileSize} from './memory-storage.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let items=[],selected=null,session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[],pendingReplacements=[],replacementPreviews=[];
+let items=[],selected=new URLSearchParams(location.search).get('memory'),session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[],pendingReplacements=[],replacementPreviews=[];
 let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined;
 function soundtrackPicker(m){return `<div class="memory-soundtrack" data-audio-drop><h3>Memory soundtrack <small>Optional</small></h3><p class="fine">A song plays continuously while the photos cycle. House audio pauses until you return. For mixed albums, it replaces video audio too.</p>${m?.soundtrack?`<p>${esc(m.soundtrack.title)}</p><audio controls preload="none" src="${esc(m.soundtrack.src)}"></audio>`:''}<label>Drop a song here or choose audio<input name="soundtrack" type="file" accept="${AUDIO_ACCEPT}"></label><p class="fine">MP3, M4A/AAC, WAV, Ogg/Opus, FLAC or WebM audio · Up to 100 MB</p><p id="soundtrack-selection" role="status"></p><button type="button" data-action="remove-soundtrack">No soundtrack</button></div>`;}
 function selectSoundtrack(files){if(files.length!==1)throw Error('Choose one song for this memory.');pendingSoundtrack=validateSoundtrack(files[0]);root.querySelector('#soundtrack-selection').textContent=pendingSoundtrack.name+' — ready to save';status('Soundtrack ready. Save the memory to attach it.');}
@@ -70,6 +70,7 @@ function render(){
  root.querySelector('[name="library-filter"]').value=libraryFilter;
  const musicHost=document.createElement('section');musicHost.id='music-studio';root.querySelector('main').append(musicHost);mountMusicLibrary(musicHost,{authenticated:session.authenticated});
  const musicLink=document.createElement('a');musicLink.href='#music-studio';musicLink.textContent='Turntable music';root.querySelector('header').append(musicLink);
+ const phoneLink=document.createElement('a');phoneLink.className='phone-upload-link';phoneLink.href='/admin/upload';phoneLink.textContent='Upload from iPhone / phone';root.querySelector('.intro').append(phoneLink);
  const host=document.querySelector('#floor-plan');
  if(host)floorPlan=mountMemoryFloorPlan(host,{position:m?.position||placedMemory(MEMORY_PLACEMENTS[0]).position,memories:items.filter(i=>i.id!==selected&&!i.petId),disabled:()=>busy,onChange:()=>{document.querySelector('select[name="placement"]').value='custom';}});
  syncMemorySource(m?.petId);

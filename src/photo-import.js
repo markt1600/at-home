@@ -18,22 +18,25 @@ async function convertHeic(file){
  }finally{bitmap?.close();}
 }
 
-export async function prepareMemoryPhotos(input,{photosOnly=false,existing=0,onProgress=()=>{},convert=convertHeic,compress=compressPhoto}={}){
+export async function prepareMemoryPhotos(input,{photosOnly=false,existing=0,onProgress=()=>{},convert=convertHeic,compress=compressPhoto,normalize=false,signal}={}){
  const files=Array.from(input||[]);if(!files.length)throw Error('Choose a photo or video first.');
  if(files.length+existing>MAX_MEMORY_ITEMS)throw Error(`A memory can hold up to ${MAX_MEMORY_ITEMS} photos and videos.`);
  // Validate the entire selection before spending time converting anything.
  for(const file of files){if(isHeicFile(file)){if(!file.size||file.size>250*1024*1024)throw Error('Choose HEIC photos up to 250 MB each.');}else validateMemoryFiles([file],{photosOnly});}
  const ready=[];
  for(let i=0;i<files.length;i++){
-  const file=files[i];if(!isHeicFile(file)){ready.push(file);continue;}
-  onProgress(`Preparing iPhone photo ${i+1} of ${files.length}: ${file.name}…`);
-  try{const blob=await convert(file);if(!blob?.size||blob.type!=='image/jpeg')throw Error('No image');
-   ready.push(new File([blob],(file.name||'iPhone photo').replace(/\.(heic|heif)$/i,'')+'.jpg',{type:'image/jpeg',lastModified:file.lastModified}));
-  }catch{throw Error(`Could not convert “${file.name}”. Try exporting this photo as JPEG from Photos and adding it again. Your existing memory has not changed.`);}
- }
- for(let i=0;i<ready.length;i++)if(ready[i].type.startsWith('image/')&&ready[i].size>MAX_PHOTO_BYTES){
-  onProgress(`Compressing photo ${i+1} of ${ready.length} to 1 MB or less…`);ready[i]=await compress(ready[i]);
-  if(!ready[i]?.size||ready[i].size>MAX_PHOTO_BYTES)throw Error('Could not compress this photo to 1 MB. No changes have been saved.');
+  signal?.throwIfAborted();let file=files[i];
+  if(isHeicFile(file)){
+   onProgress(`Preparing iPhone photo ${i+1} of ${files.length}: ${file.name}…`);
+   try{const blob=await convert(file);if(!blob?.size||blob.type!=='image/jpeg')throw Error('No image');
+    file=new File([blob],(file.name||'iPhone photo').replace(/\.(heic|heif)$/i,'')+'.jpg',{type:'image/jpeg',lastModified:file.lastModified});
+   }catch{throw Error(`Could not convert “${file.name}”. Try exporting this photo as JPEG from Photos and adding it again. Your existing memory has not changed.`);}
+  }
+  if(file.type.startsWith('image/')&&(normalize||file.size>MAX_PHOTO_BYTES)){
+   onProgress(`Compressing photo ${i+1} of ${files.length} to 1 MB or less…`);file=await compress(file,{force:normalize});
+   if(!file?.size||file.size>MAX_PHOTO_BYTES)throw Error('Could not compress this photo to 1 MB. No changes have been saved.');
+  }
+  signal?.throwIfAborted();ready.push(file);
  }
  return validateMemoryFiles(ready,{photosOnly,existing});
 }

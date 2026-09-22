@@ -25,10 +25,10 @@ async function decodePhoto(file){
  }
 }
 
-export async function compressPhoto(file,{maxBytes=MAX_PHOTO_BYTES,decode=decodePhoto}={}){
+export async function compressPhoto(file,{maxBytes=MAX_PHOTO_BYTES,decode=decodePhoto,force=false}={}){
  if(!/^image\/(jpeg|png|webp)$/.test(file.type||''))throw Error('Choose a JPG, PNG or WebP photo.');
  if(!file.size)throw Error('This photo is empty.');
- if(file.size<=maxBytes)return file;
+ if(file.size<=maxBytes&&!force)return file;
  const bitmap=await decode(file);
  try{
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d');if(!ctx)throw Error('Photo compression is unavailable in this browser.');

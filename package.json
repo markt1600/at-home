@@ -15,6 +15,7 @@
     "@elevenlabs/client": "^1.25.0",
     "@vercel/blob": "^2.8.0",
     "heic-to": "1.5.2",
+    "mediabunny": "1.59.0",
     "three": "0.180.0"
   },
   "devDependencies": {

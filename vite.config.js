@@ -7,8 +7,8 @@ export default defineConfig(({ mode }) => {
   let outputDirectory;
 
   return {
-    build: {rollupOptions: {input: {game:path.resolve('index.html'),admin:path.resolve('admin.html')}}},
-    plugins: [{name:'local-admin-route',configureServer(server){server.middlewares.use((req,res,next)=>{if(req.url==='/admin')req.url='/admin.html';next();});}}, {
+    build: {rollupOptions: {input: {game:path.resolve('index.html'),admin:path.resolve('admin.html'),upload:path.resolve('upload.html')}}},
+    plugins: [{name:'local-admin-route',configureServer(server){server.middlewares.use((req,res,next)=>{const url=new URL(req.url,'http://localhost');if(/^\/admin\/upload\/?$/.test(url.pathname))req.url='/upload.html'+url.search;else if(url.pathname==='/admin')req.url='/admin.html'+url.search;next();});}}, {
       name: 'only-publish-catalogued-memories',
       apply: 'build',
       configResolved(config) { outputDirectory = path.resolve(config.root, config.build.outDir); },
