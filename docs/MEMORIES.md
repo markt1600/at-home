@@ -43,7 +43,7 @@ Media is stored under `media/{memory-uuid}/`; metadata is stored at `records/{uu
 
 Soundtracks use `soundtracks/{memory-uuid}/{asset-uuid}.{extension}` in the same private store. They inherit the memory's draft/published visibility and are served through the same range-capable media endpoint. Replacing or removing a song deletes the previous audio after the metadata update succeeds; deleting a memory also removes its soundtrack. Device memories keep their songs in IndexedDB until explicitly copied to cloud storage.
 
-The plain Vite server does not run Vercel API functions. Local editing remains available there. Test the cloud editor on the Vercel deployment.
+The editor stays locked until you sign in: signed out, the page shows only the password form, and every upload control (the dropzones, the library, the music studio and the phone uploader link) appears after the password is accepted. The plain Vite server does not run Vercel API functions, so nothing can be edited there; test the editor on the Vercel deployment.
 
 ## Source privacy
 
