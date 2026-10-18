@@ -46,6 +46,10 @@ No browser text-to-speech fallback is used. If generated speech is unavailable, 
 
 For cloud memories and music, connect a **private** Vercel Blob store and set `MEMORY_ADMIN_PASSWORD` to a separate password of at least 6 characters in the deployment environment. Redeploy after adding variables. Vercel supplies `BLOB_READ_WRITE_TOKEN`; both values remain server-side. The studio is at `/admin`. See [memories](docs/MEMORIES.md) and [the music library](docs/MUSIC.md).
 
+## Christmas mode
+
+The memory studio (`/admin`, signed in) has a **The house** card with a Christmas-mode switch. Switched on, a Christmas tree stands in the sunken living room beside the turntable rack: a fir in a toile hat box with warm twinkling lights, red, green and gold baubles, plush bunnies and monsters, red ribbons, a fluffy wreath with stars and a bow on top, and the shopping bags and presents underneath. The switch is stored in the private store (`settings/house.json`) and read by every visitor's game before the house is built, so it stays on across games and devices until it is switched off. `src/christmas-tree.js` builds the tree; `api/house-settings.js` holds the switch.
+
 ## Memories and source material
 
 Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. Keep original files as a backup. See [memory placements and publication](docs/MEMORIES.md).

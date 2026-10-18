@@ -15,7 +15,7 @@ import {memoryStorageLabel,formatFileSize} from './memory-storage.js';
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let items=[],selected=new URLSearchParams(location.search).get('memory'),session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[],pendingReplacements=[],replacementPreviews=[];
-let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined;
+let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined,house={christmas:false,storage:false,known:false};
 function soundtrackPicker(m){return `<div class="memory-soundtrack" data-audio-drop><h3>Memory soundtrack <small>Optional</small></h3><p class="fine">A song plays continuously while the photos cycle. House audio pauses until you return. For mixed albums, it replaces video audio too.</p>${m?.soundtrack?`<p>${esc(m.soundtrack.title)}</p><audio controls preload="none" src="${esc(m.soundtrack.src)}"></audio>`:''}<label>Drop a song here or choose audio<input name="soundtrack" type="file" accept="${AUDIO_ACCEPT}"></label><p class="fine">MP3, M4A/AAC, WAV, Ogg/Opus, FLAC or WebM audio · Up to 100 MB</p><p id="soundtrack-selection" role="status"></p><button type="button" data-action="remove-soundtrack">No soundtrack</button></div>`;}
 function selectSoundtrack(files){if(files.length!==1)throw Error('Choose one song for this memory.');pendingSoundtrack=validateSoundtrack(files[0]);root.querySelector('#soundtrack-selection').textContent=pendingSoundtrack.name+' — ready to save';status('Soundtrack ready. Save the memory to attach it.');}
 function clearFile(){pendingReplacements=[];for(const url of replacementPreviews)URL.revokeObjectURL(url);replacementPreviews=[];pendingSoundtrack=undefined;pendingFiles=[];for(const url of filePreviews)URL.revokeObjectURL(url);filePreviews=[];}
@@ -28,6 +28,7 @@ async function refresh(){
  for(const m of items)releaseMemoryUrls(m);
  try{items=await loadMemories({cloud:false});}catch(error){items=[];status('Could not read the memories saved in this browser. '+error.message);}
  try{session=await api('?action=session');}catch{session={};}
+ try{const r=await fetch('/api/house-settings',{cache:'no-store',credentials:'same-origin'});if(r.ok){const data=await r.json();house={christmas:!!data.christmas,storage:!!data.storage,known:true};}}catch{house={...house,known:false};}
  if(session.authenticated)try{const cloud=await api('?admin=1');if(!Array.isArray(cloud))throw Error('The library came back in an unexpected shape.');items.push(...cloud);}catch(error){status('Could not load your cloud memories. Use Refresh library to try again. '+error.message);}
  if(selected!=='new'&&!items.some(m=>m.id===selected))selected=null;   // nothing opens by itself: a selected memory loads its whole album
  try{render();}
@@ -76,9 +77,10 @@ function render(){
  // link) appears only once the editor password has been accepted.
  const connection=signedIn?'<p class="connection-note">Private storage connected · New uploads start as drafts. Published memories are visible to anyone who can open the game.</p>'
   :`<section class="connection"><div><h2>Sign in to edit memories</h2><p>${session.configured?'Uploads, the library and the music studio unlock once you sign in with the editor password.':session.storage?'Your private store is connected. Set MEMORY_ADMIN_PASSWORD in the At Home Vercel project, then sign in here to upload memories.':'Open this editor on the Vercel deployment and sign in with the editor password to upload memories.'}</p></div>${session.configured?'<form id="login"><label>Editor password<input type="password" name="password" autocomplete="current-password" required></label><button>Sign in</button></form>':''}</section>`;
+ const houseSection=signedIn?`<section class="house-settings"><div><h2>The house</h2><p class="fine">Switches here change the house for everyone who opens it, on every device, until you turn them off.</p></div><label class="check"><input type="checkbox" name="christmas" ${house.christmas?'checked':''} ${house.storage?'':'disabled'}><span>🎄 Christmas mode<br><small>The Christmas tree stands in the living room by the turntable, with the bags and presents underneath.${house.storage?'':' Connect the private store to switch it on.'}</small></span></label></section>`:'';
  const workspace=signedIn?`<div class="workspace"><aside><button class="primary" data-action="new">+ Add a memory</button><div class="library-heading"><h2>Saved memories</h2><button type="button" data-action="refresh" aria-label="Refresh library">↻</button></div><label class="library-search">Search memories<input type="search" name="library-search" value="${esc(libraryQuery)}" placeholder="Title, story or date"></label><label class="library-filter">Show<select name="library-filter"><option value="all">All memories</option><option value="published">Published</option><option value="draft">Private drafts</option><option value="device">On this device</option></select></label><div class="library">${libraryContents()}</div></aside><section class="editor">${editorContent(m)}</section></div>`:'';
  root.innerHTML=`<header data-studio-ready><a href="/">At Home.</a><span>Memory studio</span>${signedIn?'<button data-action="logout">Sign out</button>':''}</header><main><section class="intro"><p class="eyebrow">Keep the moments that matter</p><h1>A house full of memories.</h1><p>${signedIn?'Drop in a photo or video, tell its story, and pin the place on your floor plan.':'Photos and videos, their stories, and a pin on the floor plan. Sign in to begin.'}</p></section><p role="status" id="status">${esc(message)}</p>
- ${connection}${workspace}</main>`;
+ ${connection}${houseSection}${workspace}</main>`;
  if(!signedIn)return;
  root.querySelector('[name="library-filter"]').value=libraryFilter;
  const musicHost=document.createElement('section');musicHost.id='music-studio';root.querySelector('main').append(musicHost);mountMusicLibrary(musicHost,{authenticated:true});
@@ -131,6 +133,13 @@ root.addEventListener('input',e=>{if(!busy&&e.target.name==='library-search'){li
 root.addEventListener('change',async e=>{
  if(e.target.closest('#music-studio'))return;
  if(busy)return;try{
+  if(e.target.name==='christmas'){
+   const on=e.target.checked;e.target.disabled=true;
+   try{const r=await fetch('/api/house-settings',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({christmas:on})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Could not update the house');house={christmas:!!data.christmas,storage:true,known:true};status(on?'Christmas mode is on: the tree is up in the living room for everyone.':'Christmas mode is off: the tree is packed away.');}
+   catch(error){e.target.checked=house.christmas;status(error.message);}
+   finally{e.target.disabled=false;}
+   return;
+  }
   if(e.target.name==='petId')syncMemorySource(e.target.value);
   if(e.target.name==='library-filter'){libraryFilter=e.target.value;renderLibrary();}
   if(e.target.name==='soundtrack'&&e.target.files.length)selectSoundtrack(e.target.files);

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import {buildHouse} from './house.js';
+import {buildChristmasTree} from './christmas-tree.js';
 import {optimizeHouse} from './house-meshes.js';
 import {applyHouseTextures} from './house-materials.js';
 import {applyHallwayArt} from './house-gallery.js';
@@ -33,13 +34,13 @@ import {installPetBone} from './pet-bone-model.js';
 import {HandInteractionBody} from './hand-interaction-body.js';
 import {MassageSession} from './massage-session.js';
 export class House{
- constructor(canvas,onLook=()=>{},onTick=()=>{}){
-  this.canvas=canvas;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
+ constructor(canvas,onLook=()=>{},onTick=()=>{},settings={}){
+  this.canvas=canvas;this.settings=settings;this.onLook=onLook;this.onTick=onTick;this.scene=new THREE.Scene();this.scene.fog=new THREE.FogExp2(0xc9dce6,.002);
   this.camera=new THREE.PerspectiveCamera(62,1,.06,220);this.scene.add(this.camera);this.renderer=new THREE.WebGLRenderer({canvas,antialias:true});this.renderer.setPixelRatio(Math.min(devicePixelRatio,hasTouchInput()?1.15:1.6));this.renderer.shadowMap.enabled=true;this.renderer.shadowMap.type=THREE.PCFSoftShadowMap;this.renderer.toneMapping=THREE.ACESFilmicToneMapping;
   this.renderQuality=new AdaptiveResolution(this.renderer.getPixelRatio());
   Object.assign(this,{materials:{},colliders:[],targets:[],keys:{},actors:new Map(),mode:'menu',paused:false,motion:true,yaw:0,pitch:0,elapsed:0,hours:7.25,room:'living',walking:false});
   this.handInteraction=new HandInteractionBody(this);
-  buildHouse(this);this.massage=new MassageSession(this,this.massageChair);this.targets=[];optimizeHouse(this);this.cinema.installRoomDimming();this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
+  buildHouse(this);if(settings.christmas)buildChristmasTree(this);this.massage=new MassageSession(this,this.massageChair);this.targets=[];optimizeHouse(this);this.cinema.installRoomDimming();this.flashlight.visible=false;this.daylight=new Daylight(this);this.reflections=new HouseReflections(this);this.door.rotation.y=-1.45;this.buildPetCorners();
   this.petRoaming=new PetRoaming(this.colliders);this.petBone=installPetBone(this);this.petSocial=new PetSocial(this.petRoaming,{canStart:()=>this.petBone.phase==='rest',ready:id=>this.actors.get(id)?.userData.playReady});this.balconyLife=new BalconyLife(this);this.telescope=new Telescope(this);optimizeLocalLights(this.scene);this.loadArtwork();this.focus('living');this.resize();this.clock=new THREE.Clock();
   this.viewportDirty=true;for(const event of ['resize','orientationchange','pageshow'])window.addEventListener(event,()=>{this.viewportDirty=true;});
   window.visualViewport?.addEventListener('resize',()=>{this.viewportDirty=true;});
@@ -120,7 +121,7 @@ export class House{
   this.petRoaming.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours,canWalk:id=>this.actors.get(id)?.userData.canWalk()});this.petBone.update(active&&this.motion?dt:0,this.camera.position);this.petSocial.update(active?dt:0,{enabled:this.motion,player:this.camera.position,hours:this.hours});for(const [id,p] of this.petRoaming.pets){const actor=this.actors.get(id);if(actor){const pose=petPose(p,active?dt:0);actor.position.set(p.x,pose.y,p.z);actor.userData.activity=p.activity;actor.userData.socialTime=p.socialTime;actor.userData.carryingBone=id==='sunny'&&this.petBone.phase==='return';actor.userData.speed=Math.hypot(p.vx,p.vz);actor.userData.vx=p.vx;actor.userData.vz=p.vz;actor.userData.cameraX=this.camera.position.x-p.x;actor.userData.cameraZ=this.camera.position.z-p.z;actor.userData.cameraY=this.camera.position.y-p.y;actor.userData.travel=p.distance;if(Math.hypot(p.vx,p.vz)>.001)p.heading=Math.atan2(p.vx,p.vz);actor.userData.heading=p.heading||0;actor.userData.care=this.elapsed<(actor.userData.careUntil||0);actor.userData.hopping=!!p.hop;}}
   this.houseInteractions.update(active?dt:0);
   this.clawGame.update(this.clawGame.active?dt:0);this.pinballGame.update(this.pinballGame.active?dt:0);this.cinema.update(dt);
-  this.balconyLife.update(active?dt:0,this.hours,this.motion);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());
+  this.balconyLife.update(active?dt:0,this.hours,this.motion);this.christmasTree?.update(active?dt:0);this.daylight.update(this.hours);this.daylight.neighborhood.update(active?dt:0,this.hours,this.motion);const checkAim=this.elapsed-(this.lastAimCheck||-1)>=.1;if(checkAim)this.lastAimCheck=this.elapsed;let nearest=checkAim?null:this.lookTarget;const forward=this.camera.getWorldDirection(new THREE.Vector3());
   this.memoryMarkers?.children.forEach(g=>g.visible=g.position.distanceTo(this.camera.position)<6);
   const animated=!document.hidden&&(this.mode==='menu'||this.mode==='play'&&(!this.paused||this.previewAnimation));
   let petAim=0;for(const [id,g] of this.actors){const distance=g.position.distanceTo(this.camera.position);g.rotation.y=Math.atan2(this.camera.position.x-g.position.x,this.camera.position.z-g.position.z);g.userData.update(animated?dt:0,this.motion,distance<9);const d=g.position.clone().add(new THREE.Vector3(0,PETS.find(p=>p.id===id)?.height/2||1.3,0)).sub(this.camera.position),aim=forward.dot(d.clone().normalize());if(checkAim&&distance<3.3&&aim>.85&&aim>petAim){const ray=new THREE.Raycaster(this.camera.position,d.clone().normalize(),.05,d.length()-.08);if(!ray.intersectObject(this.houseRoot,true).some(hit=>!hit.object.material.transparent)){nearest=id;petAim=aim;}}}

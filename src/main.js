@@ -12,6 +12,7 @@ import {scenePhotoHTML,mountScenePhoto} from './scene-photo.js';
 import {mountMoflinConversation} from './moflin-conversation.js';
 import {SpaMusic} from './spa-music.js';
 import {HomeSession} from './home-session.js';
+import {loadHouseSettings} from './house-settings.js';
 import {PANEL_SHORTCUTS,isTyping,prepareDialog,navigateDialog} from './keyboard.js';
 import {formatMemoryDate} from './memory-metadata.js';
 import {memoryMedia,memoryAppearance,memoryHasAudio,releaseMemoryUrls} from './memory-media.js';
@@ -43,8 +44,9 @@ const memoryVisit=createMemoryVisit();let visitMemories=[];
 const syncMemories=()=>{visitMemories=memoryVisit.select(activeMemories(),state.memoryFilter);world.setMemories(visitMemories);world.cinema.memoryMode=!session.exploring;};
 const companion=new Intercom(status=>{voiceStatus=status;const el=$('#voice-status');if(el)el.textContent=status;},(who,text)=>{transcript.push({who,text});transcript=transcript.slice(-12);updateTranscript();});
 const bootStatus=$('#boot-status');if(bootStatus)bootStatus.textContent='Please wait…';
+const houseSettings=await loadHouseSettings();   // Christmas mode and other switches set in the memory studio
 await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-const world=new House($('#scene'),id=>{updateLookHint(id);},tick);
+const world=new House($('#scene'),id=>{updateLookHint(id);},tick,houseSettings);
 world.onUnlock=()=>openPanel('settings');
 world.onInteract=interact;
 world.onTap=(x,y)=>{if(!playing||panel||world.paused||world.telescope.active||world.massage.active)return;if(world.handInteraction.active&&world.handInteraction.owner!==world.turntable)return;const hit=pickTouchInteraction(world,x,y);if(!hit)return;if(hit.type==='memory'){if(world.handInteraction.active)return;if(!visitMemories.some(m=>m.id===hit.id))return;selectedMemory=hit.id;openPanel('memory');}else activateTarget(hit.id,hit.ray);};
