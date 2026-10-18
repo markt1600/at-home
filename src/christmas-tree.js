@@ -52,12 +52,16 @@ export function buildChristmasTree(world,plan=TREE_PLAN){
   for(let k=0;k<p.count;k++){const px=p.getX(k),pz=p.getZ(k),len=Math.hypot(px,pz);if(len>.02){const n=1+(rand()-.5)*.2;p.setX(k,px*n);p.setZ(k,pz*n);p.setY(k,p.getY(k)+(rand()-.5)*.04);}}
   geo.computeVertexNormals();add(geo,i%2?darker:needles,(rand()-.5)*.03,y,(rand()-.5)*.03);
  }
- // Warm string lights in three twinkling groups, plus two soft glows.
- const lightMats=[0,1,2].map(()=>new THREE.MeshStandardMaterial({color:0xffe6a8,emissive:0xffb24a,emissiveIntensity:2.4,roughness:.4,toneMapped:false}));
+ // Warm string lights in five circuits that blink: each circuit switches on and
+ // off on its own beat, with a chase running round the tree underneath, so some
+ // bulbs are always lit and the pattern never quite repeats. Two point lights
+ // breathe with how many circuits are on.
+ const CIRCUITS=5,lightMats=Array.from({length:CIRCUITS},()=>new THREE.MeshStandardMaterial({color:0xffe6a8,emissive:0xffb24a,emissiveIntensity:2.6,roughness:.4,toneMapped:false}));
  const lightGroups=lightMats.map(()=>[]);
- for(let i=0;i<78;i++){const y=.45+rand()*1.35,a=rand()*Math.PI*2;const [px,py,pz]=onTree(y,a,-.01);lightGroups[i%3].push([px,py,pz]);}
+ for(let i=0;i<95;i++){const y=.45+rand()*1.35,a=rand()*Math.PI*2;const [px,py,pz]=onTree(y,a,-.01);lightGroups[i%CIRCUITS].push([px,py,pz]);}
  lightMats.forEach((m,i)=>{const geo=new THREE.SphereGeometry(.012,6,5),mesh=new THREE.InstancedMesh(geo,m,lightGroups[i].length),o=new THREE.Object3D();lightGroups[i].forEach(([px,py,pz],k)=>{o.position.set(px,py,pz);o.updateMatrix();mesh.setMatrixAt(k,o.matrix);});mesh.instanceMatrix.needsUpdate=true;mesh.userData.dynamic=true;g.add(mesh);});
- for(const [py,power] of [[.95,2.2],[1.55,1.4]]){const l=new THREE.PointLight(0xffd79a,power,2.6,2);l.position.set(0,py,0);g.add(l);}
+ const glows=[[.95,2.4],[1.55,1.6]].map(([py,power])=>{const l=new THREE.PointLight(0xffd79a,power,2.6,2);l.position.set(0,py,0);g.add(l);l.userData.power=power;return l;});
+ const BEATS=[.9,1.3,.7,1.1,1.7],lit=new THREE.Color(0xffe6a8),dark=new THREE.Color(0x5a4a30);
  // Baubles: red, green and gold.
  const glossy=c=>mat(c,.22,.35);
  const baubles=[[0xc8202a,9,.04],[0x2f7a3a,5,.038],[0xd4a640,4,.034]];
@@ -108,7 +112,24 @@ export function buildChristmasTree(world,plan=TREE_PLAN){
  present(.5,.5,.26,.18,.2,0xb3121e,0xd4a640,.3);present(.62,.18,.18,.14,.18,0xf4efe4,0xb3121e,-.4);present(.3,.66,.2,.12,.16,0x2f7a3a,0xf4efe4,.1);present(.72,-.2,.14,.2,.14,0xd4a640,0xb3121e,.6);
  // Keep walkers out of the tree and the pile underneath.
  world.colliders.push({x,z,w:.98,d:.98,angle:0,label:'Christmas tree'},{x:x-.45,z:z+.5,w:.7,d:.55,angle:.4,label:'Christmas bags'},{x:x+.55,z:z+.35,w:.5,d:.6,angle:0,label:'Christmas presents'});
+ // The lights are a switch you walk up to. Your choice is remembered on this device.
+ const LIGHTS_KEY='athome_christmas_lights';let lightsOn=false;try{lightsOn=localStorage.getItem(LIGHTS_KEY)==='on';}catch{}
+ const hit=new THREE.Mesh(new THREE.CylinderGeometry(.5,.55,2.2,12),new THREE.MeshBasicMaterial({visible:false,transparent:true,opacity:0}));hit.position.y=1.1;hit.userData.dynamic=true;hit.name='Christmas tree touch target';g.add(hit);
  let t=rand()*10;
- const tree={group:g,position:new THREE.Vector3(x,floor,z),update(dt){t+=dt;lightMats.forEach((m,i)=>{m.emissiveIntensity=2.1+Math.sin(t*2.1+i*2.1)*.8+Math.sin(t*5.3+i)*.3;});}};
+ const tree={group:g,position:new THREE.Vector3(x,floor,z),lightMats,get lightsOn(){return lightsOn;},
+  setLights(on){lightsOn=on;try{localStorage.setItem(LIGHTS_KEY,on?'on':'off');}catch{}if(!on){for(const m of lightMats){m.emissiveIntensity=0;m.color.copy(dark);}for(const l of glows)l.intensity=0;}},
+  update(dt){
+  if(!lightsOn){for(const m of lightMats){m.emissiveIntensity=0;m.color.copy(dark);}for(const l of glows)l.intensity=0;return;}
+  t+=dt;let on=0;const chase=Math.floor(t*2.2)%CIRCUITS;
+  lightMats.forEach((m,i)=>{
+   const beat=Math.floor(t/BEATS[i]+i*.37)%2===0,isOn=beat||i===chase;   // its own on/off beat, plus the chase keeps one circuit lit
+   m.emissiveIntensity=isOn?2.4+Math.sin(t*9+i)*.3:0;m.color.copy(isOn?lit:dark);if(isOn)on++;
+  });
+  for(const l of glows)l.intensity=l.userData.power*(.35+.65*on/CIRCUITS);
+ }};
+ tree.update(0);
+ world.houseInteractions?.add({id:'christmas-tree',pos:new THREE.Vector3(x,floor+1.0,z),range:2.4,touchObjects:[hit],surfaceOffset:.62,
+  label:()=>lightsOn?'Turn off the Christmas lights':'Turn on the Christmas lights',
+  activate(){tree.setLights(!lightsOn);world.onHouseMessage?.(lightsOn?'The tree twinkles to life. ✨':'The Christmas lights are off for now.');}});
  world.christmasTree=tree;return tree;
 }

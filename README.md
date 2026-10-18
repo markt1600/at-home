@@ -48,7 +48,7 @@ For cloud memories and music, connect a **private** Vercel Blob store and set `M
 
 ## Christmas mode
 
-The memory studio (`/admin`, signed in) has a **The house** card with a Christmas-mode switch. Switched on, a Christmas tree stands in the sunken living room beside the turntable rack: a fir in a toile hat box with warm twinkling lights, red, green and gold baubles, plush bunnies and monsters, red ribbons, a fluffy wreath with stars and a bow on top, and the shopping bags and presents underneath. The switch is stored in the private store (`settings/house.json`) and read by every visitor's game before the house is built, so it stays on across games and devices until it is switched off. `src/christmas-tree.js` builds the tree; `api/house-settings.js` holds the switch.
+The memory studio (`/admin`, signed in) has a **The house** card with a Christmas-mode switch. Switched on, a Christmas tree stands in the sunken living room beside the turntable rack: a fir in a toile hat box with warm twinkling lights, red, green and gold baubles, plush bunnies and monsters, red ribbons, a fluffy wreath with stars and a bow on top, and the shopping bags and presents underneath. Walk up to the tree and interact to switch its string lights on: five circuits blink on their own beats with a chase running round the tree, and the glow breathes with them. Your lights choice is remembered on the device. The Christmas-mode switch is stored in the private store (`settings/house.json`) and read by every visitor's game before the house is built, so it stays on across games and devices until it is switched off. `src/christmas-tree.js` builds the tree; `api/house-settings.js` holds the switch.
 
 ## Memories and source material
 
