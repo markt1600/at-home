@@ -18,7 +18,7 @@ async function api(query='',body){
  let data;try{data=await response.json();}catch{throw Error('Could not connect to the memory store. Check your connection and try again.');}
  if(!response.ok)throw Error(data.error||'Could not save. Please try again.');return data;
 }
-function message(text,error=false){const el=$('#message');el.textContent=text;el.classList.toggle('error',error);}
+function message(text,error=false){const el=$('#message');el.textContent=text;el.classList.toggle('error',error);if(error&&text)el.scrollIntoView({block:'center',behavior:'smooth'});}
 function shell(content){root.innerHTML=`<header class="phone-header"><a class="brand" href="/">At Home.</a>${session.authenticated?'<button type="button" id="sign-out">Sign out</button>':'<a href="/admin">Full editor</a>'}</header><main class="phone-main"><p class="eyebrow">Memory studio</p><h1>From your phone,<br>into the house.</h1><p class="lead">Choose photos and videos from your library. We’ll prepare them for your memories.</p><div id="message" class="message" role="status" aria-live="polite"></div>${content}<footer class="phone-footer"><a href="/admin">Open the full memory editor</a><a href="/">Back to the house</a></footer></main>`;}
 async function connect(){
  try{session=await api('?action=session');if(session.authenticated){memories=await api('?admin=1');if(!Array.isArray(memories))throw Error('Could not load the library.');memories=memories.filter(m=>!m.deleting);renderForm();}

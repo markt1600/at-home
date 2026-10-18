@@ -8,6 +8,10 @@ import {resolveStoredSizes} from '../server/memory-storage.js';
 import {validFileSize} from '../src/memory-storage.js';
 import {MAX_PHOTO_BYTES} from '../src/photo-compression.js';
 
+// Thumbnails are made on first request with sharp (loaded lazily, so the
+// handler still starts if the native module is missing) and cached in the store.
+const THUMB_SIZE=320,THUMB_SOURCE_LIMIT=40*1024*1024,MEDIA_CACHE='private, max-age=604800';
+
 export function createMemoryHandler({storage={get,put,list,head,del},env=process.env,now=Date.now}={}){
  const attempts=new Map();
  const options=()=>({access:'private',...(env.BLOB_READ_WRITE_TOKEN?{token:env.BLOB_READ_WRITE_TOKEN}:{storeId:env.BLOB_STORE_ID})});
@@ -30,12 +34,30 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
    }
    if(req.method==='POST'&&action==='logout'){setSession(res,'',env.VERCEL==='1');return res.status(200).json({ok:true});}
    if(!(env.BLOB_READ_WRITE_TOKEN||env.BLOB_STORE_ID))return res.status(503).json({error:'Connect the private At Home Blob store to this project and redeploy.'});
+   if(req.method==='GET'&&action==='thumb'){
+    // A small JPEG of a photo for library cards and album strips, made once and kept beside the originals.
+    const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
+    const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
+    const asset=url.searchParams.get('asset'),path=recordAssetPaths(found.record).find(p=>p.split('/').at(-1)===asset);
+    if(!path||!/\.(jpe?g|png|webp)$/i.test(path))return res.status(404).end();
+    const thumbPath=`thumbs/${id}/${asset}.jpg`;
+    res.setHeader('Cache-Control',MEDIA_CACHE);res.setHeader('Content-Type','image/jpeg');res.setHeader('Content-Disposition','inline');
+    const cached=await storage.get(thumbPath,{...options(),useCache:true}).catch(()=>null);
+    if(cached?.stream){res.status(200);await pipeline(Readable.fromWeb(cached.stream),res);return;}
+    const original=await storage.get(path,{...options(),useCache:true});if(!original?.stream)return res.status(404).end();
+    const bytes=Buffer.from(await new Response(original.stream).arrayBuffer());if(bytes.length>THUMB_SOURCE_LIMIT)return res.status(404).end();
+    let thumb;try{const sharp=(await import('sharp')).default;thumb=await sharp(bytes).rotate().resize({width:THUMB_SIZE,height:THUMB_SIZE,fit:'inside',withoutEnlargement:true}).jpeg({quality:72,mozjpeg:true}).toBuffer();}
+    catch{return res.status(404).end();}
+    storage.put(thumbPath,thumb,{...options(),contentType:'image/jpeg',addRandomSuffix:false,allowOverwrite:true}).catch(()=>{});
+    return res.status(200).end(thumb);
+   }
    if(req.method==='GET'&&action==='media'){
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
     const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
     const paths=recordAssetPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
     if(!path)return res.status(404).end();
+    res.setHeader('Cache-Control',MEDIA_CACHE);   // asset names are random and never reused
     // Media paths are immutable. Use Blob's upstream CDN after checking the
     // current record above, so hiding/deleting still revokes access immediately.
     const media=await storage.get(path,{...options(),useCache:true,...(range?{headers:{Range:range}}:{})});
@@ -67,6 +89,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
      if(!prior.record.deleting){const claimed=await storage.put(`records/${input.id}.json`,JSON.stringify({...prior.record,published:false,deleting:true}),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});etag=claimed.etag;}
      try{
       for(const path of recordAssetPaths(prior.record))await storage.del(path,options());
+      try{const prefix=`thumbs/${input.id}/`,thumbs=await storage.list({...options(),prefix});for(const b of (thumbs?.blobs||[]).filter(b=>b.pathname.startsWith(prefix)))await storage.del(b.pathname,options());}catch{}
       await storage.del(`records/${input.id}.json`,{...options(),ifMatch:etag});
      }catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry Delete memory.'});}
      return res.status(200).json({ok:true});

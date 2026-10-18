@@ -1,7 +1,7 @@
 import {HOUSE_ROOMS,HOUSE_STAIRS,PLAN_SCALE,planPoint,pointInPolygon,floorHeight} from './house-layout.js';
 import {accessibleMemorySpot} from './memory-access.js';
 import {MEMORY_FURNITURE} from './memory-floor-geometry.js';
-import {INTERIOR_WALLS,envelopeSegments,wallApertures} from './house-architecture.js';
+import {INTERIOR_WALLS,envelopeSegments,wallApertures} from './house-walls.js';
 
 export const positionToPlan=([x,,z])=>[x*PLAN_SCALE+881,z*PLAN_SCALE+789];
 // Show door gaps in the same wall runs used to build the house. Windows remain boundaries.

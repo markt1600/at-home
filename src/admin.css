@@ -13,3 +13,4 @@
 @media(max-width:750px){header{flex-wrap:wrap}input,select,textarea,.library-search input,.library-filter select{font-size:16px}}
 
 .boot{max-width:560px;margin:14vh auto;padding:0 24px;font-size:16px;line-height:1.5}.boot-detail{padding:12px 14px;background:#ebece1;border-radius:10px;word-break:break-word;font-size:13px}
+.prep-progress{margin:10px 0 0;padding:8px 12px;border-radius:8px;background:#e5e8db;font-size:13px}.prep-progress.error{background:#f6dcd7;color:#7a2d22}
