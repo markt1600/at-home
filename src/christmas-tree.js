@@ -7,6 +7,10 @@ import {planPoint,floorHeight} from './house-layout.js';
 // bunnies and monsters and ribbons, a fluffy wreath with stars on top, and the
 // shopping bags and presents tucked underneath. Lights twinkle each frame.
 export const TREE_PLAN=[372,689];
+// Which of the five light circuits are lit at time t: each circuit has its own
+// on/off beat, and a chase keeps one circuit lit whatever the beats say.
+export const LIGHT_CIRCUITS=5,LIGHT_BEATS=[.9,1.3,.7,1.1,1.7];
+export function litCircuits(t){const chase=Math.floor(t*2.2)%LIGHT_CIRCUITS;return LIGHT_BEATS.map((beat,i)=>Math.floor(t/beat+i*.37)%2===0||i===chase);}
 const rand=(seed=>()=>{seed=(seed*16807)%2147483647;return seed/2147483647;})(20251225);
 const text=(label,{width=512,height=160,font='bold 72px "Didot","Bodoni MT","Times New Roman",serif',color='#2f3a2e',background=null,letterSpacing=10}={})=>{
  const c=document.createElement('canvas');c.width=width;c.height=height;const ctx=c.getContext('2d');
@@ -56,12 +60,12 @@ export function buildChristmasTree(world,plan=TREE_PLAN){
  // off on its own beat, with a chase running round the tree underneath, so some
  // bulbs are always lit and the pattern never quite repeats. Two point lights
  // breathe with how many circuits are on.
- const CIRCUITS=5,lightMats=Array.from({length:CIRCUITS},()=>new THREE.MeshStandardMaterial({color:0xffe6a8,emissive:0xffb24a,emissiveIntensity:2.6,roughness:.4,toneMapped:false}));
+ const CIRCUITS=LIGHT_CIRCUITS,lightMats=Array.from({length:CIRCUITS},()=>new THREE.MeshStandardMaterial({color:0xffe6a8,emissive:0xffb24a,emissiveIntensity:2.6,roughness:.4,toneMapped:false}));
  const lightGroups=lightMats.map(()=>[]);
  for(let i=0;i<95;i++){const y=.45+rand()*1.35,a=rand()*Math.PI*2;const [px,py,pz]=onTree(y,a,-.01);lightGroups[i%CIRCUITS].push([px,py,pz]);}
  lightMats.forEach((m,i)=>{const geo=new THREE.SphereGeometry(.012,6,5),mesh=new THREE.InstancedMesh(geo,m,lightGroups[i].length),o=new THREE.Object3D();lightGroups[i].forEach(([px,py,pz],k)=>{o.position.set(px,py,pz);o.updateMatrix();mesh.setMatrixAt(k,o.matrix);});mesh.instanceMatrix.needsUpdate=true;mesh.userData.dynamic=true;g.add(mesh);});
  const glows=[[.95,2.4],[1.55,1.6]].map(([py,power])=>{const l=new THREE.PointLight(0xffd79a,power,2.6,2);l.position.set(0,py,0);g.add(l);l.userData.power=power;return l;});
- const BEATS=[.9,1.3,.7,1.1,1.7],lit=new THREE.Color(0xffe6a8),dark=new THREE.Color(0x5a4a30);
+ const lit=new THREE.Color(0xffe6a8),dark=new THREE.Color(0x5a4a30);
  // Baubles: red, green and gold.
  const glossy=c=>mat(c,.22,.35);
  const baubles=[[0xc8202a,9,.04],[0x2f7a3a,5,.038],[0xd4a640,4,.034]];
@@ -120,11 +124,8 @@ export function buildChristmasTree(world,plan=TREE_PLAN){
   setLights(on){lightsOn=on;try{localStorage.setItem(LIGHTS_KEY,on?'on':'off');}catch{}if(!on){for(const m of lightMats){m.emissiveIntensity=0;m.color.copy(dark);}for(const l of glows)l.intensity=0;}},
   update(dt){
   if(!lightsOn){for(const m of lightMats){m.emissiveIntensity=0;m.color.copy(dark);}for(const l of glows)l.intensity=0;return;}
-  t+=dt;let on=0;const chase=Math.floor(t*2.2)%CIRCUITS;
-  lightMats.forEach((m,i)=>{
-   const beat=Math.floor(t/BEATS[i]+i*.37)%2===0,isOn=beat||i===chase;   // its own on/off beat, plus the chase keeps one circuit lit
-   m.emissiveIntensity=isOn?2.4+Math.sin(t*9+i)*.3:0;m.color.copy(isOn?lit:dark);if(isOn)on++;
-  });
+  t+=dt;let on=0;const states=litCircuits(t);
+  lightMats.forEach((m,i)=>{const isOn=states[i];m.emissiveIntensity=isOn?2.4+Math.sin(t*9+i)*.3:0;m.color.copy(isOn?lit:dark);if(isOn)on++;});
   for(const l of glows)l.intensity=l.userData.power*(.35+.65*on/CIRCUITS);
  }};
  tree.update(0);
