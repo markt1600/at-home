@@ -52,7 +52,7 @@ On Vercel, sign in using the project's editor password. Add JPG, PNG, WebP or HE
 - **On this day.** A few seconds after arriving, the game mentions a memory dated today in an earlier year (or within three days of it). The Memories list opens with the same section.
 - **Which markers appear.** Each visit still shows up to eight spots, but the draw now favours anniversaries, then memories from this time of year (within about six weeks), and memories not opened recently on this device. Chance decides among equals.
 - **Timeline.** The Memories list (M) is grouped by year, newest first, with thumbnails, dates and a row of year buttons.
-- **Picture frames.** Three frames on the blue dining sideboard and one on the office desk show photos from the library: today's anniversaries first, then this visit's memories. Look at a frame and interact to open its memory. Frames are put away when there are no photo memories and while exploring without memories.
+- **Picture frames.** A frame on the blue dining sideboard, one on the office desk and one on a bedside table show photos from the library: today's anniversaries first, then this visit's memories. Look at a frame and interact to open its memory. Frames are put away when there are no photo memories and while exploring without memories.
 - **Cinema.** The screen plays photo memories as slideshows with their soundtrack, as well as videos.
 
 ## Deployment configuration

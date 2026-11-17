@@ -2,15 +2,17 @@ import * as THREE from 'three';
 import {planPoint} from './house-layout.js';
 import {memoryMedia} from './memory-media.js';
 
-// Standing picture frames that show photos from the memory library: three on
-// the blue dining sideboard and one on the office desk. Each is placed on an
+// Standing picture frames that show photos from the memory library: one each on
+// the blue dining sideboard, the office desk and a bedside table. Each is placed on an
 // existing, clear furniture top. Empty frames are put away, so the house looks
 // the same when there are no photo memories (or while exploring without them).
 export const MEMORY_FRAME_SPOTS=[
- {id:'sideboard-left',name:'Walnut picture frame on the dining sideboard',plan:[432,872],base:.45,yaw:Math.PI,x:-.52,y:1.0,z:-.03,turn:.22,width:.25,height:.19,finish:'walnut'},
- {id:'sideboard-middle',name:'Tall brass picture frame on the dining sideboard',plan:[432,872],base:.45,yaw:Math.PI,x:-.04,y:1.0,z:-.06,turn:-.05,width:.2,height:.27,finish:'brass'},
- {id:'sideboard-right',name:'Black picture frame on the dining sideboard',plan:[432,872],base:.45,yaw:Math.PI,x:.46,y:1.0,z:-.02,turn:-.2,width:.23,height:.17,finish:'black'},
- {id:'office-desk',name:'Small picture frame on the office desk',plan:[867.3,581.5],base:.75,yaw:Math.PI/2,x:-.19,y:.7995,z:.21,turn:.16,width:.12,height:.16,finish:'black'}
+ // Between the ceramics and the clock, behind them, on the blue dining sideboard.
+ {id:'sideboard',name:'Tall brass picture frame on the dining sideboard',plan:[432,872],base:.45,yaw:Math.PI,x:-.04,y:1.0,z:-.06,turn:-.05,width:.2,height:.27,finish:'brass'},
+ // Between the black box and the keyboard on the left office desk.
+ {id:'office-desk',name:'Small picture frame on the office desk',plan:[867.3,581.5],base:.75,yaw:Math.PI/2,x:-.19,y:.7995,z:.21,turn:.16,width:.12,height:.16,finish:'black'},
+ // The clear back corner of the bedside table by the open shelves, beside the lamp.
+ {id:'bedside',name:'Walnut picture frame on the bedside table',plan:[548.46,382.68],base:.75,yaw:Math.PI/2,x:.12,y:.485,z:-.14,turn:-.18,width:.12,height:.16,finish:'walnut'}
 ];
 const LEAN=.17,BORDER=.016,MAT=.014;
 

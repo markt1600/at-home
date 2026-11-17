@@ -80,7 +80,7 @@ test('the timeline runs newest to oldest by year with undated memories last',()=
 
 test('picture frames take one photo per memory, crop to fit, and stand inside the house',()=>{
  const memories=[{id:'v',type:'video',src:'/v.mp4'},{id:'a',type:'image',src:'/a.jpg'},{id:'a',type:'image',src:'/a.jpg'},{id:'mixed',media:[{type:'video',src:'/c.mp4'},{type:'image',src:'/m.jpg'}]},{id:'b',type:'image',src:'/b.jpg'},{id:'c',type:'image',src:'/c.jpg'},{id:'d',type:'image',src:'/d.jpg'}];
- assert.deepEqual(chooseFramePhotos(memories).map(p=>p.src),['/a.jpg','/m.jpg','/b.jpg','/c.jpg']);assert.deepEqual(chooseFramePhotos([memories[0]]),[]);
+ assert.deepEqual(chooseFramePhotos(memories,4).map(p=>p.src),['/a.jpg','/m.jpg','/b.jpg','/c.jpg']);assert.equal(chooseFramePhotos(memories).length,MEMORY_FRAME_SPOTS.length);assert.deepEqual(chooseFramePhotos([memories[0]]),[]);
  assert.deepEqual(coverCrop(4000,3000,1),{x:500,y:0,width:3000,height:3000});assert.deepEqual(coverCrop(3000,4000,1.5),{x:0,y:1000,width:3000,height:2000});assert.equal(coverCrop(0,10,1),null);
  for(const spot of MEMORY_FRAME_SPOTS){const [x,z]=planPoint(...spot.plan);assert.ok(HOUSE_ROOMS.some(r=>pointInPolygon(x,z,r.polygon)),spot.id+' stands in a room');assert.ok(spot.width<.3&&spot.height<.3);}
  assert.equal(new Set(MEMORY_FRAME_SPOTS.map(s=>s.id)).size,MEMORY_FRAME_SPOTS.length);
