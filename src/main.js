@@ -1,7 +1,7 @@
 import {floorMemories,memoriesForPet,PET_MEMORY_NAMES} from './pet-memories.js';
 import {installTouchStick} from './touch-controls.js';
 import {pickTouchInteraction} from './touch-targets.js';
-import {EXPLORATION_MOVIE,cinemaVideos} from './cinema.js';
+import {EXPLORATION_MOVIE,cinemaShows} from './cinema.js';
 import {clawControlsHTML,mountClawControls} from './claw-game.js';
 import {pinballControlsHTML,mountPinballControls} from './pinball-game.js';
 import {hasTouchInput,installGameViewport} from './game-viewport.js';
@@ -20,6 +20,7 @@ import {RecordPlayer} from './record-player.js';
 import {mountMemoryPlayer} from './memory-player.js';
 import {cleanMemoryFilter,filterMemories} from './memory-filter.js';
 import {createMemoryVisit,VISIT_MEMORY_LIMIT} from './memory-visit.js';
+import {anniversaries,yearsAgo,visitWeight,loadSeen,markSeen,timeline} from './memory-recall.js';
 import {loadMemories,addLocalMemory,removeLocalMemory,MEMORY_PLACEMENTS,placedMemory} from './memories.js';
 import {floorHeight,planPoint} from './house-layout.js';
 import {HomeSound} from './audio.js';
@@ -40,8 +41,12 @@ const recordPlayer=new RecordPlayer(sound,{onChange:spinning=>{world.recordPlayi
 let moviePlayer=null,disposeScenePhoto=()=>{},disposeMopsConversation=()=>{};
 let memories=[],selectedMemory=null,memoryVolume=null,memoryMutedMic=false,memoryPlayer=null,memoryTakesAudio=false;
 const activeMemories=()=>session.exploring?[]:filterMemories(memories,state.memoryFilter);
-const memoryVisit=createMemoryVisit();let visitMemories=[];
-const syncMemories=()=>{visitMemories=memoryVisit.select(activeMemories(),state.memoryFilter);world.setMemories(visitMemories);world.cinema.memoryMode=!session.exploring;};
+let seenMemories=loadSeen(),onThisDayShown=false;
+const memoryVisit=createMemoryVisit({weight:m=>visitWeight(m,{seen:seenMemories})});let visitMemories=[];
+const todaysMemories=()=>session.exploring?[]:anniversaries(memories);
+const syncMemories=()=>{visitMemories=memoryVisit.select(activeMemories(),state.memoryFilter);world.setMemories(visitMemories);world.cinema.memoryMode=!session.exploring;
+ // The picture frames show this day's memories first, then the ones chosen for this visit, then the rest.
+ world.memoryFrames?.show(session.exploring?[]:[...todaysMemories().map(t=>t.memory).filter(m=>activeMemories().includes(m)),...visitMemories,...activeMemories()]);};
 const companion=new Intercom(status=>{voiceStatus=status;const el=$('#voice-status');if(el)el.textContent=status;},(who,text)=>{transcript.push({who,text});transcript=transcript.slice(-12);updateTranscript();});
 const bootStatus=$('#boot-status');if(bootStatus)bootStatus.textContent='Please wait…';
 const houseSettings=await loadHouseSettings();   // Christmas mode and other switches set in the memory studio
@@ -74,9 +79,15 @@ function updateMassageStatus(){const m=world.massage,el=$('#massage-status');if(
 world.onAudioTick=dt=>{if(!world.paused||panel==='memory'&&!memoryTakesAudio)sound.update(dt,state.hours,world.room.includes('balcony'));};
 world.onBoneChange=save;
 world.onClawPlay=()=>openPanel('claw');world.onPinballPlay=()=>openPanel('pinball');
-world.onCinemaPlay=()=>{if(world.cinema.active){stopCinema();return;}const choices=session.exploring?[EXPLORATION_MOVIE]:cinemaVideos(activeMemories());if(!choices.length){toast('No video memories in this date range. Add a video in the memory editor, or choose another time period.');return;}startCinema(choices[Math.floor(Math.random()*choices.length)]);};
+world.onMemoryFrame=id=>{if(!playing||panel||session.exploring||!memories.some(m=>m.id===id))return;selectedMemory=id;openPanel('memory');};
+world.onCinemaPlay=()=>{if(world.cinema.active){stopCinema();return;}const choices=session.exploring?[EXPLORATION_MOVIE]:cinemaShows(activeMemories());if(!choices.length){toast('No memories in this date range to play. Add one in the memory editor, or choose another time period.');return;}startCinema(choices[Math.floor(Math.random()*choices.length)]);};
 world.onStep=()=>sound.step();world.hours=state.hours;world.syncPets(state);
-async function refreshMemories(){const items=await loadMemories();for(const m of memories)releaseMemoryUrls(m);memories=items;syncMemories();}
+async function refreshMemories(){const items=await loadMemories();for(const m of memories)releaseMemoryUrls(m);memories=items;syncMemories();announceOnThisDay();}
+// Once per visit, a little after arriving, mention a memory from this day in an earlier year.
+function announceOnThisDay(){
+ if(!playing||onThisDayShown||panel)return;const today=todaysMemories();if(!today.length)return;onThisDayShown=true;
+ const {memory,years,exact}=today[0];setTimeout(()=>{if(playing&&!panel)toast(`${exact?'On this day':'This week'}, ${yearsAgo(years)}: ${memory.title}${today.length>1?` and ${today.length-1} more`:''}. ${touchMode()?'Open Memories from Pause to revisit.':'Press M to revisit.'}`);},9000);
+}
 refreshMemories();
 window.addEventListener('focus',()=>{if(panel!=='memory'&&!world.cinema.active)refreshMemories();});
 sound.onVoiceUnavailable=()=>{const el=$('#audio-note');if(el)el.textContent='Spoken audio is unavailable. All conversations remain available as text.';};
@@ -109,7 +120,7 @@ function startCinema(memory){
  const host=document.createElement('section');host.id='cinema-player';host.className='cinema-controls';host.setAttribute('aria-label','Movie playback');
  host.innerHTML=`<div class="memory-media" aria-hidden="true"></div><strong>${escape(memory.title)}</strong><p class="fine movie-status" role="status">Closing the curtains…</p><div class="slideshow-controls"><button data-slide="pause">Play movie</button><button data-action="stop-movie">Stop movie</button><details><summary>Playback help</summary><button data-video="retry">Retry video</button><button data-video="download">Load video first</button></details></div>`;
  app.append(host);host.querySelector('[data-action="stop-movie"]').onclick=stopCinema;
- moviePlayer=mountMemoryPlayer(host,memory,{volume:sound.volume,startPaused:true,label:'movie',onVideo:video=>world.cinema.attachVideo(video),onEnded:stopCinema,onError:message=>{host.querySelector('.movie-status').textContent=message;}});
+ moviePlayer=mountMemoryPlayer(host,memory,{volume:sound.volume,startPaused:true,label:'movie',onVideo:video=>world.cinema.attachVideo(video),onPhoto:image=>world.cinema.attachImage(image),onEnded:stopCinema,onError:message=>{host.querySelector('.movie-status').textContent=message;}});
  const controls=host.querySelectorAll('button:not([data-action="stop-movie"])');controls.forEach(b=>b.disabled=true);world.cinema.onReady=()=>{controls.forEach(b=>b.disabled=false);moviePlayer?.resume();};
  updateLookHint(world.lookTarget);
 }
@@ -130,13 +141,14 @@ async function startFreshVisit(explore){
 }
 async function enter(fresh=false){
  if(!world.artwork.ready)return;
- memoryVisit.reset();syncMemories();
+ seenMemories=loadSeen();onThisDayShown=false;memoryVisit.reset();syncMemories();
  playing=true;world.mode='play';world.paused=false;world.hours=state.hours;world.syncPets(state);save();renderHUD();world.resumeWandering();
  if(fresh)world.greetPlayer();
  try{await sound.start();sound.setVolume(.65);recordPlayer.setVolume(.65);}catch{toast('Sound could not start. You can try the Sound button.');}
  if(state.personalized){lastSpoken=timer;speech.play({kind:'home',cue:0,name:state.name});}
  toast(touchMode()?'Welcome home. Use the left thumb pad to walk, and drag the view to look around.':'Welcome home. WASD to wander · Mouse to look · Click or E to interact · Space to jump · H for keys');
  setTimeout(()=>$('#controls')?.classList.add('quiet-controls'),14000);
+ announceOnThisDay();
 }
 function renderHUD(){disposeTouchControls();app.innerHTML=`<header class="hud-top"><div class="brand">At Home<span>.</span><small id="phase"></small></div><div class="clock"><span id="clock"></span><small id="place"></small></div><div class="top-actions"><button data-action="sound" id="sound-button" aria-label="Toggle sound">Sound on</button><button data-panel="voice">Voice</button><button data-panel="settings" aria-label="Pause and settings">Pause</button></div></header><button type="button" class="look-hint" id="look-hint" data-action="interact"></button><div class="memory-proximity" id="memory-proximity"></div><p class="controls" id="controls">${controlHelp()}</p><div class="touch-walk"><div id="touch-stick" class="touch-stick" role="group" aria-label="Drag to walk"><span class="touch-knob"></span><small>Walk</small></div></div><div class="touch-actions"><button data-action="interact" id="touch-interact">Interact</button><button data-action="jump" aria-label="Jump">Jump ↑</button></div><dialog id="panel" class="panel"><button id="close-panel" class="close" aria-label="Close panel">×</button><div id="panel-content"></div></dialog>`;
  $('#close-panel').onclick=closePanel;$('#panel').addEventListener('cancel',e=>{e.preventDefault();closePanel();});
@@ -154,7 +166,7 @@ function openPanel(type){
  if(type==='pinball'){world.pinballGame.enter(world);disposePinballControls=mountPinballControls(document.querySelector('#panel-content'),world.pinballGame);}
  if(type==='claw'){world.clawGame.enter(world);disposeClawControls=mountClawControls($('#panel-content'),world.clawGame);}
  if(type==='memory'){
-  const m=memories.find(m=>m.id===selectedMemory);memoryTakesAudio=memoryHasAudio(m);
+  const m=memories.find(m=>m.id===selectedMemory);memoryTakesAudio=memoryHasAudio(m);if(m)seenMemories=markSeen(m.id);
   if(world.cinema.video)world.cinema.video.muted=true;
   speech.stop();memoryVolume=sound.volume;if(memoryTakesAudio){recordPlayer.suspend();sound.setVolume(0);}
   if(companion.session&&!companion.muted){companion.mute();memoryMutedMic=true;}companion.setVolume(0);
@@ -167,7 +179,7 @@ const heading=(eyebrow,title,text='')=>`<p class="eyebrow">${eyebrow}</p><h2>${t
 function panelHTML(type){
  if(type==='photo')return heading('A moment at home','Your photo')+scenePhotoHTML();
  if(type==='claw')return clawControlsHTML(touchMode());if(type==='pinball')return pinballControlsHTML(touchMode());
- if(type==='memories')return heading('The house remembers the good things','Memories','Find a little memory marker as you walk, or return to a moment here.')+`<p class="memory-legend"><span style="color:#4d97c5">▧ Photo memories</span><span style="color:#c58a35">▷ Video memories</span></p><p class="fine">${state.memoryFilter.from||state.memoryFilter.to?`Showing memories ${state.memoryFilter.from?'from '+escape(formatMemoryDate(state.memoryFilter.from)):''} ${state.memoryFilter.to?'through '+escape(formatMemoryDate(state.memoryFilter.to)):''}. Change this in Pause.`:'Showing memories from every date.'}</p><div class="memory-list">${activeMemories().map(m=>`<article><button data-memory="${escape(m.id)}"><span class="memory-symbol" style="color:${memoryAppearance(m).css}">${memoryAppearance(m).symbol}</span><span><strong>${escape(m.title)}</strong><small>${escape(m.description)}</small></span></button><button class="memory-go" data-memory-go="${escape(m.id)}">${m.petId?'Find '+escape(PET_MEMORY_NAMES[m.petId]):'Go to this spot'} ↗</button>${m.local?`<button class="memory-go" data-memory-delete="${escape(m.id)}">Remove from this device</button>`:''}</article>`).join('')||'<p class="panel-intro">No memories in this time period. Change the date filter in Pause, or add a moment below.</p>'}</div><details class="add-memory"><summary>Add a memory from this device</summary><label class="field">A title<input id="memory-title" maxlength="80" placeholder="A moment worth keeping"></label><label class="field">Place the memory<select id="memory-placement"><option value="here">Where I am standing now</option>${MEMORY_PLACEMENTS.map(m=>`<option value="${m.id}">${escape(m.title)} · ${escape(m.room)}</option>`).join('')}</select></label><label class="file-picker">Choose photos or a video<input id="memory-file" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,video/quicktime"></label><p class="fine">Added files stay in this browser on this device. Keep your originals. Use the memory editor for cloud uploads.</p></details>`;
+ if(type==='memories')return heading('The house remembers the good things','Memories','Find a little memory marker as you walk, or return to a moment here.')+`<p class="memory-legend"><span style="color:#4d97c5">▧ Photo memories</span><span style="color:#c58a35">▷ Video memories</span></p><p class="fine">${state.memoryFilter.from||state.memoryFilter.to?`Showing memories ${state.memoryFilter.from?'from '+escape(formatMemoryDate(state.memoryFilter.from)):''} ${state.memoryFilter.to?'through '+escape(formatMemoryDate(state.memoryFilter.to)):''}. Change this in Pause.`:'Showing memories from every date.'}</p>${memoryTimelineHTML()}<details class="add-memory"><summary>Add a memory from this device</summary><label class="field">A title<input id="memory-title" maxlength="80" placeholder="A moment worth keeping"></label><label class="field">Place the memory<select id="memory-placement"><option value="here">Where I am standing now</option>${MEMORY_PLACEMENTS.map(m=>`<option value="${m.id}">${escape(m.title)} · ${escape(m.room)}</option>`).join('')}</select></label><label class="file-picker">Choose photos or a video<input id="memory-file" type="file" multiple accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/mp4,video/webm,video/quicktime"></label><p class="fine">Added files stay in this browser on this device. Keep your originals. Use the memory editor for cloud uploads.</p></details>`;
  if(type==='memory'){const m=memories.find(m=>m.id===selectedMemory);if(!m)return '';const count=memoryMedia(m).length;return `<div class="dream"><div class="memory-media"></div><div class="dream-caption"><p class="eyebrow">${m.date?escape(formatMemoryDate(m.date)):'A moment to come back to'}</p><h2>${escape(m.title)}</h2><p class="memory-caption">${escape(m.description)}</p>${count===1&&(m.soundtrack||m.type==='video')?'<div class="slideshow-controls"><button data-slide="pause">Pause memory</button></div>':''}${count>1?'<div class="slideshow-controls"><button data-slide="previous" aria-label="Previous photo">←</button><span class="slide-counter" aria-live="off"></span><button data-slide="pause">Pause slideshow</button><button data-slide="next" aria-label="Next photo">→</button></div>':''}${memoryMedia(m).some(a=>a.type==='video')?'<div class="slideshow-controls"><button data-video="retry">Retry video</button><button data-video="download">Load video first</button></div>':''}<p class="fine" id="memory-error">${touchMode()?'Use the playback buttons below.':`${count>1?'Photos every 2 seconds · ← → to browse · ':''}${count>1||m.type==='video'||m.soundtrack?'Space to pause · ':''}Esc to return`}</p><button data-action="resume" class="dream-return">Return to the house ↗</button></div></div>`;}
  if(type==='rooms')return heading('Find a quiet corner','Make yourself at home','Choose a place, then take a walk from there.')+`<div class="room-grid">${[['living','Living room','Light & company'],['balcony','Living balcony','A little fresh air'],['dining','Dining room','Room at the table'],['kitchen','Kitchen','Something warm'],['bedroom','Main bedroom','A place to rest'],['guest','Penny’s Room','Books & music'],['theatre','Window lounge','A wider view'],['study','Home office','Ideas & little projects'],['wine','Wine cellar','For an evening together'],['door','Front door','The entrance']].map(([id,title,sub])=>`<button class="room" data-room="${id}"><strong>${title}</strong><small>${sub}</small><span>↗</span></button>`).join('')}</div>`;
  if(type==='pets'&&selectedPet==='mops')return heading('Our little household','Mops <span class="subheading">the grey Moflin</span>','A tiny companion on the master bed. Mops stays here, listening, chirping and wiggling.')+`<div class="tabs">${PETS.map(p=>`<button data-pet="${p.id}" aria-pressed="${p.id==='mops'}">${p.name}</button>`).join('')}</div><div class="stack"><button class="primary" data-action="pet-mops">Pet Mops <span>♡</span></button><button data-mops-mic>Talk using microphone</button>${memoriesForPet(activeMemories(),'mops').map(m=>`<button data-memory="${escape(m.id)}">${escape(m.title)} <span>▧</span></button>`).join('')}</div><p class="fine" data-mops-status role="status">Mops responds to your voice with little sounds. Microphone audio stays on this device.</p><form data-mops-form><label class="field">Or say something in a message<input name="message" maxlength="160" placeholder="Hello, Mops!" required></label><button type="submit">Say it to Mops</button></form><div class="stack"><button data-action="view-pet">Sit with Mops ↗</button></div>`;
@@ -185,6 +197,7 @@ app.addEventListener('change',e=>{if(e.target.id==='pace')state.pace=Number(e.ta
 app.addEventListener('click',async e=>{
  const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(session.exploring&&(d.memory||d.memoryGo||d.memoryDelete||d.action==='admin'||d.action==='shuffle-memories'))return;
+ if(d.memoryYear){document.getElementById(d.memoryYear)?.scrollIntoView({block:'start',behavior:'smooth'});return;}
  if(d.memory){if(b.closest('#memory-proximity')&&currentMemorySelection().memory?.id!==d.memory)return;selectedMemory=d.memory;openPanel('memory');return;}
  if(d.memoryGo){const m=memories.find(m=>m.id===d.memoryGo);if(m.petId){world.lookAtPet(m.petId);closePanel();return;}world.focus(m.view||'living');world.camera.position.set(m.position[0],m.position[1]+1.67,m.position[2]);world.feet={x:m.position[0],y:m.position[1],z:m.position[2],vy:0,grounded:true};closePanel();return;}
  if(d.memoryDelete){const m=memories.find(m=>m.id===d.memoryDelete);await removeLocalMemory(m);memories=memories.filter(x=>x!==m);syncMemories();openPanel('memories');return;}
@@ -269,6 +282,17 @@ if(import.meta.env.DEV)window.__atHome={world,recordPlayer,get state(){return st
 
 app.addEventListener('change',async e=>{if(session.exploring||e.target.id!=='memory-file'||!e.target.files[0])return;const files=Array.from(e.target.files),selected=$('#memory-placement').value,placement=selected==='here'?{position:[world.camera.position.x,floorHeight(world.camera.position.x,world.camera.position.z),world.camera.position.z],description:roomNames[world.room]||'At home'}:placedMemory(MEMORY_PLACEMENTS.find(m=>m.id===selected));const title=$('#memory-title').value.trim();try{const {prepareMemoryPhotos}=await import('./photo-import.js');const prepared=await prepareMemoryPhotos(files,{onProgress:toast});const memory=await addLocalMemory(prepared,placement,title);memories.push(memory);syncMemories();openPanel('memories');toast('Your memory is saved on this device.');}catch(error){toast(error.message||'Could not save this memory. Your browser storage may be full.');}});
 
+function memoryRowHTML(m,note=''){
+ const first=memoryMedia(m)[0],thumb=first?.type==='image'?(first.thumb||first.src):null,count=memoryMedia(m).length;
+ return `<article><button data-memory="${escape(m.id)}">${thumb?`<img class="memory-thumb" src="${escape(thumb)}" alt="" loading="lazy" decoding="async">`:`<span class="memory-symbol" style="color:${memoryAppearance(m).css}">${memoryAppearance(m).symbol}</span>`}<span><strong>${escape(m.title)}</strong><small class="memory-when">${note?escape(note):m.date?escape(formatMemoryDate(m.date)):'Undated'}${count>1?` · ${count} items`:''}${m.petId?' · with '+escape(PET_MEMORY_NAMES[m.petId]):''}</small><small>${escape(m.description)}</small></span></button><button class="memory-go" data-memory-go="${escape(m.id)}">${m.petId?'Find '+escape(PET_MEMORY_NAMES[m.petId]):'Go to this spot'} ↗</button>${m.local?`<button class="memory-go" data-memory-delete="${escape(m.id)}">Remove from this device</button>`:''}</article>`;
+}
+// The whole collection as a timeline: this day in earlier years first, then newest to oldest by year.
+function memoryTimelineHTML(){
+ const shown=activeMemories(),groups=timeline(shown),today=todaysMemories();
+ if(!shown.length)return '<div class="memory-list"><p class="panel-intro">No memories in this time period. Change the date filter in Pause, or add a moment below.</p></div>';
+ const label=g=>g.year??'Undated',anchor=g=>'memory-year-'+(g.year??'undated');
+ return `${today.length?`<section class="memory-today"><h3>${today[0].exact?'On this day':'This week in earlier years'}</h3><div class="memory-list">${today.map(t=>memoryRowHTML(t.memory,`${t.exact?'On this day':formatMemoryDate(t.memory.date)}, ${yearsAgo(t.years)}`)).join('')}</div></section>`:''}${groups.length>1?`<nav class="memory-years" aria-label="Jump to a year">${groups.map(g=>`<button type="button" data-memory-year="${anchor(g)}">${label(g)}<small>${g.items.length}</small></button>`).join('')}</nav>`:''}${groups.map(g=>`<section class="memory-year" id="${anchor(g)}"><h3>${label(g)} <small>${g.items.length} ${g.items.length===1?'memory':'memories'}</small></h3><div class="memory-list">${g.items.map(m=>memoryRowHTML(m)).join('')}</div></section>`).join('')}`;
+}
 function memoryFilterHTML(){
  const f=state.memoryFilter,years=[...new Set([new Date().getFullYear(),new Date().getFullYear()-1,...[f.from,f.to].filter(Boolean).map(d=>Number(d.slice(0,4))),...memories.filter(m=>m.date).map(m=>Number(m.date.slice(0,4)))])].sort((a,b)=>b-a);
  const selected=!f.from&&!f.to?'all':f.from.endsWith('-01-01')&&f.to===f.from.slice(0,4)+'-12-31'?f.from.slice(0,4):'custom';

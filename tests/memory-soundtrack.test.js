@@ -27,5 +27,6 @@ test('soundtrack bytes follow the memory privacy, range, conflict, replacement a
  const audio=await call(query,null,false,{Range:'bytes=0-2'});assert.equal(audio.status,206);assert.equal(audio.headers.get('content-type'),'audio/wav');assert.equal(await audio.text(),'abc');
  const changedPath=path.replace('.wav','.flac');assert.equal((await call('',{...draft,etag:saved.etag,soundtrackPath:changedPath},true)).status,409);assert.deepEqual(deleted,[]);
  const changed=await (await call('',{...draft,etag:visible.etag,soundtrackPath:changedPath},true)).json();assert.deepEqual(deleted,[path]);assert.equal((await call(query,null,true)).status,404);
- assert.equal((await call('?action=delete',{id,etag:changed.etag},true)).status,200);assert.deepEqual(deleted,[path,draft.mediaPath,changedPath,`records/${id}.json`]);
+ assert.equal((await call('?action=delete',{id,etag:changed.etag},true)).status,200);assert.deepEqual(deleted,[path],'a deleted memory keeps its song until it is removed for good');
+ const binned=(await (await call('?admin=1',null,true)).json())[0];assert.equal((await call('?action=purge',{id,etag:binned.etag},true)).status,200);assert.deepEqual(deleted,[path,draft.mediaPath,changedPath,`records/${id}.json`]);
 });

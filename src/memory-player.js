@@ -2,9 +2,18 @@ import {memoryMedia} from './memory-media.js';
 import {manageVideoBuffer} from './video-buffer.js';
 import {downloadVideo} from './video-download.js';
 
-export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65,startPaused=false,onVideo=()=>{},onEnded=()=>{},label='memory'}={}){
+export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65,startPaused=false,onVideo=()=>{},onPhoto=null,onEnded=()=>{},label='memory'}={}){
  const items=memoryMedia(memory);let index=0,requested=0,timer=null,paused=startPaused,disposed=false,serial=0,loading=false;
- const photos=new Map();let videoBuffer=null,download=null,downloadUrl=null;
+ const photos=new Map();let videoBuffer=null,download=null,downloadUrl=null,live=null;
+ // A Live Photo plays its short clip once, then rests on the still.
+ const endLive=()=>{if(!live)return;const {clip,photo}=live;live=null;clip.pause();clip.removeAttribute('src');clip.load();if(clip.isConnected)stage.replaceChildren(photo);};
+ function playLive(a,photo,token){
+  const clip=document.createElement('video');clip.className='live-motion';clip.playsInline=true;clip.preload='auto';clip.muted=!!soundtrack;clip.volume=Math.max(0,Math.min(1,volume));
+  const done=()=>{if(disposed||token!==serial||live?.clip!==clip)return;endLive();schedule();};
+  clip.addEventListener('canplay',()=>{if(disposed||token!==serial||live?.clip!==clip)return;if(paused||document.hidden){done();return;}stage.replaceChildren(clip);clip.play().catch(done);},{once:true});
+  clip.addEventListener('ended',done,{once:true});clip.addEventListener('error',done,{once:true});
+  live={clip,photo};clear();timer=setTimeout(done,9000);clip.src=a.live;clip.load();
+ }
  const releaseDownload=()=>{download?.abort();download=null;if(downloadUrl){URL.revokeObjectURL(downloadUrl);downloadUrl=null;}};
  const soundtrack=memory.soundtrack?.src?new Audio(memory.soundtrack.src):null;let audioBlocked=false;
  if(soundtrack){soundtrack.loop=true;soundtrack.preload='auto';soundtrack.volume=Math.max(0,Math.min(1,volume));soundtrack.addEventListener('error',()=>onError('The soundtrack could not load. You can still browse these photos.'));}
@@ -31,7 +40,7 @@ export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65,startPa
    try{el=await photo(target);}catch{if(!disposed&&token===serial){loading=false;requested=index;stage.setAttribute('aria-busy','false');onError('This photo could not be loaded. The previous photo is still here; use the arrows to try another.');}return;}
    if(disposed||token!==serial)return;
   }else el=document.createElement('video');
-  videoBuffer?.dispose();videoBuffer=null;releaseDownload();index=target;loading=false;stage.setAttribute('aria-busy','false');
+  endLive();videoBuffer?.dispose();videoBuffer=null;releaseDownload();index=target;loading=false;stage.setAttribute('aria-busy','false');
   if(a.type==='video'){
    el.id='memory-player';el.playsInline=true;el.preload='auto';el.tabIndex=0;el.muted=!!soundtrack;el.volume=Math.max(0,Math.min(1,volume));
    el.addEventListener('ended',()=>{if(disposed||token!==serial)return;onEnded();if(!disposed&&!paused&&items.length>1)show(index+1);});
@@ -42,9 +51,9 @@ export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65,startPa
    const connection=globalThis.navigator?.connection;
    videoBuffer=manageVideoBuffer(el,{slow:connection?.saveData||['slow-2g','2g','3g'].includes(connection?.effectiveType),onStatus:message=>{if(!disposed&&token===serial&&!download)onError(message);},onPreloadLimited:()=>loadFirst(true),onBlocked:()=>{paused=true;onError(label==='movie'?'Tap Play movie to start.':'Tap Play memory, or press Space, to start.');update();}});
    el.src=a.src;el.load();if(!paused&&!document.hidden)videoBuffer.resume();
-  }else schedule();
+  }else{onPhoto?.(el);if(a.live&&!onPhoto&&!paused)playLive(a,el,token);else schedule();}
  }
- function togglePause(){if(audioBlocked&&!paused){playSoundtrack();return;}paused=!paused;clear();if(paused)soundtrack?.pause();else playSoundtrack();if(videoBuffer&&!download){if(paused)videoBuffer.pause();else videoBuffer.resume();}else if(!paused)schedule();update();}
+ function togglePause(){if(audioBlocked&&!paused){playSoundtrack();return;}paused=!paused;clear();endLive();if(paused)soundtrack?.pause();else playSoundtrack();if(videoBuffer&&!download){if(paused)videoBuffer.pause();else videoBuffer.resume();}else if(!paused)schedule();update();}
  async function loadFirst(automatic=false){
   if(download||!videoBuffer)return;const controller=new AbortController();download=controller;const token=serial,el=stage.querySelector('video'),time=el.currentTime;videoBuffer.pause();soundtrack?.pause();
   const button=host.querySelector('[data-video="download"]');if(button){button.disabled=true;button.textContent='Downloading…';}
@@ -56,7 +65,7 @@ export function mountMemoryPlayer(host,memory,{onError=()=>{},volume=.65,startPa
   finally{if(download===controller)download=null;if(button){button.disabled=false;button.textContent='Load video first';}}
  }
  const click=e=>{const action=e.target.closest('[data-slide]')?.dataset.slide;if(action==='pause')togglePause();if(action==='next')show(requested+1);if(action==='previous')show(requested-1);const videoAction=e.target.closest('[data-video]')?.dataset.video;if(videoAction==='retry'&&!download){paused=false;videoBuffer?.retry();update();}if(videoAction==='download')loadFirst();};
- const visibility=()=>{if(document.hidden){clear();videoBuffer?.pause();soundtrack?.pause();}else if(!paused){playSoundtrack();if(videoBuffer&&!download)videoBuffer.resume();else if(!download)schedule();}};
+ const visibility=()=>{if(document.hidden){clear();endLive();videoBuffer?.pause();soundtrack?.pause();}else if(!paused){playSoundtrack();if(videoBuffer&&!download)videoBuffer.resume();else if(!download)schedule();}};
  host.addEventListener('click',click);document.addEventListener('visibilitychange',visibility);show(0);playSoundtrack();
- return {toggle:togglePause,resume:()=>{if(paused)togglePause();},next:()=>show(requested+1),previous:()=>show(requested-1),dispose(){disposed=true;serial++;clear();photos.clear();releaseDownload();videoBuffer?.dispose();if(soundtrack){soundtrack.pause();soundtrack.removeAttribute('src');soundtrack.load();}host.removeEventListener('click',click);document.removeEventListener('visibilitychange',visibility);}};
+ return {toggle:togglePause,resume:()=>{if(paused)togglePause();},next:()=>show(requested+1),previous:()=>show(requested-1),dispose(){disposed=true;serial++;clear();endLive();photos.clear();releaseDownload();videoBuffer?.dispose();if(soundtrack){soundtrack.pause();soundtrack.removeAttribute('src');soundtrack.load();}host.removeEventListener('click',click);document.removeEventListener('visibilitychange',visibility);}};
 }

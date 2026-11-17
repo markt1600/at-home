@@ -2,6 +2,7 @@ export const validFileSize=value=>Number.isSafeInteger(value)&&value>=0;
 export function memoryStorage(memory){
  const assets=memory.media?.length?memory.media:memory.files?.length?memory.files:[{file:memory.file,size:memory.size}];
  const sizes=assets.map(a=>a.file?.size??a.size);
+ for(const a of assets)if(a.original)sizes.push(a.original.size);
  if(memory.soundtrack||memory.soundtrackFile)sizes.push(memory.soundtrackFile?.size??memory.soundtrack?.file?.size??memory.soundtrack?.size);
  const known=sizes.filter(validFileSize);
  return {bytes:known.reduce((sum,size)=>sum+size,0),known:known.length,files:sizes.length,complete:known.length===sizes.length};

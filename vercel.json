@@ -2,9 +2,44 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "rewrites": [{"source":"/admin/upload", "destination":"/upload.html"},{"source":"/admin/upload/", "destination":"/upload.html"},{"source":"/admin", "destination":"/admin.html"}],
-  "headers": [{ "source": "/(.*)", "headers": [
-    { "key": "X-Content-Type-Options", "value": "nosniff" },
-    { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" }
-  ] }]
+  "rewrites": [
+    {
+      "source": "/admin/upload",
+      "destination": "/upload.html"
+    },
+    {
+      "source": "/admin/upload/",
+      "destination": "/upload.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/admin.html"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    }
+  ],
+  "functions": {
+    "api/memory-backup.js": {
+      "maxDuration": 300
+    }
+  },
+  "crons": [
+    {
+      "path": "/api/memory-backup",
+      "schedule": "17 3 * * *"
+    }
+  ]
 }

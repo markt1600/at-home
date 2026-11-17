@@ -52,7 +52,7 @@ The memory studio (`/admin`, signed in) has a **The house** card with a Christma
 
 ## Memories and source material
 
-Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. Keep original files as a backup. See [memory placements and publication](docs/MEMORIES.md).
+Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. The studio can also keep untouched originals, restore deleted memories for 30 days, undo story edits, download the whole library as a zip and maintain a second copy in another store; see [keeping memories safe](docs/MEMORIES.md#keeping-memories-safe).
 
 The public code includes authored geometry and dimensions, generated characters, and prepared artwork. It excludes the address, original architectural PDFs, house walkthrough and source photographs. Exterior tower shapes follow the supplied balcony photos; distances and unseen elevations are estimates. All balcony occupants are fictional.
 

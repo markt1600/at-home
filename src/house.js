@@ -9,6 +9,7 @@ import {buildMasterBathroom,buildPowderBathroom,buildGuestBathroom} from './hous
 import {buildBedroomDetails,buildSageDrawing} from './bedroom-details.js';
 import {buildHomeFurnishings} from './home-furnishings.js';
 import {buildDiningDetails} from './dining-details.js';
+import {MemoryFrames} from './memory-frames.js';
 import {buildClawMachine} from './claw-machine.js';
 import {buildLivingSeating} from './living-seating.js';
 import {buildWindowLounge} from './window-lounge.js';
@@ -154,6 +155,7 @@ export function buildHouse(world){
  const [dtx,dtz]=P(416,802);soft(2.8,.12,1.15,dtx,1.22,dtz,'oak');block(dtx,dtz,2.8,1.15,0,1.28);for(const x of [-.95,.95])box(.12,.68,.75,dtx+x,.85,dtz,'black');
  for(const x of [-.9,0,.9]){chair(dtx+x,dtz-.94,0,.45);chair(dtx+x,dtz+.94,Math.PI,.45);for(let j=0;j<3;j++)cyl(.33-j*.055,.3-j*.055,.1,dtx+x,2.73-j*.1,dtz,0xad7b38);light(dtx+x,2.35,dtz,0xffbd75,6);}
  buildDiningDetails(world,root,materials);
+ world.memoryFrames=new MemoryFrames(world,root);
  // Outdoor balcony planting and the covered barbecue beyond the dining sliders.
  plant(...P(239,590),0,.75);
  const [btx,btz]=P(276,576);cyl(.28,.28,.035,btx,.58,btz,'steel');cyl(.045,.065,.56,btx,.28,btz,'black');block(btx,btz,.58,.58);
