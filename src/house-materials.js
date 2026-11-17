@@ -24,10 +24,11 @@ export function applyHouseTextures(atlas,materials,anisotropy){
  // Narrow staggered boards instead of one stretched timber sheet.
  ctx.strokeStyle='rgba(46,29,17,.22)';ctx.lineWidth=1;
  for(let x=0;x<512;x+=64){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,512);ctx.stroke();const y=(x/64%3)*170;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+64,y);ctx.stroke();}floor.needsUpdate=true;
- for(const [key,map,bump,tint] of [['plaster',plaster,.0006,0xffffff],['sage',paint,.0004,0xffffff],['marble',stone,.0007,0xffffff],['oak',wood,.001,0xffffff],['oakFloor',floor,.001,0xc6a786],['walnut',wood,.001,0x685243],['breccia',breccia,.0003,0xffffff],['vanityStone',breccia,.0003,0xb29b80],['orange',fabric,.0008],['cream',fabric,.0008],['blue',fabric,.0008]]){
+ for(const [key,map,bump,tint] of [['plaster',plaster,.0006,0xffffff],['sage',paint,.0004,0xffffff],['marble',stone,.0007,0xffffff],['oak',wood,.001,0xffffff],['oakFloor',floor,.001,0xc6a786],['walnut',wood,.001,0x685243],['breccia',breccia,.0003,0xffffff],['vanityStone',breccia,.0003,0xb29b80],['orange',fabric,.0022],['cream',fabric,.0022],['blue',fabric,.0022]]){
   const m=materials[key];if(tint)m.color.set(tint);m.map=map;m.bumpMap=map;m.bumpScale=bump;m.needsUpdate=true;
  }
- if(materials.boucle){materials.boucle.map=fabric;materials.boucle.bumpMap=fabric;materials.boucle.bumpScale=.0018;materials.boucle.needsUpdate=true;}
+ if(materials.boucle){materials.boucle.map=fabric;materials.boucle.bumpMap=fabric;materials.boucle.bumpScale=.003;materials.boucle.needsUpdate=true;}
+ if(materials.loungeFabric&&!materials.loungeFabric.map){materials.loungeFabric.map=fabric;materials.loungeFabric.bumpMap=fabric;materials.loungeFabric.bumpScale=.0022;materials.loungeFabric.needsUpdate=true;}
  if(materials.diningTimber){materials.diningTimber.map=wood;materials.diningTimber.bumpMap=wood;materials.diningTimber.bumpScale=.001;materials.diningTimber.needsUpdate=true;}
  atlas.dispose();
 }

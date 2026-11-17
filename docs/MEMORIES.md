@@ -29,9 +29,31 @@ On Vercel, sign in using the project's editor password. Add JPG, PNG, WebP or HE
 
 **Saved memories** lists cloud drafts, published memories and files saved on this device. Search by title, description or date, or filter by status. Select an item to preview it and edit its story or floor-plan position. **Refresh library** reloads cloud changes from other devices.
 
-**Delete memory** asks for confirmation. Deleting a cloud memory removes both its stored media and metadata, and revokes access in the game. Deleting a device memory removes its browser copy and edits; bundled test memories are hidden on that device. Original source files and separately uploaded copies are unaffected. If a cloud deletion is interrupted, the memory stays hidden and is marked **Deletion incomplete** in the editor; select it and retry deletion. A stale browser tab cannot overwrite or delete a newer edit.
+**Delete memory** asks for confirmation. Deleting a cloud memory hides it from the game at once and moves it to **Recently deleted** (in the Show filter), files intact, for 30 days. There, **Restore memory** brings it back as a private draft and **Delete forever** removes its media, originals and story immediately; after 30 days this happens by itself the next time the editor is opened. Deleting a device memory removes its browser copy and edits; bundled test memories are hidden on that device. Original source files and separately uploaded copies are unaffected. If a permanent deletion is interrupted, the memory stays hidden and is marked **Deletion incomplete** in the editor; select it and retry deletion. A stale browser tab cannot overwrite or delete a newer edit.
 
 **Show this memory in the game** explicitly publishes a memory: anyone able to open the game can then play it. Clearing that checkbox removes public access. A private draft is visible only in the authenticated editor, not in the public catalog or media endpoint. Personal media is never sent to the voice agent.
+
+## Keeping memories safe
+
+**Originals.** The house plays reduced copies (photos up to 2560 px and 1 MB, videos up to 720p). With **Also keep the untouched originals** ticked (the default, in both the studio and the phone uploader) the file exactly as it left the phone or camera is stored as well, under `originals/{memory-uuid}/`. Originals are private: they are never part of the slideshow, never listed to game visitors and only downloadable by the signed-in editor (the **Original** link under each item). A photo that needed no reduction is its own original. Memories uploaded before this option have no original in the cloud; keep those source files.
+
+**Download everything** (in **Keep them safe**) saves one `.zip` with a folder per memory: the house copies in order, `originals/`, any soundtrack and a `memory.json` with the story. Chrome and Edge write it straight to disk; other browsers assemble it first, so allow free disk space equal to the library. Files that cannot be fetched are listed inside the archive, never silently skipped. Turntable music is not included.
+
+**Second copy.** Connect a second private Blob store and add its read-write token to the project as `BACKUP_BLOB_READ_WRITE_TOKEN`, plus a `CRON_SECRET` of 16 or more random characters, then redeploy. A daily job (`/api/memory-backup`, 03:17 UTC) copies new and changed files into it and never deletes from it, so a memory removed from the main store by mistake still exists there. The studio shows the last run and has **Update second copy now**. A run copies for up to four minutes; a large first copy finishes over several runs. Restoring is manual: point the project at the backup store, or copy files back.
+
+**Earlier versions.** Each time a memory's title, date, description, pet or position changes, the previous version is kept with it (the last 20). **Earlier versions** in the editor lists them; **Bring back** fills the form, and saving keeps it. Photos and videos are not versioned.
+
+**Dates.** When files are chosen, the date field is filled from the earliest capture date found in them (photo EXIF, or the movie header for MOV/MP4), read before they are re-encoded. If a file carries none, its own modified date is suggested with a note to check it. Only the calendar date is read; location is not.
+
+**Live Photos.** A browser file picker only receives a Live Photo's still. To keep the motion, save the Live Photo as a video in Photos (or export unmodified originals on a Mac) and choose the photo and its clip together: two files with the same name, such as `IMG_1234.HEIC` and `IMG_1234.MOV` (clip under 40 MB), become one slide. In the game the clip plays once, then rests on the photo.
+
+## In the house
+
+- **On this day.** A few seconds after arriving, the game mentions a memory dated today in an earlier year (or within three days of it). The Memories list opens with the same section.
+- **Which markers appear.** Each visit still shows up to eight spots, but the draw now favours anniversaries, then memories from this time of year (within about six weeks), and memories not opened recently on this device. Chance decides among equals.
+- **Timeline.** The Memories list (M) is grouped by year, newest first, with thumbnails, dates and a row of year buttons.
+- **Picture frames.** A frame on the blue dining sideboard, one on the office desk and one on a bedside table show photos from the library: today's anniversaries first, then this visit's memories. Look at a frame and interact to open its memory. Frames are put away when there are no photo memories and while exploring without memories.
+- **Cinema.** The screen plays photo memories as slideshows with their soundtrack, as well as videos.
 
 ## Deployment configuration
 
@@ -39,7 +61,7 @@ Connect a **private** Blob store to the At Home Vercel project and enable its re
 
 `api/memory-upload.js` authorizes uploads with constrained paths, content types and file sizes. `api/memories.js` manages metadata and proxies private media, including video range requests. Editor sessions last eight hours in HttpOnly, SameSite=Strict cookies, secure on Vercel. Updates use Blob ETags to reject conflicting edits. Login retry throttling is per function instance, not a shared global rate limiter.
 
-Media is stored under `media/{memory-uuid}/`; metadata is stored at `records/{uuid}.json`. Albums retain an ordered list of media paths and accept additional owner-bound paths. Legacy single-file records remain supported. Deletion removes every file belonging to the album. No separate KV service is required for this small catalog. The API reads metadata from Blob without cache and checks publication state for every media request. Published URLs are application URLs, never raw private-store paths.
+Media is stored under `media/{memory-uuid}/`; metadata is stored at `records/{uuid}.json`. Albums retain an ordered list of media paths and accept additional owner-bound paths. Legacy single-file records remain supported. Deletion removes every file belonging to the album. No separate KV service is required. The record files remain the source of truth; `records/_index.json` holds a copy of them all so a load is one listing plus one read however large the library is. The index is compared with the listing's ETags on every load, changed records are re-read and the index rewritten, so it can be deleted at any time. Publication state is still checked against the record itself for every media request. Published URLs are application URLs, never raw private-store paths.
 
 Soundtracks use `soundtracks/{memory-uuid}/{asset-uuid}.{extension}` in the same private store. They inherit the memory's draft/published visibility and are served through the same range-capable media endpoint. Replacing or removing a song deletes the previous audio after the metadata update succeeds; deleting a memory also removes its soundtrack. Device memories keep their songs in IndexedDB until explicitly copied to cloud storage.
 

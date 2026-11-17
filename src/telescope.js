@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {keepAuthoredColour} from './authored-colour.js';
 
 export const TELESCOPE_CLIPS=['coffee','reading','plants','stretch','cooking'];
 export const telescopeIsNight=hours=>{const h=(hours%24+24)%24;return h<6||h>=19;};
@@ -16,7 +17,7 @@ export class Telescope{
   const video=document.createElement('video');video.muted=true;video.loop=true;video.playsInline=true;video.preload='none';
   const texture=new THREE.VideoTexture(video);texture.colorSpace=THREE.SRGBColorSpace;
   const poster=new THREE.TextureLoader().load(`/art/telescope/${id}.webp`);poster.colorSpace=THREE.SRGBColorSpace;
-  const material=new THREE.MeshBasicMaterial({map:poster,toneMapped:false,fog:false});
+  const material=keepAuthoredColour(new THREE.MeshBasicMaterial({map:poster,toneMapped:false,fog:false}));
   const item={id,video,texture,poster,material,started:false,failed:false};video.addEventListener('error',()=>{item.failed=true;});this.media.set(id,item);return item;
  }
  build(){
@@ -73,7 +74,7 @@ export class Telescope{
    if(item.video.readyState>=2&&item.material.map!==item.texture){item.material.map=item.texture;item.material.needsUpdate=true;}
   }
   this.world.daylight.neighborhood.people.forEach(p=>p.root.visible=false);
-  const camera=this.night?this.skyCamera():this.camera;this.world.renderer.render(this.night?this.nightScene:this.world.scene,camera);
+  const camera=this.night?this.skyCamera():this.camera;if(this.night)this.world.renderer.render(this.nightScene,camera);else this.world.renderView(this.world.scene,camera);
  }
  skyCamera(){if(!this.spaceCamera)this.spaceCamera=new THREE.PerspectiveCamera();this.spaceCamera.copy(this.camera);this.spaceCamera.position.set(0,0,0);this.spaceCamera.updateMatrixWorld();return this.spaceCamera;}
  leave(){if(!this.active)return;this.active=false;this.root.visible=false;for(const item of this.media.values())item.video.pause();this.world.keys={};this.world.onTelescopeChange?.(false);}

@@ -9,7 +9,7 @@ export function captureScenePhoto(world) {
     }
     world.resize();
     world.reflections.update();
-    world.renderer.render(world.scene, world.camera);
+    world.renderView();
     const {width, height} = world.canvas;
     world.canvas.toBlob(blob => {
       if (blob) resolve({blob, width, height});
@@ -18,22 +18,25 @@ export function captureScenePhoto(world) {
   });
 }
 
-export const scenePhotoHTML = () => `
+export const scenePhotoHTML = ({keep = false} = {}) => `
   <p class="panel-intro">A clear view of the house, without menus or controls.</p>
   <img class="scene-photo-preview" alt="Photo of your current view of the house" hidden>
   <p class="fine" data-photo-status role="status">Preparing your photo…</p>
   <button data-photo="retry" hidden>Try again</button>
+  ${keep ? `<div class="photo-keep"><label class="field">Keep it as a memory<input data-photo-title maxlength="100" placeholder="A title for this moment"></label><button data-photo="keep" disabled>Keep as a memory <span>✧</span></button><p class="fine" data-keep-status role="status">It joins your memories at the spot where you are standing, dated today.</p></div>` : ''}
   <div class="stack">
     <button class="primary" data-photo="download" disabled>Download photo <span>↓</span></button>
     <button data-panel="settings">Back to pause menu</button>
   </div>`;
 
-export function mountScenePhoto(root, world) {
+export function mountScenePhoto(root, world, {onKeep, suggestedTitle = ''} = {}) {
   const preview = root.querySelector('.scene-photo-preview');
   const status = root.querySelector('[data-photo-status]');
   const download = root.querySelector('[data-photo="download"]');
   const retry = root.querySelector('[data-photo="retry"]');
-  let disposed = false, pending = false, photo = null, url = null, filename;
+  const keep = root.querySelector('[data-photo="keep"]'), title = root.querySelector('[data-photo-title]'), keepStatus = root.querySelector('[data-keep-status]');
+  if (title) title.value = suggestedTitle;
+  let disposed = false, pending = false, photo = null, url = null, filename, keeping = false, kept = false;
 
   async function takePhoto() {
     if (pending || disposed || photo) return;
@@ -49,6 +52,7 @@ export function mountScenePhoto(root, world) {
       preview.src = url;
       preview.hidden = false;
       download.disabled = false;
+      if (keep) keep.disabled = false;
       status.textContent = `${result.width} × ${result.height} · PNG photo`;
     } catch {
       if (disposed) return;
@@ -62,6 +66,12 @@ export function mountScenePhoto(root, world) {
   function onClick(event) {
     const action = event.target.closest('button')?.dataset.photo;
     if (action === 'retry') takePhoto();
+    if (action === 'keep' && photo && onKeep && !keeping && !kept) {
+      keeping = true; keep.disabled = true; keepStatus.textContent = 'Saving this moment…';
+      onKeep(photo, title.value).then(message => { if (disposed) return; kept = true; keep.textContent = 'Kept as a memory ✓'; keepStatus.textContent = message; })
+        .catch(error => { if (disposed) return; keep.disabled = false; keepStatus.textContent = error.message || 'The photo could not be saved. Please try again.'; })
+        .finally(() => { keeping = false; });
+    }
     if (action !== 'download' || !photo) return;
     // Give the download its own URL so closing the preview cannot interrupt it.
     const link = document.createElement('a'), downloadURL = URL.createObjectURL(photo);

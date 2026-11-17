@@ -19,6 +19,31 @@ This is a separate game derived from the authored house reconstruction in `markt
 
 Desktop: enter the house to start walking with a center cursor. WASD/arrows move, mouse looks, Space jumps, E interacts and Esc closes popups or opens Pause. M opens memories, P pets, R rituals, J journal, V voice, O room navigation and H the key guide. Number keys select popup options. During memories, Space pauses playback, left/right arrows change slides and Esc immediately returns to wandering. Touch: drag to look and use the arrow controls to move.
 
+## Light, weather and loading
+
+- **Soft lighting.** Surfaces that meet (a sofa and the floor, a shelf and the wall) get soft contact shadows, and lamps, candles, the tree lights and the sun have a gentle glow. Pause has a **Soft lighting** setting: Automatic (on for computers, off for phones and tablets, and switched off for the visit if the frame rate cannot be held even at the lowest resolution), Always on, or Off. The choice is kept on the device. `src/post-effects.js`.
+- **The hour changes the rooms.** The sun is low and warm at each end of the day and white at noon; after dark a cool moon lights the windows, the lamps and downlights brighten and the fill light drops, so rooms are lit in pools. Polished surfaces (marble, steel, glass, the timber floor) reflect a soft neutral room. `lightingState` in `src/daylight.js` holds every number.
+- **Rain.** From the second day, about three days in ten have one shower of a few hours. It falls around the house (never under the roof), runs down the fixed window glass, greys the sky, brings the lamps up a little and is heard softly indoors and openly on a balcony. Each day's weather is fixed, so a saved day looks the same when you return. `src/weather.js`.
+- **Loading.** Before the house opens only two short films per pet are fetched; the other viewing angles and activities follow in the background, nearest pet first. The surface atlas is a 0.5 MB WebP (was 3 MB).
+
+## Special days
+
+**The house** card in the memory studio has **Special days**: a name, a date and a balloon colour scheme. On that date each year (in the visitor's own time zone) bunches of balloons stand in the living room, dining room and entrance and the welcome message names the day. 29 February is kept on the 28th outside leap years. Independently, any memory whose date is today in an earlier year gets three balloons beside its marker. The list is stored with Christmas mode in `settings/house.json`. `src/occasions.js`, `src/celebrations.js`.
+
+## More with the pets
+
+In a pet's panel (P):
+
+- **Walk out to a balcony** (Leo and Cyrus). The pet heels beside you, following through doorways; stay out on either balcony together for a quarter of a minute to complete the walk. It ends by itself after four minutes indoors.
+- **Teach a trick.** Leo has Sit, Spin and Give a paw; Cyrus has Come when called and High five; Pebble has Follow the leaf. A trick takes three lessons with a 40-second rest between lessons for that pet; a learnt trick can be asked for at any time. You need to be within a few metres.
+- **Today's favourite spot.** Each pet picks one place per day of the game, returns there to rest, and never picks the same place two days running. The panel says where; finding the pet settled there is recorded in the journal once a day.
+
+Progress is saved with the game. `src/pet-days.js`.
+
+## Photos become memories
+
+**Take a photo** in Pause now has **Keep as a memory**, with a title suggested from the room and any pets in the frame. If you are signed in to the memory studio in this browser the photo is uploaded as a private draft; otherwise it is saved on the device. Either way its marker is where you stood, dated today. `src/photo-memory.js`.
+
 ## Run locally
 
 Node 20.19 or newer:
@@ -52,7 +77,7 @@ The memory studio (`/admin`, signed in) has a **The house** card with a Christma
 
 ## Memories and source material
 
-Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. Keep original files as a backup. See [memory placements and publication](docs/MEMORIES.md).
+Personal test memories remain local by default. Browser-added files stay on the device until deliberately copied to the cloud in the signed-in memory studio. Cloud uploads start as private drafts; the editor explicitly publishes a memory to show it to game visitors. The studio can also keep untouched originals, restore deleted memories for 30 days, undo story edits, download the whole library as a zip and maintain a second copy in another store; see [keeping memories safe](docs/MEMORIES.md#keeping-memories-safe).
 
 The public code includes authored geometry and dimensions, generated characters, and prepared artwork. It excludes the address, original architectural PDFs, house walkthrough and source photographs. Exterior tower shapes follow the supplied balcony photos; distances and unseen elevations are estimates. All balcony occupants are fictional.
 

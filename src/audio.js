@@ -19,7 +19,13 @@ export class HomeSound {
  moflin(action='idle'){const notes=action==='talk'?[820,1050,920,1220]:action==='pet'?[680,880,1020]:[820,970];for(const [i,note] of notes.entries()){this.tone(note,.20,.025,i*.19,note*(i%2?.82:1.22));this.tone(note*.5,.24,.011,i*.19,note*.56);}}
  care(){this.tone(523,.35,.04);this.tone(784,.5,.035,.12);}
  step(){this.tone(90,.07,.018,0,58);}
- update(dt,hours,balcony=false){if(!this.ctx||this.volume<=0)return;this.elapsed+=dt;const h=hours%24,day=h>=6&&h<19;this.breeze.gain.setTargetAtTime(balcony?.18:.07,this.ctx.currentTime,.8);
+ // Rain is heard as a soft patter through the glass indoors and openly on a balcony.
+ setRain(amount,outdoors=false){
+  if(!this.ctx||(!this.rain&&amount<=.01))return;
+  if(!this.rain){const buffer=this.ctx.createBuffer(1,this.ctx.sampleRate*3,this.ctx.sampleRate),data=buffer.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;const source=this.ctx.createBufferSource(),high=this.ctx.createBiquadFilter();source.buffer=buffer;source.loop=true;high.type='highpass';high.frequency.value=450;this.rainTone=this.ctx.createBiquadFilter();this.rainTone.type='lowpass';this.rain=this.ctx.createGain();this.rain.gain.value=0;source.connect(high);high.connect(this.rainTone);this.rainTone.connect(this.rain);this.rain.connect(this.master);source.start();}
+  this.rainTone.frequency.setTargetAtTime(outdoors?6500:1300,this.ctx.currentTime,.5);this.rain.gain.setTargetAtTime(Math.max(0,Math.min(1,amount))*(outdoors?.11:.035),this.ctx.currentTime,.9);
+ }
+ update(dt,hours,balcony=false,rain=0){if(!this.ctx||this.volume<=0)return;this.elapsed+=dt;this.setRain(rain,balcony);const h=hours%24,day=h>=6&&h<19&&rain<.15;this.breeze.gain.setTargetAtTime(balcony?.18:.07,this.ctx.currentTime,.8);
   if(day&&this.elapsed>this.nextBird){this.nextBird=this.elapsed+12+Math.random()*16;const f=1800+Math.random()*600,v=balcony?.018:.005;this.tone(f,.15,v,0,f*1.4);this.tone(f*1.2,.17,v,.24,f*.9);}
   if(this.music&&this.elapsed>this.nextNote){this.nextNote=this.elapsed+1.25;const notes=[261.63,329.63,392,493.88,523.25,659.25];this.tone(notes[Math.floor(Math.random()*notes.length)],2,.026);}
  }

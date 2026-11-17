@@ -1,16 +1,19 @@
 import * as THREE from 'three';
 import {planPoint,HOUSE_ROOMS} from './house-layout.js';
 import {memoryMedia} from './memory-media.js';
+import {keepAuthoredColour} from './authored-colour.js';
 
 // The existing generated sky film keeps the screen usable without personal media.
 export const EXPLORATION_MOVIE={id:'house-galaxy-film',title:'A little closer to the stars',type:'video',src:'/art/telescope/galaxy.mp4'};
 
+// Photo memories play on the screen too, as a slideshow with their soundtrack.
+export const cinemaShows=memories=>[...cinemaVideos(memories),...memories.filter(memory=>memoryMedia(memory).every(item=>item.type==='image'&&item.src)).map(memory=>({...memory,type:'image',media:memoryMedia(memory).map(({live,...item})=>item)}))];
 export const cinemaVideos=memories=>memories.flatMap(memory=>memoryMedia(memory).filter(item=>item.type==='video'&&item.src).map(item=>({...memory,type:'video',media:[item],src:item.src,soundtrack:null})));
 
 export class Cinema{
  constructor(world,screen){
   this.world=world;this.screen=screen;this.active=false;this.darkness=0;this.curtains=[];
-  this.face=new THREE.Mesh(new THREE.PlaneGeometry(3.66,1.76),new THREE.MeshBasicMaterial({color:0xe5e5df,toneMapped:false}));
+  this.face=new THREE.Mesh(new THREE.PlaneGeometry(3.66,1.76),keepAuthoredColour(new THREE.MeshBasicMaterial({color:0xe5e5df,toneMapped:false})));
   this.face.position.z=.067;this.face.userData.dynamic=true;this.face.name='Movie playback surface';screen.add(this.face);
   const cloth=new THREE.MeshStandardMaterial({color:0x77736c,roughness:1,side:THREE.DoubleSide}),[cx,cz]=planPoint(405,293);
   for(const wall of world.architectureWalls)for(const a of wall.apertures.filter(a=>a.id.startsWith('theatre-window'))){
@@ -22,7 +25,7 @@ export class Cinema{
    for(const side of [-1,1]){const mesh=new THREE.Mesh(geo,cloth);mesh.castShadow=mesh.receiveShadow=true;g.add(mesh);this.curtains.push({mesh,width,side});}
   }
   this.paintCurtains();screen.updateWorldMatrix(true,true);
-  world.houseInteractions.add({id:'cinema-screen',pos:screen.localToWorld(new THREE.Vector3(0,0,.09)),range:5.8,touchObjects:[this.face],surfaceOffset:.12,label:()=>this.active?'Stop the movie':this.memoryMode===false?'Play a movie':'Play a movie memory',activate:()=>world.onCinemaPlay?.()});
+  world.houseInteractions.add({id:'cinema-screen',pos:screen.localToWorld(new THREE.Vector3(0,0,.09)),range:5.8,touchObjects:[this.face],surfaceOffset:.12,label:()=>this.active?'Stop the movie':this.memoryMode===false?'Play a movie':'Play a memory on the screen',activate:()=>world.onCinemaPlay?.()});
  }
  enter(){
   if(this.active)return;this.active=true;this.ready=false;this.face.material.color.set(0x050607);
@@ -31,6 +34,10 @@ export class Cinema{
   this.detachVideo();this.video=video;video.crossOrigin='anonymous';this.texture=new THREE.VideoTexture(video);this.texture.colorSpace=THREE.SRGBColorSpace;this.face.material.map=this.texture;this.face.material.color.set(0xffffff);this.face.material.needsUpdate=true;
   this.fit=()=>{if(!video.videoWidth||!video.videoHeight)return;const ratio=video.videoWidth/video.videoHeight,screenRatio=3.66/1.76;this.face.scale.set(ratio<screenRatio?ratio/screenRatio:1,ratio>screenRatio?screenRatio/ratio:1,1);};
   video.addEventListener('loadedmetadata',this.fit);this.fit();
+ }
+ attachImage(image){
+  this.detachVideo();this.texture=new THREE.Texture(image);this.texture.colorSpace=THREE.SRGBColorSpace;this.texture.needsUpdate=true;this.face.material.map=this.texture;this.face.material.color.set(0xffffff);this.face.material.needsUpdate=true;
+  const ratio=image.naturalWidth/image.naturalHeight,screenRatio=3.66/1.76;if(ratio>0)this.face.scale.set(ratio<screenRatio?ratio/screenRatio:1,ratio>screenRatio?screenRatio/ratio:1,1);
  }
  detachVideo(){if(this.video)this.video.removeEventListener('loadedmetadata',this.fit);this.video=null;this.texture?.dispose();this.texture=null;this.face.material.map=null;this.face.material.needsUpdate=true;this.face.scale.set(1,1,1);}
  paintCurtains(){for(const {mesh,width,side} of this.curtains){mesh.scale.x=THREE.MathUtils.lerp(.075,1,this.darkness);mesh.position.x=side*THREE.MathUtils.lerp(width/2-.035,width/4,this.darkness);}}

@@ -10,8 +10,8 @@ export class AdaptiveResolution{
   if(this.seconds<2)return;
   const average=this.seconds/this.frames;this.seconds=0;this.frames=0;
   let next=this.ratio;
-  if(average>1/44){this.goodWindows=0;next=Math.max(this.min,this.ratio*.90);}
-  else if(average<1/57){if(++this.goodWindows>=4){next=Math.min(this.max,this.ratio+.08);this.goodWindows=0;}}
+  if(average>1/44){this.goodWindows=0;next=Math.max(this.min,this.ratio*.90);this.struggling=this.ratio<=this.min+.005?(this.struggling||0)+1:0;}
+  else if(average<1/57){this.struggling=0;if(++this.goodWindows>=4){next=Math.min(this.max,this.ratio+.08);this.goodWindows=0;}}
   else this.goodWindows=0;
   next=Math.round(next*1000)/1000;
   if(Math.abs(next-this.ratio)<.005)return;

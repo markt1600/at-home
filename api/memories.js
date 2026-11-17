@@ -2,9 +2,10 @@ import {get,put,list,head,del} from '@vercel/blob';
 import {Readable} from 'node:stream';
 import {pipeline} from 'node:stream/promises';
 import {configured,passwordMatches,createSession,authenticated,setSession,sameOrigin,parseBody} from '../server/memory-auth.js';
-import {UUID,validateRecord,publicRecord,recordAssetPaths,MAX_SIZE,CONTENT_TYPES,validSoundtrackPath,MAX_SOUNDTRACK_SIZE} from '../server/memory-record.js';
+import {UUID,validateRecord,publicRecord,recordAssetPaths,recordStoredPaths,recordOriginalPaths,MAX_SIZE,CONTENT_TYPES,validSoundtrackPath,MAX_SOUNDTRACK_SIZE,MAX_ORIGINAL_SIZE,DELETED_RETENTION_MS} from '../server/memory-record.js';
 import {audioContentType} from '../src/audio-formats.js';
 import {resolveStoredSizes} from '../server/memory-storage.js';
+import {loadCatalog} from '../server/memory-catalog.js';
 import {validFileSize} from '../src/memory-storage.js';
 import {MAX_PHOTO_BYTES} from '../src/photo-compression.js';
 
@@ -16,6 +17,16 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
  const attempts=new Map();
  const options=()=>({access:'private',...(env.BLOB_READ_WRITE_TOKEN?{token:env.BLOB_READ_WRITE_TOKEN}:{storeId:env.BLOB_STORE_ID})});
  const read=async id=>{const r=await storage.get(`records/${id}.json`,{...options(),useCache:false});if(!r||!r.stream)return null;return {record:await new Response(r.stream).json(),etag:r.blob.etag};};
+ const writeRecord=(record,etag)=>storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});
+ // Permanent removal. Claim it with a conditional write first: that immediately
+ // revokes media access and stops another tab editing while files are removed.
+ const purge=async(id,prior)=>{
+  let etag=prior.etag;
+  if(!prior.record.deleting)etag=(await writeRecord({...prior.record,published:false,deleting:true},etag)).etag;
+  for(const path of recordStoredPaths(prior.record))await storage.del(path,options());
+  try{const prefix=`thumbs/${id}/`,thumbs=await storage.list({...options(),prefix});for(const b of (thumbs?.blobs||[]).filter(b=>b.pathname.startsWith(prefix)))await storage.del(b.pathname,options());}catch{}
+  await storage.del(`records/${id}.json`,{...options(),ifMatch:etag});
+ };
  return async(req,res)=>{
   res.setHeader('Cache-Control','private, no-store');
   res.setHeader('X-Content-Type-Options','nosniff');
@@ -37,7 +48,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
    if(req.method==='GET'&&action==='thumb'){
     // A small JPEG of a photo for library cards and album strips, made once and kept beside the originals.
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
-    const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
+    const found=await read(id);if(!found||found.record.deleting||(!admin&&(!found.record.published||found.record.deletedAt)))return res.status(404).end();
     const asset=url.searchParams.get('asset'),path=recordAssetPaths(found.record).find(p=>p.split('/').at(-1)===asset);
     if(!path||!/\.(jpe?g|png|webp)$/i.test(path))return res.status(404).end();
     const thumbPath=`thumbs/${id}/${asset}.jpg`;
@@ -53,7 +64,7 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
    }
    if(req.method==='GET'&&action==='media'){
     const id=url.searchParams.get('id');if(!UUID.test(id||''))return res.status(404).end();
-    const found=await read(id);if(!found||found.record.deleting||(!found.record.published&&!admin))return res.status(404).end();
+    const found=await read(id);if(!found||found.record.deleting||(!admin&&(!found.record.published||found.record.deletedAt)))return res.status(404).end();
     const range=req.headers.range;if(range&&!/^bytes=\d*-\d*$/.test(range))return res.status(416).end();
     const paths=recordAssetPaths(found.record),asset=url.searchParams.get('asset'),path=asset?paths.find(p=>p.split('/').at(-1)===asset):paths[0];
     if(!path)return res.status(404).end();
@@ -67,44 +78,66 @@ export function createMemoryHandler({storage={get,put,list,head,del},env=process
     const length=media.headers.get('content-length');if(length)res.setHeader('Content-Length',length);
     res.status(cr?206:200);await pipeline(Readable.fromWeb(media.stream),res);return;
    }
+   if(req.method==='GET'&&action==='original'){
+    // The untouched file as it left the phone or camera: editor only, as a download.
+    const id=url.searchParams.get('id');if(!admin||!UUID.test(id||''))return res.status(404).end();
+    const found=await read(id),original=found&&!found.record.deleting&&found.record.originals?.[url.searchParams.get('asset')];
+    if(!original)return res.status(404).end();
+    const media=await storage.get(original.path,{...options(),useCache:true});if(!media?.stream)return res.status(404).end();
+    res.setHeader('Content-Type',media.blob.contentType||'application/octet-stream');
+    res.setHeader('Content-Disposition',`attachment; filename="${original.name.replace(/[^\x20-\x7e]|["\\]/g,'_')}"; filename*=UTF-8''${encodeURIComponent(original.name)}`);
+    const length=media.headers?.get('content-length');if(length)res.setHeader('Content-Length',length);
+    res.status(200);await pipeline(Readable.fromWeb(media.stream),res);return;
+   }
    if(req.method==='GET'){
     const all=url.searchParams.get('admin')==='1';if(all&&!admin)return res.status(401).json({error:'Sign in to edit memories'});
-    const records=[];let cursor;
-    do{const page=await storage.list({...options(),prefix:'records/',limit:100,cursor});
-     for(let i=0;i<page.blobs.length;i+=8){const group=await Promise.all(page.blobs.slice(i,i+8).map(async b=>{const id=b.pathname.slice(8,-5);if(!UUID.test(id))return null;return read(id);}));for(const entry of group)if(entry&&(all||(entry.record.published&&!entry.record.deleting)))records.push({...entry.record,...(all?{etag:entry.etag}:{})});}
-     cursor=page.hasMore?page.cursor:undefined;
-    }while(cursor);
+    // One listing and one index read, however many memories there are; only
+    // records that changed since the index was written are read individually.
+    let entries=await loadCatalog({storage,options:options(),read});
+    if(all){
+     // Memories deleted more than 30 days ago leave for good the next time the editor opens.
+     const expired=entries.filter(e=>e.record.deletedAt&&now()-Date.parse(e.record.deletedAt)>DELETED_RETENTION_MS);
+     for(const e of expired)try{await purge(e.record.id,e);entries=entries.filter(x=>x!==e);}catch{}
+    }
+    const records=entries.filter(e=>all||(e.record.published&&!e.record.deleting&&!e.record.deletedAt)).map(e=>({...e.record,...(all?{etag:e.etag}:{})}));
     const sized=all?await resolveStoredSizes(records,storage,options()):records;
-    return res.status(200).json(sized.map(publicRecord).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)));
+    return res.status(200).json(sized.map(r=>publicRecord(r,{admin:all})).sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)));
    }
    if(req.method==='POST'){
     if(!admin)return res.status(401).json({error:'Sign in to edit memories'});
     const input=parseBody(req);if(!UUID.test(input.id||''))return res.status(400).json({error:'Invalid memory ID'});
     const prior=await read(input.id);if(prior&&input.etag!==prior.etag)return res.status(409).json({error:'This memory changed in another tab. Refresh the library before trying again.'});
     if(action==='delete'){
+     // Deleting is recoverable: the memory leaves the game at once and waits in
+     // Recently deleted, files intact, for 30 days.
+     if(!prior||prior.record.deletedAt)return res.status(200).json({ok:true});
+     if(prior.record.deleting)return res.status(409).json({error:'This memory is being removed for good. Refresh the library to finish.'});
+     await writeRecord({...prior.record,published:false,deletedAt:new Date(now()).toISOString()},prior.etag);
+     return res.status(200).json({ok:true,recoverable:true});
+    }
+    if(action==='restore'){
+     if(!prior||prior.record.deleting)return res.status(409).json({error:'This memory can no longer be restored.'});
+     const {deletedAt,...record}=prior.record,saved=await writeRecord(record,prior.etag);
+     return res.status(200).json({...publicRecord(record,{admin:true}),etag:saved.etag});
+    }
+    if(action==='purge'){
      if(!prior)return res.status(200).json({ok:true});
-     // Claim deletion with a conditional write first. It immediately revokes media
-     // access and prevents another tab from editing a record while its file is removed.
-     let etag=prior.etag;
-     if(!prior.record.deleting){const claimed=await storage.put(`records/${input.id}.json`,JSON.stringify({...prior.record,published:false,deleting:true}),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:true,ifMatch:etag,cacheControlMaxAge:0});etag=claimed.etag;}
-     try{
-      for(const path of recordAssetPaths(prior.record))await storage.del(path,options());
-      try{const prefix=`thumbs/${input.id}/`,thumbs=await storage.list({...options(),prefix});for(const b of (thumbs?.blobs||[]).filter(b=>b.pathname.startsWith(prefix)))await storage.del(b.pathname,options());}catch{}
-      await storage.del(`records/${input.id}.json`,{...options(),ifMatch:etag});
-     }catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry Delete memory.'});}
+     try{await purge(input.id,prior);}catch{return res.status(502).json({error:'This memory is hidden, but deletion could not finish. Refresh the library and retry.'});}
      return res.status(200).json({ok:true});
     }
     if(action)return res.status(400).json({error:'Unknown memory action'});
     if(prior?.record.deleting)return res.status(409).json({error:'This memory is being deleted. Refresh the library to finish deleting it.'});
+    if(prior?.record.deletedAt)return res.status(409).json({error:'This memory is in Recently deleted. Restore it before editing.'});
     if(!prior&&input.etag)return res.status(409).json({error:'This memory was deleted in another tab. Refresh the library.'});
     const record=validateRecord(input,prior?.record);
     record.assetSizes=Object.fromEntries(recordAssetPaths(record).filter(path=>validFileSize(prior?.record.assetSizes?.[path])).map(path=>[path,prior.record.assetSizes[path]]));
     for(const path of recordAssetPaths(record).filter(p=>!recordAssetPaths(prior?.record).includes(p))){const blob=await storage.head(path,options()),audio=validSoundtrackPath(path),replacement=input.replacePhotos?.some(p=>p.path===path);if(!blob||!blob.size||blob.size>(replacement?MAX_PHOTO_BYTES:audio?MAX_SOUNDTRACK_SIZE:MAX_SIZE)||(replacement?!/^image\/(jpeg|png|webp)$/.test(blob.contentType):audio?blob.contentType!==audioContentType(path):!CONTENT_TYPES.includes(blob.contentType)))return res.status(400).json({error:replacement?'Compressed photos must be 1 MB or less':'Upload a supported media file first'});record.assetSizes[path]=blob.size;}
+    for(const original of Object.values(record.originals||{}).filter(o=>!recordOriginalPaths(prior?.record).includes(o.path))){const blob=await storage.head(original.path,options());if(!blob||!blob.size||blob.size>MAX_ORIGINAL_SIZE)return res.status(400).json({error:'An original file did not finish uploading. Try saving again.'});original.size=blob.size;}
     const saved=await storage.put(`records/${record.id}.json`,JSON.stringify(record),{...options(),contentType:'application/json',addRandomSuffix:false,allowOverwrite:!!prior,...(prior?{ifMatch:prior.etag}:{}),cacheControlMaxAge:0});
     // The old photo remains playable until the entire replacement record has
     // committed with its ETag. Failed uploads or conflicts never delete originals.
-    for(const path of recordAssetPaths(prior?.record).filter(p=>!recordAssetPaths(record).includes(p)))await storage.del(path,options()).catch(()=>{});
-    return res.status(200).json({...publicRecord(record),etag:saved.etag});
+    for(const path of recordStoredPaths(prior?.record).filter(p=>!recordStoredPaths(record).includes(p)))await storage.del(path,options()).catch(()=>{});
+    return res.status(200).json({...publicRecord(record,{admin:true}),etag:saved.etag});
    }
    res.setHeader('Allow','GET, POST');return res.status(405).json({error:'Method not allowed'});
   }catch(error){

@@ -36,8 +36,18 @@ storage token is included in the client. Files use direct multipart uploads;
 the memory record is committed after all its files finish. A failed upload retains
 prepared files in this tab and skips completed uploads on retry. A lost commit
 response is reconciled with the exact saved record, avoiding duplicate memories.
-Closing/reloading the page does not preserve the pending queue. The UI warns on
-navigation and requests a screen wake lock while busy where supported.
+The selection, the prepared files, the form and the list of finished uploads are
+kept in the browser's storage on the phone, so closing or reloading the page (or
+iOS discarding the tab) loses nothing: reopening the uploader restores the queue,
+finishes any preparation and uploads only what is still missing. The queue is
+cleared after a successful save or on sign-out. If the browser refuses the
+storage (private browsing, a full disk) the uploader works as before, without
+resume. The UI warns on navigation while busy and requests a screen wake lock
+where supported.
+
+Originals, capture dates and Live Photo pairs work as described in
+[Keeping memories safe](MEMORIES.md#keeping-memories-safe). Originals upload
+after the memory's own files, so a slow connection has the memory safe first.
 
 Converters load only on demand in the uploader; the game does not import them.
 The upload page uses system fonts, 16 px inputs, large tap targets, safe-area

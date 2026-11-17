@@ -24,12 +24,12 @@ test('editor sessions reject tampering, expiration and changed passwords',()=>{
  assert.ok(!authenticated(req,{},now));
 });
 
-test('private memory API protects drafts, detects conflicts, serves ranges and safely deletes stored files',async t=>{
+test('private memory API protects drafts, detects conflicts, serves ranges, and deletes recoverably before removing files for good',async t=>{
  const records=new Map();let version=0,failNextDelete=false;const mediaCalls=[],deletions=[];
  const storage={
   get:async(path,options)=>{if(path.startsWith('records/')){const v=records.get(path);return v?{stream:new Response(v.body).body,blob:{etag:v.etag}}:null;}
    mediaCalls.push({path,options});const range=options.headers?.Range;return {stream:new Response(range?'vid':'video-data').body,blob:{contentType:'video/mp4'},headers:new Headers(range?{'content-range':'bytes 0-2/10','content-length':'3'}:{'content-length':'10'})};},
-  list:async()=>({blobs:[...records.keys()].map(pathname=>({pathname})),hasMore:false}),
+  list:async()=>({blobs:[...records].map(([pathname,v])=>({pathname,etag:v.etag})),hasMore:false}),
   head:async()=>({size:10,contentType:'video/mp4'}),
   put:async(path,body,options)=>{const current=records.get(path);if(current&&current.etag!==options.ifMatch)throw Error('precondition failed');const etag='version-'+(++version);records.set(path,{body,etag});return {etag};},
   del:async(path,options)=>{deletions.push({path,options});if(failNextDelete){failNextDelete=false;throw Error('Blob storage interrupted');}const current=records.get(path);if(current){assert.equal(options.ifMatch,current.etag,'record cleanup must be conditional');records.delete(path);}}
@@ -69,20 +69,33 @@ test('private memory API protects drafts, detects conflicts, serves ranges and s
  assert.equal((await request('?action=delete',{id:'../../records/other'},cookie)).status,400);
  assert.equal((await request('?action=delete',{id,etag:saved.etag},cookie)).status,409);
  assert.equal(deletions.length,0,'rejected requests must not remove any files');
- // Publish before interruption to prove deletion revokes all public access first.
+ // Deleting a published memory hides it everywhere at once but keeps every file.
  const visible=await (await request('',{...draft,published:true,etag:current.etag},cookie)).json();
+ const removed=await request('?action=delete',{id,etag:visible.etag},cookie);assert.equal(removed.status,200);assert.equal((await removed.json()).recoverable,true);
+ assert.equal(deletions.length,0,'a deleted memory keeps its files');
+ assert.deepEqual(await (await request()).json(),[]);
+ assert.equal((await request('?action=media&id='+id)).status,404,'deleted memories leave the game immediately');
+ const binned=(await (await request('?admin=1',null,cookie)).json())[0];assert.ok(binned.deletedAt);assert.equal(binned.published,false);
+ assert.equal((await request('?action=media&id='+id,null,cookie)).status,200,'the editor can still preview it');
+ assert.equal((await request('',{...draft,published:true,etag:binned.etag},cookie)).status,409,'restore before editing');
+ assert.equal((await request('?action=restore',{id,etag:'stale'},cookie)).status,409);
+ const restored=await (await request('?action=restore',{id,etag:binned.etag},cookie)).json();assert.ok(!restored.deletedAt);assert.equal(restored.published,false,'restored memories come back as private drafts');assert.equal(restored.media.length,2);
+ // Removing for good: publish first to prove an interrupted purge still revokes access.
+ const again=await (await request('',{...draft,published:true,etag:restored.etag},cookie)).json();
+ assert.equal((await request('?action=purge',{id,etag:again.etag})).status,401);
  failNextDelete=true;
- assert.equal((await request('?action=delete',{id,etag:visible.etag},cookie)).status,502);
+ assert.equal((await request('?action=purge',{id,etag:again.etag},cookie)).status,502);
  assert.deepEqual(await (await request()).json(),[]);
  assert.equal((await request('?action=media&id='+id,null,cookie)).status,404);
  const pending=(await (await request('?admin=1',null,cookie)).json())[0];assert.ok(pending.deleting);assert.equal(pending.published,false);
  assert.equal((await request('',{...draft,published:true,etag:pending.etag},cookie)).status,409,'deleting records cannot be republished');
- assert.equal((await request('?action=delete',{id,etag:pending.etag,mediaPath:'media/do-not-delete'},cookie)).status,200);
+ assert.equal((await request('?action=restore',{id,etag:pending.etag},cookie)).status,409,'a half-removed memory cannot be restored');
+ assert.equal((await request('?action=purge',{id,etag:pending.etag,mediaPath:'media/do-not-delete'},cookie)).status,200);
  assert.deepEqual(deletions.map(d=>d.path),[draft.mediaPath,draft.mediaPath,photo,`records/${id}.json`],'every server-owned album file and its record are deleted');
  assert.deepEqual(await (await request('?admin=1',null,cookie)).json(),[]);
  assert.equal((await request('?action=media&id='+id)).status,404);
  assert.equal((await request('',{...draft,etag:pending.etag},cookie)).status,409,'a stale editor cannot recreate a deleted record');
- assert.equal((await request('?action=delete',{id,etag:pending.etag},cookie)).status,200,'retry after successful deletion is harmless');
+ assert.equal((await request('?action=purge',{id,etag:pending.etag},cookie)).status,200,'retry after successful deletion is harmless');
  assert.equal(deletions.length,4);
 });
 
