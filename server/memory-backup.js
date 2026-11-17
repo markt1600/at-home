@@ -8,7 +8,7 @@ async function listAll(storage,options){
  do{const page=await storage.list({...options,limit:1000,cursor});blobs.push(...page.blobs);cursor=page.hasMore?page.cursor:undefined;}while(cursor);
  return blobs;
 }
-export async function runBackup({source,target,sourceOptions,targetOptions,now=Date.now,budgetMs=240000}){
+export async function runBackup({source,target,sourceOptions,targetOptions,now=Date.now,budgetMs=45000}){
  const started=now(),have=new Map((await listAll(target,targetOptions)).map(b=>[b.pathname,b]));
  // Thumbnails and the catalog index are rebuilt on demand, so they are not copied.
  const wanted=(await listAll(source,sourceOptions)).filter(b=>!b.pathname.startsWith('thumbs/')&&b.pathname!=='records/_index.json');
