@@ -1,6 +1,6 @@
 # House material revision
 
-Asset: `public/art/house-surfaces-v2.png`. Generated with the built-in image-generation tool. This image contains only newly generated material samples; no private source photographs or address details.
+Asset: `public/art/house-surfaces-v2.webp`. Generated with the built-in image-generation tool. This image contains only newly generated material samples; no private source photographs or address details.
 
 The game extracts six tiles and maps them in metres before static mesh batching. Wood floor joins, tinted dark wood and upholstery color variants are applied in code. Bump strengths remain below 1 mm to avoid rough, oversized wall and cabinet grain.
 

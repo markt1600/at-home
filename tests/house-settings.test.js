@@ -15,20 +15,20 @@ test('Christmas mode is public to read, editor-only to change, and stays on unti
  await new Promise(r=>server.listen(0,'127.0.0.1',r));t.after(()=>new Promise(r=>{server.closeAllConnections();server.close(r);}));
  const origin=`http://127.0.0.1:${server.address().port}`,cookie='at_home_editor='+createSession(env);
  const request=(body,headers={})=>fetch(origin+'/api/house-settings',{method:body?'POST':'GET',headers:{...(body?{'Content-Type':'application/json',Origin:origin}:{}),...headers},...(body?{body:JSON.stringify(body)}:{})});
- assert.deepEqual(await (await request()).json(),{christmas:false,storage:true},'off by default, readable without signing in');
+ assert.deepEqual(await (await request()).json(),{christmas:false,occasions:[],storage:true},'off by default, readable without signing in');
  assert.equal((await request({christmas:true})).status,401,'visitors cannot switch it');
  assert.equal((await request({christmas:true},{Cookie:cookie,Origin:'https://elsewhere.example'})).status,403);
  assert.equal((await request({christmas:'yes'},{Cookie:cookie})).status,400,'only true or false');
- assert.deepEqual(await (await request({christmas:true},{Cookie:cookie})).json(),{christmas:true,storage:true});
+ assert.deepEqual(await (await request({christmas:true},{Cookie:cookie})).json(),{christmas:true,occasions:[],storage:true});
  assert.equal(JSON.parse(stored.get('settings/house.json')).christmas,true,'kept in the private store');
- assert.deepEqual(await (await request()).json(),{christmas:true,storage:true},'a new game, device or visitor sees it on');
- assert.deepEqual(await (await request({christmas:false},{Cookie:cookie})).json(),{christmas:false,storage:true});
+ assert.deepEqual(await (await request()).json(),{christmas:true,occasions:[],storage:true},'a new game, device or visitor sees it on');
+ assert.deepEqual(await (await request({christmas:false},{Cookie:cookie})).json(),{christmas:false,occasions:[],storage:true});
  assert.throws(()=>cleanHouseSettings({christmas:1}));
 });
 
 test('the game reads the switch before building the house and falls back to what it last saw',async()=>{
  const memory=new Map(),storage={getItem:k=>memory.get(k)??null,setItem:(k,v)=>memory.set(k,v)};
- const online=await loadHouseSettings({fetch:async()=>new Response(JSON.stringify({christmas:true,storage:true})),storage});
+ const online=await loadHouseSettings({fetch:async()=>new Response(JSON.stringify({christmas:true,occasions:[],storage:true})),storage});
  assert.equal(online.christmas,true);assert.equal(cachedHouseSettings(storage).christmas,true,'remembered for next time');
  const offline=await loadHouseSettings({fetch:async()=>{throw Error('offline');},storage});
  assert.equal(offline.christmas,true,'offline keeps the last answer');

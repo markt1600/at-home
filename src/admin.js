@@ -15,11 +15,12 @@ import {keepableOriginal,originalUpload,keepOriginalsPreference,saveKeepOriginal
 import {pairLivePhotos} from './live-photos.js';
 import {earliestCaptureDate,captureDateNote} from './capture-date.js';
 import {exportLibrary,openExportTarget} from './memory-export.js';
+import {DECORATIONS,MAX_OCCASIONS,occasionDate,todaysOccasions} from './occasions.js';
 
 const root=document.querySelector('#studio');
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let items=[],selected=new URLSearchParams(location.search).get('memory'),session={},busy=false,message='',floorPlan=null,pendingFiles=[],filePreviews=[],pendingReplacements=[],replacementPreviews=[];
-let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined,house={christmas:false,storage:false,known:false},backup=null,exporting=null;
+let libraryQuery='',libraryFilter='all',pendingSoundtrack=undefined,house={christmas:false,occasions:[],storage:false,known:false},backup=null,exporting=null;
 // The prepared copy the house plays → the untouched file it came from, and → its Live Photo motion clip.
 const originalOf=new WeakMap(),liveOf=new WeakMap();
 const RETENTION_DAYS=30,daysLeft=m=>Math.max(0,Math.ceil(RETENTION_DAYS-(Date.now()-Date.parse(m.deletedAt))/86400000));
@@ -36,7 +37,7 @@ async function refresh(){
  for(const m of items)releaseMemoryUrls(m);
  try{items=await loadMemories({cloud:false});}catch(error){items=[];status('Could not read the memories saved in this browser. '+error.message);}
  try{session=await api('?action=session');}catch{session={};}
- try{const r=await fetch('/api/house-settings',{cache:'no-store',credentials:'same-origin'});if(r.ok){const data=await r.json();house={christmas:!!data.christmas,storage:!!data.storage,known:true};}}catch{house={...house,known:false};}
+ try{const r=await fetch('/api/house-settings',{cache:'no-store',credentials:'same-origin'});if(r.ok){const data=await r.json();house={christmas:!!data.christmas,occasions:Array.isArray(data.occasions)?data.occasions:[],storage:!!data.storage,known:true};}}catch{house={...house,known:false};}
  if(session.authenticated)try{const r=await fetch('/api/memory-backup',{cache:'no-store',credentials:'same-origin'});backup=r.ok?await r.json():null;}catch{backup=null;}
  if(session.authenticated)try{const cloud=await api('?admin=1');if(!Array.isArray(cloud))throw Error('The library came back in an unexpected shape.');items.push(...cloud);}catch(error){status('Could not load your cloud memories. Use Refresh library to try again. '+error.message);}
  if(selected!=='new'&&!items.some(m=>m.id===selected))selected=null;   // nothing opens by itself: a selected memory loads its whole album
@@ -76,6 +77,16 @@ function historyPanel(m){
  if(!m.history?.length)return '';
  return `<details class="memory-history"><summary>Earlier versions <small>${m.history.length}</small></summary><p class="fine">The story as it was before each change. Bringing one back fills in the form above; save to keep it.</p><ol>${m.history.map((h,i)=>`<li><div><strong>${esc(h.title)}</strong><small>${h.date?esc(formatMemoryDate(h.date))+' · ':''}changed ${esc(new Date(h.at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}))}</small><p>${esc((h.description||'').slice(0,160))}${(h.description||'').length>160?'…':''}</p></div><button type="button" data-history="${i}">Bring back</button></li>`).join('')}</ol></details>`;
 }
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function occasionsPanel(){
+ const today=todaysOccasions(house.occasions),sorted=house.occasions.map((o,i)=>({...o,i})).sort((a,b)=>a.month-b.month||a.day-b.day);
+ return `<div class="occasions"><h3>Special days</h3><p class="fine">On these dates each year the house puts out balloons in the living room, dining room and entrance, and greets whoever comes in. A memory's own anniversary gets a few balloons by its marker without being listed here.</p>${sorted.length?`<ul>${sorted.map(o=>`<li><span><strong>${esc(o.name)}</strong><small>${esc(occasionDate(o))} · ${esc(DECORATIONS[o.decoration]||'')}${today.includes(house.occasions[o.i])?' · today':''}</small></span><button type="button" data-occasion-remove="${o.i}" aria-label="Remove ${esc(o.name)}">Remove</button></li>`).join('')}</ul>`:''}${house.occasions.length<MAX_OCCASIONS?`<form id="add-occasion"><label>Name<input name="name" maxlength="40" placeholder="Penny’s birthday" required></label><label>Month<select name="month">${MONTHS.map((m,i)=>`<option value="${i+1}">${m}</option>`).join('')}</select></label><label>Day<input name="day" type="number" min="1" max="31" value="1" required></label><label>Decoration<select name="decoration">${Object.entries(DECORATIONS).map(([id,label])=>`<option value="${id}">${label}</option>`).join('')}</select></label><button ${house.storage?'':'disabled'}>Add special day</button></form>`:''}</div>`;
+}
+async function saveOccasions(occasions,done){
+ const r=await fetch('/api/house-settings',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({occasions})}),data=await r.json().catch(()=>({}));
+ if(!r.ok)throw Error(data.error||'Could not update the special days');
+ house={...house,occasions:data.occasions||[],storage:true,known:true};const el=root.querySelector('.occasions');if(el)el.outerHTML=occasionsPanel();status(done);
+}
 function safekeepingPanel(){
  const cloud=items.filter(m=>m.cloud&&!m.deleting),originals=cloud.reduce((n,m)=>n+memoryMedia(m).filter(a=>a.original).length,0),slides=cloud.reduce((n,m)=>n+memoryMedia(m).length,0);
  const status=backup?.status,when=status?.finishedAt&&new Date(status.finishedAt).toLocaleString('en-GB',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
@@ -110,7 +121,7 @@ function render(){
  // link) appears only once the editor password has been accepted.
  const connection=signedIn?'<p class="connection-note">Private storage connected · New uploads start as drafts. Published memories are visible to anyone who can open the game.</p>'
   :`<section class="connection"><div><h2>Sign in to edit memories</h2><p>${session.configured?'Uploads, the library and the music studio unlock once you sign in with the editor password.':session.storage?'Your private store is connected. Set MEMORY_ADMIN_PASSWORD in the At Home Vercel project, then sign in here to upload memories.':'Open this editor on the Vercel deployment and sign in with the editor password to upload memories.'}</p></div>${session.configured?'<form id="login"><label>Editor password<input type="password" name="password" autocomplete="current-password" required></label><button>Sign in</button></form>':''}</section>`;
- const houseSection=signedIn?`<section class="house-settings"><div><h2>The house</h2><p class="fine">Switches here change the house for everyone who opens it, on every device, until you turn them off.</p></div><label class="check"><input type="checkbox" name="christmas" ${house.christmas?'checked':''} ${house.storage?'':'disabled'}><span>🎄 Christmas mode<br><small>The Christmas tree stands in the living room by the turntable, with the bags and presents underneath.${house.storage?'':' Connect the private store to switch it on.'}</small></span></label></section>`:'';
+ const houseSection=signedIn?`<section class="house-settings"><div><h2>The house</h2><p class="fine">Switches here change the house for everyone who opens it, on every device, until you turn them off.</p></div><label class="check"><input type="checkbox" name="christmas" ${house.christmas?'checked':''} ${house.storage?'':'disabled'}><span>🎄 Christmas mode<br><small>The Christmas tree stands in the living room by the turntable, with the bags and presents underneath.${house.storage?'':' Connect the private store to switch it on.'}</small></span></label>${occasionsPanel()}</section>`:'';
  const workspace=signedIn?`<div class="workspace"><aside><button class="primary" data-action="new">+ Add a memory</button><div class="library-heading"><h2>Saved memories</h2><button type="button" data-action="refresh" aria-label="Refresh library">↻</button></div><label class="library-search">Search memories<input type="search" name="library-search" value="${esc(libraryQuery)}" placeholder="Title, story or date"></label><label class="library-filter">Show<select name="library-filter"><option value="all">All memories</option><option value="published">Published</option><option value="draft">Private drafts</option><option value="device">On this device</option><option value="deleted">Recently deleted</option></select></label><div class="library">${libraryContents()}</div></aside><section class="editor">${editorContent(m)}</section></div>`:'';
  root.innerHTML=`<header data-studio-ready><a href="/">At Home.</a><span>Memory studio</span>${signedIn?'<button data-action="logout">Sign out</button>':''}</header><main><section class="intro"><p class="eyebrow">Keep the moments that matter</p><h1>A house full of memories.</h1><p>${signedIn?'Drop in a photo or video, tell its story, and pin the place on your floor plan.':'Photos and videos, their stories, and a pin on the floor plan. Sign in to begin.'}</p></section><p role="status" id="status">${esc(message)}</p>
  ${connection}${houseSection}${workspace}${signedIn?safekeepingPanel():''}</main>`;
@@ -178,7 +189,7 @@ root.addEventListener('change',async e=>{
  if(busy)return;try{
   if(e.target.name==='christmas'){
    const on=e.target.checked;e.target.disabled=true;
-   try{const r=await fetch('/api/house-settings',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({christmas:on})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Could not update the house');house={christmas:!!data.christmas,storage:true,known:true};status(on?'Christmas mode is on: the tree is up in the living room for everyone.':'Christmas mode is off: the tree is packed away.');}
+   try{const r=await fetch('/api/house-settings',{method:'POST',headers:{'Content-Type':'application/json'},credentials:'same-origin',body:JSON.stringify({christmas:on})});const data=await r.json().catch(()=>({}));if(!r.ok)throw Error(data.error||'Could not update the house');house={...house,christmas:!!data.christmas,storage:true,known:true};status(on?'Christmas mode is on: the tree is up in the living room for everyone.':'Christmas mode is off: the tree is packed away.');}
    catch(error){e.target.checked=house.christmas;status(error.message);}
    finally{e.target.disabled=false;}
    return;
@@ -225,6 +236,7 @@ root.addEventListener('click',async e=>{
   if(b.dataset.action==='compress-photos'){await compressExistingPhotos();return;}
   if(b.dataset.action==='remove-soundtrack'){pendingSoundtrack=null;root.querySelector('[name=soundtrack]').value='';root.querySelector('.memory-soundtrack audio')?.pause();root.querySelector('#soundtrack-selection').textContent='No soundtrack — save to apply';return;}
   if(b.dataset.action==='refresh'){clearFile();lock(true);message='';await refresh();return;}
+  if(b.dataset.occasionRemove!==undefined){const gone=house.occasions[Number(b.dataset.occasionRemove)];await saveOccasions(house.occasions.filter(o=>o!==gone),`${gone?.name||'Special day'} removed.`);return;}
   if(b.dataset.action==='export'){await downloadEverything();return;}
   if(b.dataset.action==='backup-now'){
    lock(true);const el=root.querySelector('#backup-status');if(el)el.textContent='Copying new files to the second store… this can take a few minutes.';
@@ -264,6 +276,7 @@ root.addEventListener('submit',async e=>{
  e.preventDefault();if(busy)return;const form=e.target;try{
   // Read fields before disabling controls; disabled controls are omitted by FormData.
   const fields=new FormData(form);
+  if(form.id==='add-occasion'){await saveOccasions([...house.occasions,{name:fields.get('name'),month:Number(fields.get('month')),day:Number(fields.get('day')),decoration:fields.get('decoration')}],`${String(fields.get('name')).trim()} added. The balloons come out on that day each year.`);return;}
   if(form.id==='login'){lock(true);await api('?action=login',{password:fields.get('password')});clearFile();status('Signed in.');await refresh();return;}
   const meta=metadata(form),m=items.find(m=>m.id===selected),position=floorPlan.getPosition();lock(true);
   if(form.id==='new-memory'){

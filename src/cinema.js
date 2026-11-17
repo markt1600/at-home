@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import {planPoint,HOUSE_ROOMS} from './house-layout.js';
 import {memoryMedia} from './memory-media.js';
+import {keepAuthoredColour} from './authored-colour.js';
 
 // The existing generated sky film keeps the screen usable without personal media.
 export const EXPLORATION_MOVIE={id:'house-galaxy-film',title:'A little closer to the stars',type:'video',src:'/art/telescope/galaxy.mp4'};
@@ -12,7 +13,7 @@ export const cinemaVideos=memories=>memories.flatMap(memory=>memoryMedia(memory)
 export class Cinema{
  constructor(world,screen){
   this.world=world;this.screen=screen;this.active=false;this.darkness=0;this.curtains=[];
-  this.face=new THREE.Mesh(new THREE.PlaneGeometry(3.66,1.76),new THREE.MeshBasicMaterial({color:0xe5e5df,toneMapped:false}));
+  this.face=new THREE.Mesh(new THREE.PlaneGeometry(3.66,1.76),keepAuthoredColour(new THREE.MeshBasicMaterial({color:0xe5e5df,toneMapped:false})));
   this.face.position.z=.067;this.face.userData.dynamic=true;this.face.name='Movie playback surface';screen.add(this.face);
   const cloth=new THREE.MeshStandardMaterial({color:0x77736c,roughness:1,side:THREE.DoubleSide}),[cx,cz]=planPoint(405,293);
   for(const wall of world.architectureWalls)for(const a of wall.apertures.filter(a=>a.id.startsWith('theatre-window'))){

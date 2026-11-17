@@ -103,3 +103,5 @@ html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:no
 .memory-year>h3,.memory-today>h3{font:24px Georgia,serif;margin:22px 0 10px;display:flex;align-items:baseline;gap:10px}.memory-year>h3 small{font:12px 'DM Sans',sans-serif;opacity:.65}.memory-year{scroll-margin-top:56px}
 .memory-today{border:1px solid #e3d6a8;background:#fff8dc66;border-radius:14px;padding:4px 16px 14px;margin-bottom:10px}.memory-today>h3{margin-top:12px}
 .memory-list img.memory-thumb{flex:0 0 46px;width:46px;height:46px;object-fit:cover;border-radius:8px;background:#e5e8db}.memory-list .memory-when{display:block;font-size:11px;letter-spacing:.02em;opacity:.75;margin:2px 0}
+.photo-keep{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0;display:grid;gap:10px}.photo-keep .field{margin:0}.photo-keep p{margin:0}
+.pet-spot{margin:4px 0 8px}
