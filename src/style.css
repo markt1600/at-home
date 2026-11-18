@@ -105,3 +105,7 @@ html:not(.touch-device) .wandering:not(.panel-open) #look-hint{pointer-events:no
 .memory-list img.memory-thumb{flex:0 0 46px;width:46px;height:46px;object-fit:cover;border-radius:8px;background:#e5e8db}.memory-list .memory-when{display:block;font-size:11px;letter-spacing:.02em;opacity:.75;margin:2px 0}
 .photo-keep{border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin:14px 0;display:grid;gap:10px}.photo-keep .field{margin:0}.photo-keep p{margin:0}
 .pet-spot{margin:4px 0 8px}
+.touring{cursor:none}.touring .controls,.touring #look-hint,.touring #memory-proximity,.touring .touch-walk,.touring .touch-actions,.touring .top-actions{display:none!important}
+#tour-chip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);margin:0;padding:7px 16px;border-radius:999px;background:#fbf7eacc;color:#405240;font:500 12px 'DM Sans',sans-serif;letter-spacing:.04em;pointer-events:none;animation:tour-chip 9s ease-out forwards;z-index:5}
+@keyframes tour-chip{0%,70%{opacity:1}100%{opacity:0}}
+.touring .memory-panel .slideshow-controls,.touring .memory-panel #memory-error,.touring .memory-panel .dream-return,.touring .memory-panel .close{display:none}.touring #cinema-player{opacity:0;pointer-events:none}

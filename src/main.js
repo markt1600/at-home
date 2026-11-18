@@ -22,6 +22,7 @@ import {cleanMemoryFilter,filterMemories} from './memory-filter.js';
 import {createMemoryVisit,VISIT_MEMORY_LIMIT} from './memory-visit.js';
 import {weatherLabel} from './weather.js';
 import {todaysOccasions} from './occasions.js';
+import {Tour} from './tour.js';
 import {PetDays,TRICKS,LESSONS,WALKERS,favouriteSpot,foundToday,walkedToday,markWalked,practiseTrick,trickLearnt} from './pet-days.js';
 import {saveSoftLightingChoice} from './post-effects.js';
 import {anniversaries,yearsAgo,visitWeight,loadSeen,markSeen,timeline} from './memory-recall.js';
@@ -44,6 +45,7 @@ const session=new HomeSession(savedState);let state=session.state;
 let playing=false,panel=null,selectedPet='miso',voiceStatus='Disconnected',transcript=[],timer=0,savedAt=0,lastContext=0,lastSpoken=0,toastTimer;
 const recordPlayer=new RecordPlayer(sound,{onChange:spinning=>{world.recordPlaying=spinning;updateLookHint(world.lookTarget);},onMessage:toast,onStart:()=>world.turntable.start(),beforePlay:()=>world.turntable.ready(),onStop:()=>world.turntable.stop()});
 let moviePlayer=null,disposeScenePhoto=()=>{},disposeMopsConversation=()=>{};
+let touring=false,autoTour=new URLSearchParams(location.search).has('tour'),tourLock=null;   // tour mode: the house plays itself
 let memories=[],selectedMemory=null,memoryVolume=null,memoryMutedMic=false,memoryPlayer=null,memoryTakesAudio=false;
 const activeMemories=()=>session.exploring?[]:filterMemories(memories,state.memoryFilter);
 let seenMemories=loadSeen(),onThisDayShown=false;
@@ -115,7 +117,8 @@ function updateArtworkStatus(){
  card.closest('.welcome-menu').classList.toggle('house-ready',status.ready);
  card.querySelector('.stack').hidden=!status.ready;
  card.setAttribute('aria-busy',String(status.loading));
- card.querySelectorAll('#continue-game,#new-game,#explore-house').forEach(button=>button.disabled=!status.ready);
+ card.querySelectorAll('#continue-game,#new-game,#explore-house,#tour-house').forEach(button=>button.disabled=!status.ready);
+ if(status.ready&&autoTour&&!playing){autoTour=false;enter(false,{tour:true});}
  let note=$('#house-loading');if(!note){note=document.createElement('div');note.id='house-loading';note.className='fine';note.setAttribute('role','status');card.append(note);}
  note.hidden=status.ready;note.replaceChildren();if(status.ready)return;
  const label=document.createElement('span');label.textContent=status.loading?`Please wait… ${status.preparing?'Finishing':'Loading'} the house — ${Math.round(status.loaded/status.total*100)}%`:'Some artwork could not load. Check your connection and try again. ';note.append(label);
@@ -139,10 +142,11 @@ function stopCinema(){if(!world.cinema.active)return;moviePlayer?.dispose();movi
 function save(){if(!playing&&!session.hasSavedGame)return;try{session.save(localStorage);}catch{}}
 function toast(text){const el=$('#toast');el.textContent=text;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),6500);}
 function renderMenu(){
- app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Choose how to enjoy the house"><div class="stack" hidden>${session.hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${session.hasSavedGame?'':'primary'}" id="new-game" disabled>${session.hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button><button id="explore-house" disabled>Explore the house <span>↗</span></button></div></section></main>`;
+ app.innerHTML=`<main class="welcome welcome-menu"><h1>At Home<span>.</span></h1><section class="welcome-card" aria-label="Choose how to enjoy the house"><div class="stack" hidden>${session.hasSavedGame?'<button class="primary" id="continue-game" disabled>Continue game <span>↗</span></button>':''}<button class="${session.hasSavedGame?'':'primary'}" id="new-game" disabled>${session.hasSavedGame?'Start a new game':'Start game'} <span>↗</span></button><button id="explore-house" disabled>Explore the house <span>↗</span></button><button id="tour-house" disabled>Watch the house <span>▷</span></button></div></section></main>`;
  if(session.hasSavedGame)$('#continue-game').onclick=()=>enter();
  $('#new-game').onclick=()=>startFreshVisit(false);
  $('#explore-house').onclick=()=>startFreshVisit(true);
+ $('#tour-house').onclick=()=>enter(false,{tour:true});
  updateArtworkStatus();
 }
 async function startFreshVisit(explore){
@@ -150,15 +154,17 @@ async function startFreshVisit(explore){
  stopCinema();recordPlayer.stop();world.movableFurniture.reset();world.shoeTidy.reset();world.clawGame.reset();world.pinballGame.reset();world.kitchenStove.setRunning(false);world.turntable.reset();world.hallwayCandle.reset();
  state=session.startNew(explore);selectedMemory=null;world.focus('living');world.hours=state.hours;await enter(true);
 }
-async function enter(fresh=false){
+async function enter(fresh=false,{tour:watch=false}={}){
  if(!world.artwork.ready)return;
  seenMemories=loadSeen();onThisDayShown=false;memoryVisit.reset();syncMemories();petDays.reset();
- playing=true;world.mode='play';world.paused=false;world.hours=state.hours;world.syncPets(state);save();renderHUD();world.resumeWandering();
- if(fresh)world.greetPlayer();
- try{await sound.start();sound.setVolume(.65);recordPlayer.setVolume(.65);}catch{toast('Sound could not start. You can try the Sound button.');}
+ playing=true;world.mode='play';world.paused=false;world.hours=state.hours;world.syncPets(state);save();renderHUD();if(watch)startTour();else world.resumeWandering();
+ if(fresh&&!watch)world.greetPlayer();
+ // Opened straight into the tour, the browser may hold sound back until the first click; do not wait on it.
+ try{await (watch?Promise.race([sound.start(),new Promise(resolve=>setTimeout(resolve,1200))]):sound.start());sound.setVolume(.65);recordPlayer.setVolume(.65);}catch{toast('Sound could not start. You can try the Sound button.');}
  if(state.personalized){lastSpoken=timer;speech.play({kind:'home',cue:0,name:state.name});}
  const special=todaysOccasions(houseSettings.occasions).map(o=>o.name).join(' and '),hello=special?`Today is ${special}. `:'';
- toast(hello+(touchMode()?'Welcome home. Use the left thumb pad to walk, and drag the view to look around.':'Welcome home. WASD to wander · Mouse to look · Click or E to interact · Space to jump · H for keys'));
+ toast(hello+(watch?'Welcome home. The house is showing itself around.':touchMode()?'Welcome home. Use the left thumb pad to walk, and drag the view to look around.':'Welcome home. WASD to wander · Mouse to look · Click or E to interact · Space to jump · H for keys'));
+ if(watch)return announceOnThisDay();
  setTimeout(()=>$('#controls')?.classList.add('quiet-controls'),14000);
  announceOnThisDay();
 }
@@ -208,7 +214,7 @@ function panelHTML(type){
  if(type==='voice')return heading('A little company','Your home companion','Talk about your day, your pets or whatever is on your mind.')+`<p class="status" id="voice-status">${escape(voiceStatus)}</p><div class="stack"><button class="primary" data-action="connect">${companion.session?'Reconnect':'Connect microphone'} <span>↗</span></button><div class="inline-buttons"><button data-action="mute">${companion.muted?'Unmute microphone':'Mute microphone'}</button><button data-action="disconnect">Disconnect</button></div></div><p class="fine">Connecting shares microphone audio with the voice service. Your nickname and current game context help keep the conversation relevant. Disconnect at any time.</p><div class="transcript" id="transcript" aria-live="polite"></div><p class="fine" id="audio-note"></p>`;
  if(type==='help'&&touchMode())return heading('Make yourself at home','Touch controls','Use the left thumb pad to walk. Drag the view to look around. Tap a nearby object or its message to interact, or use the Interact button. Tap Jump to climb onto furniture.')+`<div class="stack"><button data-panel="rooms">Go to a room</button>${session.exploring?'':'<button data-panel="memories">Memories</button>'}<button data-panel="pets">Our pets</button><button data-panel="rituals">Little rituals</button><button data-panel="journal">Journal</button><button data-action="resume">Back to my day ↗</button></div>`;
  if(type==='help')return heading('Leave the menus behind','A few simple keys')+`<dl class="key-guide"><dt>W A S D</dt><dd>Walk around the house</dd><dt>Mouse</dt><dd>Look around · wandering resumes when you close a popup</dd><dt>Click or E</dt><dd>Use the action shown: care for a pet, use an object${session.exploring?'':' or relive a nearby memory'}</dd><dt>1–9</dt><dd>Choose a numbered popup option</dd><dt>↑ ↓ / Tab</dt><dd>Move between choices · Enter to select</dd><dt>Space</dt><dd>Jump onto furniture${session.exploring?'':' · pause a memory or slideshow'}</dd><dt>Esc</dt><dd>Close a popup or pause your walk</dd><dt>${session.exploring?'P · R':'M · P · R'}</dt><dd>${session.exploring?'':'Memories · '}Pets · Little rituals</dd><dt>J · V</dt><dd>Journal · Voice</dd><dt>O · H</dt><dd>Room shortcuts · This guide</dd></dl><div class="stack"><button data-action="resume">Back to my day ↗</button>${session.exploring?'':'<button data-action="admin">Edit memories ↗</button>'}</div>`;
- if(type==='settings')return heading('Take your time','A moment to pause','The house and your pets will wait for you.')+'<div class="stack"><button data-panel="photo">Take a photo <span>▧</span></button></div>'+(session.exploring?'<p class="fine">Exploring the house · Memories are hidden. Your saved game is unchanged.</p>':memoryFilterHTML())+`${world.handInteraction.active?'<button data-action="cancel-hand-action">Cancel current interaction</button>':''}<label class="field">The pace of the day<select id="pace">${[[0,'Hold this time of day'],[.5,'Slow · 40 minutes per day'],[1,'Easy · 20 minutes per day'],[2,'Quick · 10 minutes per day']].map(([v,t])=>`<option value="${v}" ${state.pace===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="field">Soft lighting <small>contact shadows and a glow around lamps</small><select id="soft-lighting">${[['auto',`Automatic · ${world.post.enabled?'on':world.softLightingStruggled?'off, to keep things smooth':'off on this device'}`],['on','Always on'],['off','Off']].map(([v,t])=>`<option value="${v}" ${world.softLighting===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="check"><input type="checkbox" id="motion" ${world.motion?'checked':''}><span>Character animations & gentle walking motion</span></label><label class="check"><input type="checkbox" id="personalized-setting" ${state.personalized?'checked':''}><span>Include my name in spoken greetings</span></label><div class="inline-buttons"><button data-rest="6">Rest until sunrise</button><button data-rest="18">Skip to sunset</button></div><div class="stack"><button class="primary" data-action="resume">Back to my day <span>↗</span></button><button data-panel="help">Controls & places</button>${session.exploring?'':'<button data-action="admin">Edit memories</button>'}<button data-action="leave">${session.exploring?'Leave exploration':'Save & leave'}</button></div><p class="fine">${session.exploring?'This visit is temporary. Continue game returns to your saved progress.':'Your progress is saved automatically on this device. There is no win or lose state. Care, explore and enjoy the passing day.'}</p>`;
+ if(type==='settings')return heading('Take your time','A moment to pause','The house and your pets will wait for you.')+`<div class="stack"><button data-panel="photo">Take a photo <span>▧</span></button>${session.exploring?'':'<button data-action="tour">Let the house play itself <span>▷</span></button>'}</div>`+(session.exploring?'<p class="fine">Exploring the house · Memories are hidden. Your saved game is unchanged.</p>':memoryFilterHTML())+`${world.handInteraction.active?'<button data-action="cancel-hand-action">Cancel current interaction</button>':''}<label class="field">The pace of the day<select id="pace">${[[0,'Hold this time of day'],[.5,'Slow · 40 minutes per day'],[1,'Easy · 20 minutes per day'],[2,'Quick · 10 minutes per day']].map(([v,t])=>`<option value="${v}" ${state.pace===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="field">Soft lighting <small>contact shadows and a glow around lamps</small><select id="soft-lighting">${[['auto',`Automatic · ${world.post.enabled?'on':world.softLightingStruggled?'off, to keep things smooth':'off on this device'}`],['on','Always on'],['off','Off']].map(([v,t])=>`<option value="${v}" ${world.softLighting===v?'selected':''}>${t}</option>`).join('')}</select></label><label class="check"><input type="checkbox" id="motion" ${world.motion?'checked':''}><span>Character animations & gentle walking motion</span></label><label class="check"><input type="checkbox" id="personalized-setting" ${state.personalized?'checked':''}><span>Include my name in spoken greetings</span></label><div class="inline-buttons"><button data-rest="6">Rest until sunrise</button><button data-rest="18">Skip to sunset</button></div><div class="stack"><button class="primary" data-action="resume">Back to my day <span>↗</span></button><button data-panel="help">Controls & places</button>${session.exploring?'':'<button data-action="admin">Edit memories</button>'}<button data-action="leave">${session.exploring?'Leave exploration':'Save & leave'}</button></div><p class="fine">${session.exploring?'This visit is temporary. Continue game returns to your saved progress.':'Your progress is saved automatically on this device. There is no win or lose state. Care, explore and enjoy the passing day.'}</p>`;
  return '';
 }
 function updateTranscript(){const el=$('#transcript');if(el){el.innerHTML=transcript.map(m=>`<p><strong>${escape(m.who)}</strong>${escape(m.text)}</p>`).join('');el.scrollTop=el.scrollHeight;}}
@@ -235,6 +241,7 @@ app.addEventListener('click',async e=>{
  if(d.ritual){const a=ACTIVITIES[d.ritual];world.focus(d.ritual==='record'?'turntable':a.room);let text=a.text;if(d.ritual==='record'){closePanel();await toggleRecord();if(!recordPlayer.enabled)text='You let the record rest. The house settles into quiet.';}remember(state,text);if(d.ritual!=='record')closePanel();sound.care();toast(text);save();return;}
  if(d.rest){restUntil(state,Number(d.rest));world.hours=state.hours;world.syncPets(state);closePanel();world.focus('balcony');updateHUD();save();return;}
  switch(d.action){
+  case 'tour':closePanel(false);startTour();break;
   case 'pet-walk':if(petDays.startWalk(selectedPet)){closePanel();toast(`${petName(selectedPet)} is coming with you. Walk out onto a balcony and stay a little while.`);}break;
   case 'pet-walk-stop':petDays.endWalk(false);openPanel('pets');break;
   case 'shuffle-memories':memoryVisit.reset();syncMemories();$('#filter-status').textContent=memoryVisitStatus();break;
@@ -247,7 +254,7 @@ app.addEventListener('click',async e=>{
   case 'view-pet':world.lookAtPet(selectedPet);closePanel();toast(`Enjoy a moment with ${PETS.find(p=>p.id===selectedPet).name}. ${touchMode()?'Tap Interact':'Click or press E'} to care for them.`);break;
   case 'resume':closePanel();break;
   case 'cancel-hand-action':world.handInteraction.cancel();closePanel();break;
-  case 'leave':petDays.reset();world.handInteraction.cancel();disposeTouchControls();stopCinema();recordPlayer.stop();world.handInteraction.cancel();save();closePanel(false);await companion.disconnect();speech.stop();sound.setVolume(0);playing=false;world.mode='menu';state=session.leave();world.hours=state.hours;world.syncPets(state);syncMemories();renderMenu();break;
+  case 'leave':stopTour(false);petDays.reset();world.handInteraction.cancel();disposeTouchControls();stopCinema();recordPlayer.stop();world.handInteraction.cancel();save();closePanel(false);await companion.disconnect();speech.stop();sound.setVolume(0);playing=false;world.mode='menu';state=session.leave();world.hours=state.hours;world.syncPets(state);syncMemories();renderMenu();break;
   case 'connect':try{speech.stop();if(companion.session)await companion.disconnect();await companion.connect(import.meta.env.ELEVENLABS_AGENT_ID,contextForVoice(state,world.room),state.name);}catch{$('#voice-status').textContent=import.meta.env.ELEVENLABS_AGENT_ID?'Could not connect. Check microphone permission and try again.':'Voice chat is not set up yet. Add a friendly companion agent to this deployment.';}break;
   case 'mute':companion.mute();b.textContent=companion.muted?'Unmute microphone':'Mute microphone';break;
   case 'disconnect':await companion.disconnect();break;
@@ -261,6 +268,43 @@ function activateTarget(id,ray=null){
  if(id==='turntable'){toggleRecord();return;}
  if(PETS.some(p=>p.id===id)){selectedPet=id;world.lookAtPet(id);openPanel('pets');}
 }
+// Tour mode: the house plays itself (src/tour.js). Everything it does goes through
+// the same functions a player's clicks reach.
+const wander=world.resumeWandering.bind(world);
+world.resumeWandering=()=>{if(!touring)wander();};   // closing a panel must not hand the camera back to the mouse mid-tour
+const tour=new Tour({
+ world,state:()=>state,panel:()=>panel,closePanel:()=>closePanel(false),toast,
+ memories:()=>visitMemories,
+ openMemory:id=>{if(id===undefined)return memories.find(m=>m.id===selectedMemory)||null;if(panel||!memories.some(m=>m.id===id))return false;selectedMemory=id;openPanel('memory');return panel==='memory';},
+ neediest:id=>Object.entries(state.pets[id]).sort((a,b)=>a[1]-b[1])[0][0],
+ care:(id,action)=>{const message=careForPet(state,id,action);if(!message)return;if(id==='mops')sound.moflin(action);else{world.showCare(id,action);sound.care();}toast(message);save();},
+ trick:(id,trick)=>{const result=practiseTrick(state,id,trick);if(!result)return;if(result.performed){world.showCare(id,'affection');petDays.perform(id);sound.care();if(result.journal)remember(state,result.journal);save();toast(result.message);}},
+ startWalk:id=>{const started=petDays.startWalk(id);if(started)toast(`${petName(id)} is coming out to the balcony.`);return started;},walking:()=>!!petDays.walk,endWalk:()=>petDays.endWalk(false),
+ activate:id=>activateTarget(id),toggleRecord:()=>toggleRecord(),musicPlaying:()=>recordPlayer.enabled,
+ canScreen:()=>cinemaShows(activeMemories()).length>0,startCinema:()=>{if(!world.cinema.active)world.onCinemaPlay();return world.cinema.active;},stopCinema:()=>stopCinema(),
+ leaveTelescope:()=>world.telescope.leave(),rain:()=>world.daylight.weather.amount,
+ ritual:key=>{const text=ACTIVITIES[key].text;remember(state,text);sound.care();toast(text);save();},
+ rest:()=>{restUntil(state,6);world.hours=state.hours;world.syncPets(state);updateHUD();save();toast('You sleep until the first light.');}
+});
+async function keepScreenOn(){if(!touring||tourLock||document.visibilityState!=='visible')return;try{tourLock=await navigator.wakeLock?.request('screen');tourLock?.addEventListener('release',()=>{tourLock=null;});}catch{}}
+function startTour(){
+ if(touring||!playing||session.exploring)return;
+ touring=true;world.unlock();document.body.classList.add('touring');
+ const chip=document.createElement('p');chip.id='tour-chip';chip.setAttribute('role','status');chip.textContent=touchMode()?'Tour · tap to take over':'Tour · press any key to take over';app.append(chip);
+ tour.start();keepScreenOn();
+}
+function stopTour(announce=true){
+ if(!touring)return;touring=false;tour.stop();document.body.classList.remove('touring');$('#tour-chip')?.remove();tourLock?.release().catch(()=>{});tourLock=null;
+ if(announce&&playing){if(!panel)world.resumeWandering();toast('You have the controls. Pause has “Let the house play itself” to start the tour again.');}
+}
+// Any key, click or touch hands the house back. If the browser was holding sound
+// back (a tour opened by link, with no click yet), the first one only starts the sound.
+for(const type of ['keydown','pointerdown'])window.addEventListener(type,e=>{
+ if(!touring||e.repeat||['F11','Shift','Control','Alt','Meta','AudioVolumeUp','AudioVolumeDown','AudioVolumeMute'].includes(e.key))return;   // fullscreen and volume keys are not taking over
+ if(sound.ctx&&sound.ctx.state!=='running'){sound.start().catch(()=>{});return;}
+ e.stopPropagation();if(type==='keydown')e.preventDefault();stopTour();
+},true);
+document.addEventListener('visibilitychange',keepScreenOn);
 function interact(){if(!playing||panel||world.paused||world.telescope.active)return;
  if(world.massage.active){world.massage.cancel();return;}
  if(world.handInteraction.active){if(world.lookTarget==='turntable'&&world.handInteraction.owner===world.turntable)toggleRecord();return;}

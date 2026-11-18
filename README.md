@@ -40,6 +40,23 @@ In a pet's panel (P):
 
 Progress is saved with the game. `src/pet-days.js`.
 
+## Tour mode: the house plays itself
+
+Choose **Watch the house** on the opening screen, **Let the house play itself** in Pause, or open the site with `?tour` on the address (`https://athome.marktan.ai/?tour`) to start it as soon as the house has loaded. Any key, click or tap hands the controls back.
+
+The tour walks through the house on the same clear-floor grid the pets use, with the game's own movement, so steps, stairs, head bob and footsteps are the real ones. Nothing is scripted in order. Each next thing is a weighted random draw that never repeats the last kind:
+
+- walking to one of the authored viewpoints, or to a random open spot, and looking around;
+- visiting a pet (each in turn, most of the time): crouching to watch, then sometimes feeding, watering or keeping it company, sometimes a trick lesson, sometimes a walk out to a balcony together;
+- reliving a memory at its marker or from a picture frame, staying for every photo or to the end of the film;
+- putting a record on (or lifting the needle later), with your uploaded music;
+- the candle, fridge, stove, massage chair and Leo's bone; a little ritual; the telescope; a memory on the cinema screen;
+- late at night, going to bed and waking at sunrise.
+
+Walking pace, pauses on the way, sideways glances, how long it stays and which route it takes between two rooms all vary. If something is in the way (a pet, a nudged chair) it finds another route. The day, the weather, special days and On this day carry on as usual, and what the tour does is saved with the game like anything you do yourself.
+
+**On a TV.** Open the `?tour` address in Chrome on a computer or stick connected to the TV and press F11 for full screen. Browsers hold sound back until the page has been clicked once; that first click only starts the sound. The screen is kept awake while the tour runs. Nothing is sent anywhere: this is the same game, playing in that browser. `src/tour.js`.
+
 ## Photos become memories
 
 **Take a photo** in Pause now has **Keep as a memory**, with a title suggested from the room and any pets in the frame. If you are signed in to the memory studio in this browser the photo is uploaded as a private draft; otherwise it is saved on the device. Either way its marker is where you stood, dated today. `src/photo-memory.js`.
