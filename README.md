@@ -42,7 +42,7 @@ Progress is saved with the game. `src/pet-days.js`.
 
 ## Tour mode: the house plays itself
 
-Choose **Watch the house** on the opening screen, **Let the house play itself** in Pause, or open the site with `?tour` on the address (`https://athome.marktan.ai/?tour`) to start it as soon as the house has loaded. Any key, click or tap hands the controls back.
+Choose **Tour the house** on the opening screen. Any key, click or tap hands the controls back; to start it again, choose Save & leave in Pause and pick it from the opening screen.
 
 The tour walks through the house on the same clear-floor grid the pets use, with the game's own movement, so steps, stairs, head bob and footsteps are the real ones. Nothing is scripted in order. Each next thing is a weighted random draw that never repeats the last kind:
 
@@ -55,7 +55,7 @@ The tour walks through the house on the same clear-floor grid the pets use, with
 
 Walking pace, pauses on the way, sideways glances, how long it stays and which route it takes between two rooms all vary. If something is in the way (a pet, a nudged chair) it finds another route. The day, the weather, special days and On this day carry on as usual, and what the tour does is saved with the game like anything you do yourself.
 
-**On a TV.** Open the `?tour` address in Chrome on a computer or stick connected to the TV and press F11 for full screen. Browsers hold sound back until the page has been clicked once; that first click only starts the sound. The screen is kept awake while the tour runs. Nothing is sent anywhere: this is the same game, playing in that browser. `src/tour.js`.
+**On a TV.** Open the site in Chrome on a computer or stick connected to the TV, choose Tour the house and press F11 for full screen. The screen is kept awake while the tour runs. Nothing is sent anywhere: this is the same game, playing in that browser. `src/tour.js`.
 
 ## Photos become memories
 
